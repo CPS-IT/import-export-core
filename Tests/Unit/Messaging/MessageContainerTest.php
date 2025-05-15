@@ -15,40 +15,28 @@ class MessageContainerTest extends TestCase
         $this->subject = new MessageContainer();
     }
 
-    /**
-     * @test
-     */
-    public function addMessageStoresMessageAndSeverity(): void
+    public function testAddMessageStoresMessageAndSeverity(): void
     {
         $this->subject->addMessage('test message', 1);
-        
+
         $messages = $this->subject->getMessages();
         $this->assertCount(1, $messages);
         $this->assertEquals('test message', $messages[0]['message']);
         $this->assertEquals(1, $messages[0]['severity']);
     }
 
-    /**
-     * @test
-     */
-    public function hasMessagesReturnsFalseInitially(): void
+    public function testHasMessagesReturnsFalseInitially(): void
     {
         $this->assertFalse($this->subject->hasMessages());
     }
 
-    /**
-     * @test
-     */
-    public function hasMessagesReturnsTrueAfterAddingMessage(): void
+    public function testHasMessagesReturnsTrueAfterAddingMessage(): void
     {
         $this->subject->addMessage('test message');
         $this->assertTrue($this->subject->hasMessages());
     }
 
-    /**
-     * @test
-     */
-    public function clearMessagesRemovesAllMessages(): void
+    public function testClearMessagesRemovesAllMessages(): void
     {
         $this->subject->addMessage('test message');
         $this->subject->clearMessages();
