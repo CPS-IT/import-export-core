@@ -1,0 +1,25 @@
+{
+    "name": "cpsit/import-export-core",
+    "description": "Core library for import/export functionality",
+    "type": "library",
+    "license": "GPL-2.0-or-later",
+    "authors": [
+        {
+            "name": "Dirk Wenzel",
+            "email": "wenzel@cps-it.de"
+        }
+    ],
+    "require": {
+        "php": ">=8.4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "CPSIT\\ImportExportCore\\": "Classes"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "CPSIT\\ImportExportCore\\Tests\\": "Tests"
+        }
+    }
+}
