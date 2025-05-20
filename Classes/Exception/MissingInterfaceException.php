@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace CPSIT\T3importExport;
+namespace CPSIT\ImportExportCore\Exception;
 
 /***************************************************************
  *
