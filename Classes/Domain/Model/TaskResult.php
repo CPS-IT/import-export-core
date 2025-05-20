@@ -6,9 +6,11 @@ namespace CPSIT\ImportExportCore\Domain\Model;
 
 use CPSIT\ImportExportCore\Messaging\MessageContainer;
 use CPSIT\ImportExportCore\Messaging\MessageContainerInterface;
+use CPSIT\ImportExportCore\Messaging\MessageContainerTrait;
 
 class TaskResult implements \Iterator
 {
+    use MessageContainerTrait;
     protected int $position = 0;
     protected array $list = [];
     protected int $size = 0;
@@ -98,6 +100,7 @@ class TaskResult implements \Iterator
     }
 
     /**
+     * @param int $index
      * @return bool
      */
     public function removeIndex(int $index): bool
@@ -148,7 +151,7 @@ class TaskResult implements \Iterator
     public function getAndPurgeMessages(): array
     {
         $messages = $this->messageContainer->getMessages();
-        $this->messageContainer->clear();
+        $this->messageContainer->clearMessages();
 
         return $messages;
     }
