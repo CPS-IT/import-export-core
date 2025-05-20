@@ -17,7 +17,7 @@ interface PreProcessorInterface extends ComponentInterface
      * @param array $record
      * @return bool
      */
-    public function process(array $configuration, array $record): bool;
+    public function process(array $configuration, array &$record): bool;
 
     public function isConfigurationValid(array $configuration): bool;
 
