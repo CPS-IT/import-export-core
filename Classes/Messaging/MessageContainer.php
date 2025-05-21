@@ -11,9 +11,8 @@ class MessageContainer implements MessageContainerInterface
 
     public function addMessage(MessageInterface $message): void
     {
-        $this->messages[] = [
-            'message' => $message->getMessage(),
-        ];
+        $this->messages[] = $message;
+
     }
 
     /**
