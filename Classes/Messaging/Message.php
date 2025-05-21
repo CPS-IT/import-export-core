@@ -78,4 +78,5 @@ class Message implements MessageInterface
     public function setAdditionalInformation(array $additionalInformation)
     {
         $this->additionalInformation = $additionalInformation;
+    }
 }
