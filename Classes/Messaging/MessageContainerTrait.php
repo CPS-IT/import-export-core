@@ -10,9 +10,9 @@ namespace CPSIT\ImportExportCore\Messaging;
  */
 trait MessageContainerTrait
 {
-    protected MessageContainerInterface $messageContainer;
+    protected MessageContainer $messageContainer;
 
-    public function __construct(?MessageContainerInterface $messageContainer = null)
+    public function __construct(?MessageContainer $messageContainer = null)
     {
         $this->messageContainer = $messageContainer ?? new MessageContainer();
     }
