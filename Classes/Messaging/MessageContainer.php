@@ -9,10 +9,10 @@ class MessageContainer implements MessageContainerInterface
 {
     protected array $messages = [];
 
-    public function addMessage(string $message, int $severity = 0): void
+    public function addMessage(MessageInterface $message): void
     {
         $this->messages[] = [
-            'message' => $message,
+            'message' => $message->getMessage(),
             'severity' => $severity
         ];
     }
