@@ -6,4 +6,4 @@ services:
   CPSIT\ImportExportCore\:
     resource: '../Classes/*'
 
-  CPSIT\ImportExportCore\Messaging\MessageContainerInterface: '@ImportExportCore\Messaging\MessageContainer'
+  #CPSIT\ImportExportCore\Messaging\MessageContainerInterface: '@ImportExportCore\Messaging\MessageContainer'
