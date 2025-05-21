@@ -33,7 +33,7 @@ trait MessageContainerTrait
     public function getAndPurgeMessages(): array
     {
         $messages = $this->messageContainer->getMessages();
-        $this->messageContainer->clear();
+        $this->messageContainer->clearMessages();
 
         return $messages;
     }

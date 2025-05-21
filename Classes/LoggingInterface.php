@@ -40,6 +40,12 @@ use CPSIT\ImportExportCore\Messaging\MessageInterface;
  */
 interface LoggingInterface
 {
+    public const ERROR_UNKNOWN_MESSAGE = 'Unknown message';
+    public const ERROR_UNKNOWN_TITLE = 'Unknown title';
+    public const NOTICE_UNKNOWN_MESSAGE = 'Unknown message';
+    public const NOTICE_UNKNOWN_TITLE = 'Unknown title';
+    public const DEFAULT_MESSAGE_TITLE = 'Unknown message title';
+    public const DEFAULT_UNKNOWN_MESSAGE = 'Unknown message';
     /**
      * Returns error codes for current component.
      * Must be an array in the form
