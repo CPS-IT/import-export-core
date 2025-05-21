@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace CPSIT\T3importExport\Component;
+namespace CPSIT\ImportExportCore\Component;
 
 use CPSIT\ImportExportCore\Component\ComponentInterface;
 
