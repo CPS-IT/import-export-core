@@ -13,7 +13,6 @@ class MessageContainer implements MessageContainerInterface
     {
         $this->messages[] = [
             'message' => $message->getMessage(),
-            'severity' => $severity
         ];
     }
 
@@ -22,7 +21,7 @@ class MessageContainer implements MessageContainerInterface
      *
      * @param array $messages
      */
-    public function addMessages($messages): void
+    public function addMessages(array $messages): void
     {
         foreach ($messages as $message) {
             $this->addMessage($message);

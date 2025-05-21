@@ -15,7 +15,6 @@ class TaskResult implements \Iterator
     protected array $list = [];
     protected int $size = 0;
     protected mixed $info = null;
-    protected MessageContainerInterface $messageContainer;
 
     /**
      * TaskResult constructor.
