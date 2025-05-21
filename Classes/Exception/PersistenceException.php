@@ -9,6 +9,6 @@ declare(strict_types=1);
  * of the License, or any later version.
  */
 
-namespace CPSIT\T3importExport\Exception;
+namespace CPSIT\ImportExportCore\Exception;
 
 class PersistenceException extends \Exception {}
