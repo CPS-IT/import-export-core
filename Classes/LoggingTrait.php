@@ -127,7 +127,7 @@ trait LoggingTrait
      * @param string $default Default title
      * @return string
      */
-    protected function renderTitle($id, array $codes, $default = LoggingInterface::DEFAULT_MESSAGE_TITLE): string
+    public function renderTitle($id, array $codes, $default = LoggingInterface::DEFAULT_MESSAGE_TITLE): string
     {
         if (isset($codes[$id])) {
             $title = $codes[$id][0];
