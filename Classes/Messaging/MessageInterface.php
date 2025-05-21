@@ -33,4 +33,10 @@ interface MessageInterface
      * Returns additional information
      */
     public function getAdditionalInformation(): ?array;
+
+    /**
+     * @param array $additionalInformation
+     * @return void
+     */
+    public function setAdditionalInformation(array $additionalInformation): void;
 }
