@@ -1,0 +1,9 @@
+services:
+  _defaults:
+    autowire: true
+    autoconfigure: true
+    public: false
+  CPSIT\ImportExportCore\:
+    resource: '../Classes/*'
+
+  CPSIT\ImportExportCore\Messaging\MessageContainerInterface: '@ImportExportCore\Messaging\MessageContainer'
