@@ -55,10 +55,8 @@ interface TransferTaskInterface
 
     /**
      * Gets the source of import
-     *
-     * @return DataSourceInterface
      */
-    public function getSource(): DataSourceInterface;
+    public function getSource(): ?DataSourceInterface;
 
     /**
      * Sets the source of import
@@ -67,10 +65,8 @@ interface TransferTaskInterface
 
     /**
      * Gets the target of import
-     *
-     * @return DataTargetInterface
      */
-    public function getTarget(): DataTargetInterface;
+    public function getTarget(): ?DataTargetInterface;
 
     /**
      * Sets the target of import
