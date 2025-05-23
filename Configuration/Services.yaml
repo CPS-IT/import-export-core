@@ -9,15 +9,18 @@ services:
   CPSIT\ImportExportCore\Messaging\MessageContainer:
     public: true
   #CPSIT\ImportExportCore\Messaging\MessageContainerInterface: '@ImportExportCore\Messaging\MessageContainer'
-  
+
   # YAML Configuration services
   CPSIT\ImportExportCore\Service\YamlConfigurationParser:
     public: true
-    
+
   CPSIT\ImportExportCore\Configuration\YamlConfigurationLoader:
     public: true
     arguments:
       $parser: '@CPSIT\ImportExportCore\Service\YamlConfigurationParser'
-    
+
   CPSIT\ImportExportCore\Configuration\ConfigurationManager:
+    public: true
+
+  CPSIT\ImportExportCore\Configuration\YamlConfigurationProvider:
     public: true
