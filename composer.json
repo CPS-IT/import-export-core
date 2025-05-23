@@ -36,7 +36,7 @@
     },
     "autoload": {
         "psr-4": {
-            "CPSIT\\ImportExportCore\\": "Classes"
+            "CPSIT\\ImportExportCore\\": "Classes/"
         }
     },
     "autoload-dev": {
@@ -44,7 +44,7 @@
             "org\\bovigo\\vfs\\": ".Build/vendor/mikey179/vfsstream/src/main/php"
         },
         "psr-4": {
-            "CPSIT\\ImportExportCore\\Tests\\": "Tests"
+            "CPSIT\\ImportExportCore\\Tests\\": "Tests/"
         }
     },
     "config": {
