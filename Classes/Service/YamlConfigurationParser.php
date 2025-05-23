@@ -1,7 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace CPSIT\ImportExportCore\Service;
+
+use CPSIT\ImportExportCore\Exception\FileNotFoundException;
+use CPSIT\ImportExportCore\Exception\ParseException;
 use Symfony\Component\Yaml\Yaml;
+use Symfony\Component\Yaml\Exception\ParseException as SymfonyParseException;
 
 /***************************************************************
  *  Copyright notice
@@ -19,11 +25,46 @@ use Symfony\Component\Yaml\Yaml;
  * GNU General Public License for more details.
  * This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
+
+/**
+ * Service for parsing YAML configuration files.
+ */
 class YamlConfigurationParser
 {
-    public function parseFile(string $filePath)
+    /**
+     * Parse a YAML file and return the configuration array
+     *
+     * @param string $filePath Path to YAML file
+     * @return array Parsed configuration
+     * @throws FileNotFoundException If file does not exist
+     * @throws ParseException If YAML parsing fails
+     */
+    public function parseFile(string $filePath): array
     {
-
+        if (!file_exists($filePath)) {
+            throw new FileNotFoundException('Configuration file not found: ' . $filePath, 1624543211);
+        }
+        
+        try {
+            return Yaml::parseFile($filePath);
+        } catch (SymfonyParseException $e) {
+            throw new ParseException('Error parsing YAML file: ' . $e->getMessage(), 1624543212, $e);
+        }
     }
-
+    
+    /**
+     * Parse YAML string and return the configuration array
+     *
+     * @param string $yamlContent YAML content
+     * @return array Parsed configuration
+     * @throws ParseException If YAML parsing fails
+     */
+    public function parseString(string $yamlContent): array
+    {
+        try {
+            return Yaml::parse($yamlContent);
+        } catch (SymfonyParseException $e) {
+            throw new ParseException('Error parsing YAML content: ' . $e->getMessage(), 1624543213, $e);
+        }
+    }
 }

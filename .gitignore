@@ -1,0 +1,15 @@
+# Build files
+/.Build/
+/composer.lock
+/.php-cs-fixer.cache
+/.phpunit.result.cache
+
+# Coverage reports
+/coverage/
+/coverage.xml
+
+# Other
+.DS_Store
+.idea
+.vscode
+*.cache

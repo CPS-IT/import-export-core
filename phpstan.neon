@@ -1,0 +1,9 @@
+parameters:
+  level: max
+  paths:
+    - Classes
+  excludePaths:
+    analyse:
+      - .Build/*
+      - Tests/*
+  checkMissingIterableValueType: false
