@@ -24,3 +24,7 @@ services:
 
   CPSIT\ImportExportCore\Configuration\YamlConfigurationProvider:
     public: true
+    arguments:
+      $configurationManager: '@CPSIT\ImportExportCore\Configuration\ConfigurationManager'
+      $yamlLoader: '@CPSIT\ImportExportCore\Configuration\YamlConfigurationLoader'
+
