@@ -34,15 +34,15 @@ class YamlConfigurationLoader implements ConfigurationLoaderInterface
      * @var YamlConfigurationParser
      */
     private YamlConfigurationParser $parser;
-    
+
     /**
      * YamlConfigurationLoader constructor.
      */
-    public function __construct(YamlConfigurationParser $parser)
+    public function __construct()
     {
-        $this->parser = $parser;
+        $this->parser = new YamlConfigurationParser();
     }
-    
+
     /**
      * Load configuration from YAML file
      *
@@ -56,41 +56,41 @@ class YamlConfigurationLoader implements ConfigurationLoaderInterface
         $configuration = $this->parser->parseFile($path);
         return $this->convertToTypoScriptFormat($configuration);
     }
-    
+
     /**
      * Converts YAML structure to TypoScript-compatible array format
-     * 
+     *
      * @param array $configuration YAML-parsed configuration
      * @return array TypoScript-compatible configuration array
      */
     protected function convertToTypoScriptFormat(array $configuration): array
     {
         $result = [];
-        
+
         // Handle import tasks
         if (isset($configuration['import']['tasks'])) {
-            $result['module']['tx_t3importexport']['settings']['import']['tasks'] = 
+            $result['module']['tx_t3importexport']['settings']['import']['tasks'] =
                 $configuration['import']['tasks'];
         }
-        
+
         // Handle import sets
         if (isset($configuration['import']['sets'])) {
-            $result['module']['tx_t3importexport']['settings']['import']['sets'] = 
+            $result['module']['tx_t3importexport']['settings']['import']['sets'] =
                 $configuration['import']['sets'];
         }
-        
+
         // Handle export tasks
         if (isset($configuration['export']['tasks'])) {
-            $result['module']['tx_t3importexport']['settings']['export']['tasks'] = 
+            $result['module']['tx_t3importexport']['settings']['export']['tasks'] =
                 $configuration['export']['tasks'];
         }
-        
+
         // Handle export sets
         if (isset($configuration['export']['sets'])) {
-            $result['module']['tx_t3importexport']['settings']['export']['sets'] = 
+            $result['module']['tx_t3importexport']['settings']['export']['sets'] =
                 $configuration['export']['sets'];
         }
-        
+
         return $result;
     }
 }
