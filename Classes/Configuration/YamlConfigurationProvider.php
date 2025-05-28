@@ -27,27 +27,12 @@ namespace CPSIT\ImportExportCore\Configuration;
 class YamlConfigurationProvider
 {
     /**
-     * @var ConfigurationManager
-     */
-    private ConfigurationManager $configurationManager;
-
-    /**
-     * @var YamlConfigurationLoader
-     */
-    private YamlConfigurationLoader $yamlLoader;
-
-    /**
      * YamlConfigurationProvider constructor.
-     *
-     * @param ConfigurationManager $configurationManager
-     * @param YamlConfigurationLoader $yamlLoader
-     */
+     **/
     public function __construct(
-        ConfigurationManager $configurationManager,
-        YamlConfigurationLoader $yamlLoader
+        private readonly ConfigurationHandlerInterface    $configurationHandler,
+        private readonly YamlConfigurationLoader $yamlLoader
     ) {
-        $this->configurationManager = $configurationManager;
-        $this->yamlLoader = $yamlLoader;
     }
 
     /**
@@ -60,12 +45,12 @@ class YamlConfigurationProvider
     public function loadFromDirectory(string $directory, string $extension = 'yaml'): array
     {
         if (!is_dir($directory)) {
-            return $this->configurationManager->getFullConfiguration();
+            return $this->configurationHandler->getFullConfiguration();
         }
 
         $files = scandir($directory);
         if ($files === false) {
-            return $this->configurationManager->getFullConfiguration();
+            return $this->configurationHandler->getFullConfiguration();
         }
 
         $yamlFiles = [];
@@ -84,9 +69,9 @@ class YamlConfigurationProvider
         sort($yamlFiles);
 
         foreach ($yamlFiles as $file) {
-            $this->configurationManager->addConfiguration($this->yamlLoader, $file);
+            $this->configurationHandler->addConfiguration($this->yamlLoader, $file);
         }
 
-        return $this->configurationManager->getFullConfiguration();
+        return $this->configurationHandler->getFullConfiguration();
     }
 }

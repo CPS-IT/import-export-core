@@ -36,14 +36,14 @@ class YamlConfigurationParser
         if (!file_exists($filePath)) {
             throw new FileNotFoundException('Configuration file not found: ' . $filePath);
         }
-        
+
         try {
             return Yaml::parseFile($filePath);
         } catch (\Exception $e) {
             throw new ParseException('Error parsing YAML file: ' . $e->getMessage(), 1624543212, $e);
         }
     }
-    
+
     /**
      * Parse YAML string and return the configuration array
      *
@@ -69,12 +69,12 @@ class YamlConfigurationParser
 class YamlConfigurationLoader implements ConfigurationLoaderInterface
 {
     private YamlConfigurationParser $parser;
-    
+
     public function __construct(YamlConfigurationParser $parser)
     {
         $this->parser = $parser;
     }
-    
+
     /**
      * Load configuration from YAML file
      *
@@ -86,57 +86,57 @@ class YamlConfigurationLoader implements ConfigurationLoaderInterface
         $configuration = $this->parser->parseFile($path);
         return $this->convertToTypoScriptFormat($configuration);
     }
-    
+
     /**
      * Converts YAML structure to TypoScript-compatible array format
-     * 
+     *
      * @param array $configuration YAML-parsed configuration
      * @return array TypoScript-compatible configuration array
      */
     protected function convertToTypoScriptFormat(array $configuration): array
     {
         $result = [];
-        
+
         // Handle import tasks
         if (isset($configuration['import']['tasks'])) {
-            $result['module']['tx_t3importexport']['settings']['import']['tasks'] = 
+            $result['module']['tx_t3importexport']['settings']['import']['tasks'] =
                 $configuration['import']['tasks'];
         }
-        
+
         // Handle import sets
         if (isset($configuration['import']['sets'])) {
-            $result['module']['tx_t3importexport']['settings']['import']['sets'] = 
+            $result['module']['tx_t3importexport']['settings']['import']['sets'] =
                 $configuration['import']['sets'];
         }
-        
+
         // Handle export tasks
         if (isset($configuration['export']['tasks'])) {
-            $result['module']['tx_t3importexport']['settings']['export']['tasks'] = 
+            $result['module']['tx_t3importexport']['settings']['export']['tasks'] =
                 $configuration['export']['tasks'];
         }
-        
+
         // Handle export sets
         if (isset($configuration['export']['sets'])) {
-            $result['module']['tx_t3importexport']['settings']['export']['sets'] = 
+            $result['module']['tx_t3importexport']['settings']['export']['sets'] =
                 $configuration['export']['sets'];
         }
-        
+
         return $result;
     }
 }
 ```
 
-#### 1.3 Create a Configuration Manager to Handle Multiple Configuration Sources
+#### 1.3 Create a Configuration Handler to Handle Multiple Configuration Sources
 
 ```php
-// Classes/Configuration/ConfigurationManager.php
-class ConfigurationManager implements TransferConfigurationInterface
+// Classes/Configuration/ConfigurationHandler.php
+class ConfigurationHandler implements TransferConfigurationInterface
 {
     private array $configuration = [];
-    
+
     /**
      * Add configuration from a loader
-     * 
+     *
      * @param ConfigurationLoaderInterface $loader
      * @param string $path Path to configuration file
      * @return self
@@ -147,50 +147,50 @@ class ConfigurationManager implements TransferConfigurationInterface
         $this->configuration = array_merge_recursive($this->configuration, $newConfig);
         return $this;
     }
-    
+
     /**
      * Get import/export tasks
-     * 
+     *
      * @return array
      */
     public function getTasks(): array
     {
         $tasks = [];
-        
+
         if (isset($this->configuration['module']['tx_t3importexport']['settings']['import']['tasks'])) {
             $tasks['import'] = $this->configuration['module']['tx_t3importexport']['settings']['import']['tasks'];
         }
-        
+
         if (isset($this->configuration['module']['tx_t3importexport']['settings']['export']['tasks'])) {
             $tasks['export'] = $this->configuration['module']['tx_t3importexport']['settings']['export']['tasks'];
         }
-        
+
         return $tasks;
     }
-    
+
     /**
      * Get import/export sets
-     * 
+     *
      * @return array
      */
     public function getSets(): array
     {
         $sets = [];
-        
+
         if (isset($this->configuration['module']['tx_t3importexport']['settings']['import']['sets'])) {
             $sets['import'] = $this->configuration['module']['tx_t3importexport']['settings']['import']['sets'];
         }
-        
+
         if (isset($this->configuration['module']['tx_t3importexport']['settings']['export']['sets'])) {
             $sets['export'] = $this->configuration['module']['tx_t3importexport']['settings']['export']['sets'];
         }
-        
+
         return $sets;
     }
-    
+
     /**
      * Get the full configuration array
-     * 
+     *
      * @return array
      */
     public function getFullConfiguration(): array
@@ -215,7 +215,7 @@ class ParseException extends \Exception {}
 ```php
 // Tests/Unit/Configuration/YamlConfigurationLoaderTest.php
 // Tests/Unit/Service/YamlConfigurationParserTest.php
-// Tests/Unit/Configuration/ConfigurationManagerTest.php
+// Tests/Unit/Configuration/ConfigurationHandlerTest.php
 ```
 
 ### 2. Integration in t3import_export Extension
@@ -226,17 +226,17 @@ class ParseException extends \Exception {}
 // Classes/Configuration/YamlConfigurationProvider.php
 class YamlConfigurationProvider implements \TYPO3\CMS\Core\SingletonInterface
 {
-    private ConfigurationManager $configurationManager;
+    private ConfigurationHandler $configurationHandler;
     private YamlConfigurationLoader $yamlLoader;
-    
+
     public function __construct(
-        ConfigurationManager $configurationManager,
+        ConfigurationHandler $configurationHandler,
         YamlConfigurationLoader $yamlLoader
     ) {
-        $this->configurationManager = $configurationManager;
+        $this->configurationHandler = $configurationHandler;
         $this->yamlLoader = $yamlLoader;
     }
-    
+
     /**
      * Load YAML configuration files from a directory
      *
@@ -247,12 +247,12 @@ class YamlConfigurationProvider implements \TYPO3\CMS\Core\SingletonInterface
     public function loadFromDirectory(string $directory, string $extension = 'yaml'): array
     {
         $files = glob($directory . '/*.' . $extension);
-        
+
         foreach ($files as $file) {
-            $this->configurationManager->addConfiguration($this->yamlLoader, $file);
+            $this->configurationHandler->addConfiguration($this->yamlLoader, $file);
         }
-        
-        return $this->configurationManager->getFullConfiguration();
+
+        return $this->configurationHandler->getFullConfiguration();
     }
 }
 ```
@@ -271,19 +271,19 @@ services:
 
   CPSIT\ImportExportCore\Service\YamlConfigurationParser:
     public: true
-    
+
   CPSIT\ImportExportCore\Configuration\YamlConfigurationLoader:
     public: true
     arguments:
       $parser: '@CPSIT\ImportExportCore\Service\YamlConfigurationParser'
-    
-  CPSIT\ImportExportCore\Configuration\ConfigurationManager:
+
+  CPSIT\ImportExportCore\Configuration\ConfigurationHandler:
     public: true
-    
+
   CPSIT\T3importExport\Configuration\YamlConfigurationProvider:
     public: true
     arguments:
-      $configurationManager: '@CPSIT\ImportExportCore\Configuration\ConfigurationManager'
+      $configurationHandler: '@CPSIT\ImportExportCore\Configuration\ConfigurationHandler'
       $yamlLoader: '@CPSIT\ImportExportCore\Configuration\YamlConfigurationLoader'
 ```
 
@@ -307,7 +307,7 @@ public function boot()
     // Load YAML configurations if enabled
     if (!empty($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['t3import_export']['yamlConfigurationDirectories'])) {
         $yamlConfigProvider = GeneralUtility::makeInstance(YamlConfigurationProvider::class);
-        
+
         foreach ($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['t3import_export']['yamlConfigurationDirectories'] as $directory) {
             $resolvedPath = GeneralUtility::getFileAbsFileName($directory);
             if (is_dir($resolvedPath)) {
@@ -336,7 +336,7 @@ final public const array OPTIONS = [
 if ($input->getOption(YamlConfigFileOption::NAME)) {
     $yamlFile = $input->getOption(YamlConfigFileOption::NAME);
     $yamlLoader = GeneralUtility::makeInstance(YamlConfigurationLoader::class);
-    $configManager = GeneralUtility::makeInstance(ConfigurationManager::class);
+    $configHandler = GeneralUtility::makeInstance(ConfigurationHandler::class);
     $configManager->addConfiguration($yamlLoader, $yamlFile);
     // Use configuration from YAML file
 }

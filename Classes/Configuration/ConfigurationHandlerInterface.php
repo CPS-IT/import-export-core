@@ -25,18 +25,18 @@ use CPSIT\ImportExportCore\Exception\ParseException;
 /**
  * Manages configuration from multiple sources.
  */
-interface ConfigurationManagerInterface
+interface ConfigurationHandlerInterface
 {
     /**
      * Add configuration from a loader
      *
      * @param ConfigurationLoaderInterface $loader
      * @param string $path Path to configuration file
-     * @return ConfigurationManagerInterface
+     * @return ConfigurationHandlerInterface
      * @throws FileNotFoundException
      * @throws ParseException
      */
-    public function addConfiguration(ConfigurationLoaderInterface $loader, string $path): ConfigurationManagerInterface;
+    public function addConfiguration(ConfigurationLoaderInterface $loader, string $path): ConfigurationHandlerInterface;
 
     /**
      * Get import/export tasks

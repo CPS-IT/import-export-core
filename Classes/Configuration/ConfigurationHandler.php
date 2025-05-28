@@ -27,7 +27,7 @@ use CPSIT\ImportExportCore\Exception\ParseException;
 /**
  * Manages configuration from multiple sources.
  */
-class ConfigurationManager implements TransferConfigurationInterface, ConfigurationManagerInterface
+class ConfigurationHandler implements TransferConfigurationInterface, ConfigurationHandlerInterface
 {
     /**
      * @var array

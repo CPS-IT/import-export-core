@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace CPSIT\ImportExportCore\Tests\Unit\Configuration;
 
-use CPSIT\ImportExportCore\Configuration\ConfigurationManager;
+use CPSIT\ImportExportCore\Configuration\ConfigurationHandler;
 use CPSIT\ImportExportCore\Configuration\YamlConfigurationLoader;
 use CPSIT\ImportExportCore\Configuration\YamlConfigurationProvider;
 use org\bovigo\vfs\vfsStream;
@@ -14,20 +14,20 @@ use PHPUnit\Framework\TestCase;
 class YamlConfigurationProviderTest extends TestCase
 {
     protected YamlConfigurationProvider $subject;
-    protected ConfigurationManager $configurationManager;
+    protected ConfigurationHandler $configurationHandler;
     protected YamlConfigurationLoader $yamlLoader;
     protected vfsStreamDirectory $root;
 
     protected function setUp(): void
     {
-        $this->configurationManager = $this->getMockBuilder(ConfigurationManager::class)
+        $this->configurationHandler = $this->getMockBuilder(ConfigurationHandler::class)
             ->getMock();
         $this->yamlLoader = $this->getMockBuilder(YamlConfigurationLoader::class)
             ->disableOriginalConstructor()
             ->getMock();
 
         $this->subject = new YamlConfigurationProvider(
-            $this->configurationManager,
+            $this->configurationHandler,
             $this->yamlLoader
         );
 
@@ -41,7 +41,7 @@ class YamlConfigurationProviderTest extends TestCase
         vfsStream::newFile('other.txt')->at($this->root)->withContent('');
 
         $matcher = $this->exactly(2);
-        $this->configurationManager->expects($matcher)
+        $this->configurationHandler->expects($matcher)
             ->method('addConfiguration')
             ->willReturnCallback(function ($loader, $path) {
                 static $callCount = 0;
@@ -55,10 +55,10 @@ class YamlConfigurationProviderTest extends TestCase
                     $this->assertEquals($this->root->url() . '/config2.yaml', $path);
                 }
 
-                return $this->configurationManager;
+                return $this->configurationHandler;
             });
 
-        $this->configurationManager->expects($this->once())
+        $this->configurationHandler->expects($this->once())
             ->method('getFullConfiguration')
             ->willReturn(['some' => 'config']);
 
@@ -69,10 +69,10 @@ class YamlConfigurationProviderTest extends TestCase
 
     public function testLoadFromDirectoryHandlesEmptyDirectory(): void
     {
-        $this->configurationManager->expects($this->never())
+        $this->configurationHandler->expects($this->never())
             ->method('addConfiguration');
 
-        $this->configurationManager->expects($this->once())
+        $this->configurationHandler->expects($this->once())
             ->method('getFullConfiguration')
             ->willReturn([]);
 
@@ -88,7 +88,7 @@ class YamlConfigurationProviderTest extends TestCase
         vfsStream::newFile('config3.yaml')->at($this->root)->withContent('');
 
         $matcher = $this->exactly(2);
-        $this->configurationManager->expects($matcher)
+        $this->configurationHandler->expects($matcher)
             ->method('addConfiguration')
             ->willReturnCallback(function ($loader, $path) {
                 static $callCount = 0;
@@ -102,10 +102,10 @@ class YamlConfigurationProviderTest extends TestCase
                     $this->assertEquals($this->root->url() . '/config2.yml', $path);
                 }
 
-                return $this->configurationManager;
+                return $this->configurationHandler;
             });
 
-        $this->configurationManager->expects($this->once())
+        $this->configurationHandler->expects($this->once())
             ->method('getFullConfiguration')
             ->willReturn(['some' => 'config']);
 

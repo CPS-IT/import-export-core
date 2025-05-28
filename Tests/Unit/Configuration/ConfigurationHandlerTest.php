@@ -5,19 +5,19 @@ declare(strict_types=1);
 namespace CPSIT\ImportExportCore\Tests\Unit\Configuration;
 
 use CPSIT\ImportExportCore\Configuration\ConfigurationLoaderInterface;
-use CPSIT\ImportExportCore\Configuration\ConfigurationManager;
+use CPSIT\ImportExportCore\Configuration\ConfigurationHandler;
 use CPSIT\ImportExportCore\Exception\FileNotFoundException;
 use CPSIT\ImportExportCore\Exception\ParseException;
 use PHPUnit\Framework\TestCase;
 
-class ConfigurationManagerTest extends TestCase
+class ConfigurationHandlerTest extends TestCase
 {
-    protected ConfigurationManager $subject;
+    protected ConfigurationHandler $subject;
     protected ConfigurationLoaderInterface $loader;
 
     protected function setUp(): void
     {
-        $this->subject = new ConfigurationManager();
+        $this->subject = new ConfigurationHandler();
         $this->loader = $this->createMock(ConfigurationLoaderInterface::class);
     }
 
@@ -83,7 +83,7 @@ class ConfigurationManagerTest extends TestCase
 
         $result = $this->subject->addConfiguration($this->loader, $path);
 
-        $this->assertInstanceOf(ConfigurationManager::class, $result);
+        $this->assertInstanceOf(ConfigurationHandler::class, $result);
     }
 
     public function testGetTasksReturnsTasksFromConfiguration(): void

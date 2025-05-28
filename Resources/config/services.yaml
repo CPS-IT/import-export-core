@@ -19,12 +19,12 @@ services:
     arguments:
       $parser: '@CPSIT\ImportExportCore\Service\YamlConfigurationParser'
 
-  CPSIT\ImportExportCore\Configuration\ConfigurationManager:
+  CPSIT\ImportExportCore\Configuration\ConfigurationHandler:
     public: true
 
   CPSIT\ImportExportCore\Configuration\YamlConfigurationProvider:
     public: true
     arguments:
-      $configurationManager: '@CPSIT\ImportExportCore\Configuration\ConfigurationManager'
+      $configurationHandler: '@CPSIT\ImportExportCore\Configuration\ConfigurationHandler'
       $yamlLoader: '@CPSIT\ImportExportCore\Configuration\YamlConfigurationLoader'
 
