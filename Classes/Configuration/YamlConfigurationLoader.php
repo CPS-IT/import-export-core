@@ -31,16 +31,12 @@ use CPSIT\ImportExportCore\Service\YamlConfigurationParser;
 class YamlConfigurationLoader implements ConfigurationLoaderInterface
 {
     /**
-     * @var YamlConfigurationParser
-     */
-    private YamlConfigurationParser $parser;
-
-    /**
      * YamlConfigurationLoader constructor.
      */
-    public function __construct()
+    public function __construct(
+        private readonly YamlConfigurationParser $parser,
+    )
     {
-        $this->parser = new YamlConfigurationParser();
     }
 
     /**

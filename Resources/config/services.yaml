@@ -15,9 +15,9 @@ services:
     public: true
 
   CPSIT\ImportExportCore\Configuration\YamlConfigurationLoader:
-    #public: true
-    #arguments:
-    #  $parser: '@CPSIT\ImportExportCore\Service\YamlConfigurationParser'
+    public: true
+    arguments:
+      $parser: '@CPSIT\ImportExportCore\Service\YamlConfigurationParser'
 
   CPSIT\ImportExportCore\Configuration\ConfigurationManager:
     public: true
