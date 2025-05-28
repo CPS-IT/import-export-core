@@ -27,16 +27,16 @@ use CPSIT\ImportExportCore\Exception\ParseException;
 /**
  * Manages configuration from multiple sources.
  */
-class ConfigurationManager implements TransferConfigurationInterface
+class ConfigurationManager implements TransferConfigurationInterface, ConfigurationManagerInterface
 {
     /**
      * @var array
      */
     private array $configuration = [];
-    
+
     /**
      * Add configuration from a loader
-     * 
+     *
      * @param ConfigurationLoaderInterface $loader
      * @param string $path Path to configuration file
      * @return self
@@ -49,50 +49,50 @@ class ConfigurationManager implements TransferConfigurationInterface
         $this->configuration = array_merge_recursive($this->configuration, $newConfig);
         return $this;
     }
-    
+
     /**
      * Get import/export tasks
-     * 
+     *
      * @return array
      */
     public function getTasks(): array
     {
         $tasks = [];
-        
+
         if (isset($this->configuration['module']['tx_t3importexport']['settings']['import']['tasks'])) {
             $tasks['import'] = $this->configuration['module']['tx_t3importexport']['settings']['import']['tasks'];
         }
-        
+
         if (isset($this->configuration['module']['tx_t3importexport']['settings']['export']['tasks'])) {
             $tasks['export'] = $this->configuration['module']['tx_t3importexport']['settings']['export']['tasks'];
         }
-        
+
         return $tasks;
     }
-    
+
     /**
      * Get import/export sets
-     * 
+     *
      * @return array
      */
     public function getSets(): array
     {
         $sets = [];
-        
+
         if (isset($this->configuration['module']['tx_t3importexport']['settings']['import']['sets'])) {
             $sets['import'] = $this->configuration['module']['tx_t3importexport']['settings']['import']['sets'];
         }
-        
+
         if (isset($this->configuration['module']['tx_t3importexport']['settings']['export']['sets'])) {
             $sets['export'] = $this->configuration['module']['tx_t3importexport']['settings']['export']['sets'];
         }
-        
+
         return $sets;
     }
-    
+
     /**
      * Get the full configuration array
-     * 
+     *
      * @return array
      */
     public function getFullConfiguration(): array
