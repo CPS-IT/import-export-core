@@ -11,4 +11,6 @@ declare(strict_types=1);
 
 namespace CPSIT\ImportExportCore\Exception;
 
-class PersistenceException extends \Exception {}
+class PersistenceException extends \Exception
+{
+}

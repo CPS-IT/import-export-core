@@ -7,9 +7,9 @@ namespace CPSIT\ImportExportCore\Tests\Unit\Service;
 use CPSIT\ImportExportCore\Exception\FileNotFoundException;
 use CPSIT\ImportExportCore\Exception\ParseException;
 use CPSIT\ImportExportCore\Service\YamlConfigurationParser;
-use PHPUnit\Framework\TestCase;
 use org\bovigo\vfs\vfsStream;
 use org\bovigo\vfs\vfsStreamDirectory;
+use PHPUnit\Framework\TestCase;
 
 class YamlConfigurationParserTest extends TestCase
 {

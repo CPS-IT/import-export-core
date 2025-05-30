@@ -6,8 +6,8 @@ namespace CPSIT\ImportExportCore\Service;
 
 use CPSIT\ImportExportCore\Exception\FileNotFoundException;
 use CPSIT\ImportExportCore\Exception\ParseException;
-use Symfony\Component\Yaml\Yaml;
 use Symfony\Component\Yaml\Exception\ParseException as SymfonyParseException;
+use Symfony\Component\Yaml\Yaml;
 
 /***************************************************************
  *  Copyright notice
@@ -35,9 +35,9 @@ class YamlConfigurationParser
      * Parse a YAML file and return the configuration array
      *
      * @param string $filePath Path to YAML file
-     * @return array Parsed configuration
      * @throws FileNotFoundException If file does not exist
      * @throws ParseException If YAML parsing fails
+     * @return array Parsed configuration
      */
     public function parseFile(string $filePath): array
     {
@@ -56,8 +56,8 @@ class YamlConfigurationParser
      * Parse YAML string and return the configuration array
      *
      * @param string $yamlContent YAML content
-     * @return array Parsed configuration
      * @throws ParseException If YAML parsing fails
+     * @return array Parsed configuration
      */
     public function parseString(string $yamlContent): array
     {

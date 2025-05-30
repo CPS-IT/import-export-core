@@ -27,7 +27,8 @@ class MessageContainerTest extends TestCase
         $messages = $this->subject->getMessages();
         $this->assertCount(1, $messages);
         $this->assertEquals($this->message, $messages[0]);
-        $this->assertEquals(1, $messages[0]->getSeverity());;
+        $this->assertEquals(1, $messages[0]->getSeverity());
+        ;
     }
 
     public function testHasMessagesReturnsFalseInitially(): void
@@ -43,7 +44,8 @@ class MessageContainerTest extends TestCase
 
     public function testClearMessagesRemovesAllMessages(): void
     {
-        $this->subject->addMessage($this->message);;
+        $this->subject->addMessage($this->message);
+        ;
         $this->subject->clearMessages();
         $this->assertFalse($this->subject->hasMessages());
         $this->assertEmpty($this->subject->getMessages());

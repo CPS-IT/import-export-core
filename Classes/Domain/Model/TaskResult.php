@@ -76,7 +76,7 @@ class TaskResult implements \Iterator
     public function setElements(array $elements): void
     {
         $this->list = $elements;
-        $this->size = count($elements);
+        $this->size = \count($elements);
         $this->rewind();
     }
 

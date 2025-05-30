@@ -3,8 +3,6 @@ declare(strict_types=1);
 
 namespace CPSIT\ImportExportCore\Messaging;
 
-use CPSIT\ImportExportCore\Messaging\Message;
-
 class MessageContainer implements MessageContainerInterface
 {
     protected array $messages = [];

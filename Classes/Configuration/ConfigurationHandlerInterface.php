@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 /***************************************************************
  *  Copyright notice
  *
@@ -18,7 +18,6 @@
 
 namespace CPSIT\ImportExportCore\Configuration;
 
-
 use CPSIT\ImportExportCore\Exception\FileNotFoundException;
 use CPSIT\ImportExportCore\Exception\ParseException;
 
@@ -32,9 +31,9 @@ interface ConfigurationHandlerInterface
      *
      * @param ConfigurationLoaderInterface $loader
      * @param string $path Path to configuration file
-     * @return ConfigurationHandlerInterface
      * @throws FileNotFoundException
      * @throws ParseException
+     * @return ConfigurationHandlerInterface
      */
     public function addConfiguration(ConfigurationLoaderInterface $loader, string $path): ConfigurationHandlerInterface;
 

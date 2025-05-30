@@ -30,7 +30,7 @@ class YamlConfigurationProvider
      * YamlConfigurationProvider constructor.
      **/
     public function __construct(
-        private readonly ConfigurationHandlerInterface    $configurationHandler,
+        private readonly ConfigurationHandlerInterface $configurationHandler,
         private readonly YamlConfigurationLoader $yamlLoader
     ) {
     }
@@ -55,6 +55,7 @@ class YamlConfigurationProvider
 
         $yamlFiles = [];
         foreach ($files as $file) {
+
             if ($file === '.' || $file === '..') {
                 continue;
             }

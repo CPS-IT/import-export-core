@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace CPSIT\ImportExportCore\Configuration;
 
@@ -21,7 +21,6 @@ namespace CPSIT\ImportExportCore\Configuration;
 
 /**
  * Interface TransferConfigurationInterface
- *
  */
 interface TransferConfigurationInterface
 {

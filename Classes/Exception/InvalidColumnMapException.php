@@ -20,4 +20,6 @@ namespace CPSIT\ImportExportCore\Exception;
  * GNU General Public License for more details.
  * This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
-class InvalidColumnMapException extends \Exception {}
+class InvalidColumnMapException extends \Exception
+{
+}

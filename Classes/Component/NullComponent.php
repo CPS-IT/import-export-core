@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace CPSIT\ImportExportCore\Component;
 
-use CPSIT\ImportExportCore\Component\ComponentInterface;
-
 /***************************************************************
  *  Copyright notice
  *
@@ -22,4 +20,6 @@ use CPSIT\ImportExportCore\Component\ComponentInterface;
  * GNU General Public License for more details.
  * This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
-class NullComponent implements ComponentInterface {}
+class NullComponent implements ComponentInterface
+{
+}

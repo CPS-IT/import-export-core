@@ -39,9 +39,9 @@ class ConfigurationHandler implements TransferConfigurationInterface, Configurat
      *
      * @param ConfigurationLoaderInterface $loader
      * @param string $path Path to configuration file
-     * @return self
      * @throws FileNotFoundException
      * @throws ParseException
+     * @return self
      */
     public function addConfiguration(ConfigurationLoaderInterface $loader, string $path): self
     {

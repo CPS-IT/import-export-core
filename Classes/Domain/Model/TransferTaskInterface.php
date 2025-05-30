@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 /***************************************************************
  *  Copyright notice
  *
@@ -17,7 +17,6 @@
  ***************************************************************/
 
 namespace CPSIT\ImportExportCore\Domain\Model;
-
 
 use CPSIT\ImportExportCore\Component\Converter\ConverterInterface;
 use CPSIT\ImportExportCore\Component\Finisher\FinisherInterface;

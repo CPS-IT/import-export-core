@@ -28,4 +28,6 @@ namespace CPSIT\ImportExportCore\Exception;
  *
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
-class MissingInterfaceException extends \Exception {}
+class MissingInterfaceException extends \Exception
+{
+}

@@ -110,7 +110,7 @@ trait LoggingTrait
             $description = $codes[$id][1];
             if ($arguments !== null) {
                 array_unshift($arguments, $description);
-                $description = sprintf(...$arguments);
+                $description = \sprintf(...$arguments);
             }
         }
 

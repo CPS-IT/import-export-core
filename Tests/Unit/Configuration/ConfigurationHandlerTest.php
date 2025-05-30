@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace CPSIT\ImportExportCore\Tests\Unit\Configuration;
 
-use CPSIT\ImportExportCore\Configuration\ConfigurationLoaderInterface;
 use CPSIT\ImportExportCore\Configuration\ConfigurationHandler;
+use CPSIT\ImportExportCore\Configuration\ConfigurationLoaderInterface;
 use CPSIT\ImportExportCore\Exception\FileNotFoundException;
 use CPSIT\ImportExportCore\Exception\ParseException;
 use PHPUnit\Framework\TestCase;

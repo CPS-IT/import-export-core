@@ -35,17 +35,16 @@ class YamlConfigurationLoader implements ConfigurationLoaderInterface
      */
     public function __construct(
         private readonly YamlConfigurationParser $parser,
-    )
-    {
+    ) {
     }
 
     /**
      * Load configuration from YAML file
      *
      * @param string $path Path to YAML file
-     * @return array Configuration array in TypoScript-compatible format
      * @throws FileNotFoundException If file does not exist
      * @throws ParseException If YAML parsing fails
+     * @return array Configuration array in TypoScript-compatible format
      */
     public function load(string $path): array
     {
