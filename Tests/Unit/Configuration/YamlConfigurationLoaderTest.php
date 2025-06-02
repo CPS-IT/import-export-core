@@ -8,6 +8,7 @@ use CPSIT\ImportExportCore\Configuration\YamlConfigurationLoader;
 use CPSIT\ImportExportCore\Exception\FileNotFoundException;
 use CPSIT\ImportExportCore\Exception\ParseException;
 use CPSIT\ImportExportCore\Service\YamlConfigurationParser;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 class YamlConfigurationLoaderTest extends TestCase
@@ -163,5 +164,134 @@ class YamlConfigurationLoaderTest extends TestCase
         // These keys should not exist
         $this->assertArrayNotHasKey('sets', $result['module']['tx_t3importexport']['settings']['import']);
         $this->assertArrayNotHasKey('export', $result['module']['tx_t3importexport']['settings']);
+    }
+
+    /**
+     * Integration tests using real file operations
+     */
+    protected YamlConfigurationLoader $yamlConfigurationLoader;
+    protected string $tempYamlFile;
+
+    protected function setUpIntegrationTests(): void
+    {
+        $parser = new YamlConfigurationParser();
+        $this->yamlConfigurationLoader = new YamlConfigurationLoader($parser);
+        $this->tempYamlFile = tempnam(sys_get_temp_dir(), 'test_config_') . '.yaml';
+    }
+
+    protected function tearDownIntegrationTests(): void
+    {
+        if (file_exists($this->tempYamlFile)) {
+            unlink($this->tempYamlFile);
+        }
+    }
+
+    #[Test]
+    public function loadThrowsFileNotFoundExceptionForNonExistentFileIntegration(): void
+    {
+        $this->setUpIntegrationTests();
+        
+        $this->expectException(FileNotFoundException::class);
+        $this->expectExceptionMessage('Configuration file not found: /non/existent/file.yaml');
+        
+        $this->yamlConfigurationLoader->load('/non/existent/file.yaml');
+        
+        $this->tearDownIntegrationTests();
+    }
+
+    #[Test]
+    public function loadThrowsParseExceptionForInvalidYamlIntegration(): void
+    {
+        $this->setUpIntegrationTests();
+        
+        file_put_contents($this->tempYamlFile, "invalid:\n  yaml:\n    content\n  missing_colon");
+        
+        $this->expectException(ParseException::class);
+        
+        $this->yamlConfigurationLoader->load($this->tempYamlFile);
+        
+        $this->tearDownIntegrationTests();
+    }
+
+    #[Test]
+    public function loadHandlesEmptyYamlFileIntegration(): void
+    {
+        $this->setUpIntegrationTests();
+        
+        file_put_contents($this->tempYamlFile, '# Empty YAML file\n');
+        
+        $this->expectException(\TypeError::class);
+        
+        $this->yamlConfigurationLoader->load($this->tempYamlFile);
+        
+        $this->tearDownIntegrationTests();
+    }
+
+    #[Test]
+    public function loadReturnsEmptyArrayForEmptyConfigurationIntegration(): void
+    {
+        $this->setUpIntegrationTests();
+        
+        file_put_contents($this->tempYamlFile, '{}');
+        
+        $result = $this->yamlConfigurationLoader->load($this->tempYamlFile);
+        
+        $this->assertEquals([], $result);
+        
+        $this->tearDownIntegrationTests();
+    }
+
+    #[Test]
+    public function loadHandlesPartialConfigurationWithOnlyImportIntegration(): void
+    {
+        $this->setUpIntegrationTests();
+        
+        $yamlContent = <<<YAML
+import:
+  tasks:
+    importPages:
+      source:
+        class: 'TestSource'
+      target:
+        class: 'TestTarget'
+YAML;
+        
+        file_put_contents($this->tempYamlFile, $yamlContent);
+        
+        $result = $this->yamlConfigurationLoader->load($this->tempYamlFile);
+        
+        $this->assertArrayHasKey('module', $result);
+        $this->assertArrayHasKey('import', $result['module']['tx_t3importexport']['settings']);
+        $this->assertArrayNotHasKey('export', $result['module']['tx_t3importexport']['settings']);
+        $this->assertArrayHasKey('importPages', $result['module']['tx_t3importexport']['settings']['import']['tasks']);
+        
+        $this->tearDownIntegrationTests();
+    }
+
+    #[Test]
+    public function loadHandlesPartialConfigurationWithOnlyExportIntegration(): void
+    {
+        $this->setUpIntegrationTests();
+        
+        $yamlContent = <<<YAML
+export:
+  tasks:
+    exportPages:
+      source:
+        class: 'TestSource'
+      target:
+        class: 'TestTarget'
+YAML;
+        
+        file_put_contents($this->tempYamlFile, $yamlContent);
+        
+        $result = $this->yamlConfigurationLoader->load($this->tempYamlFile);
+        
+        $this->assertArrayHasKey('module', $result);
+        $this->assertArrayNotHasKey('import', $result['module']['tx_t3importexport']['settings']);
+        $this->assertArrayHasKey('export', $result['module']['tx_t3importexport']['settings']);
+        $this->assertArrayHasKey('exportPages', $result['module']['tx_t3importexport']['settings']['export']['tasks']);
+        
+        $this->tearDownIntegrationTests();
     }
 }
