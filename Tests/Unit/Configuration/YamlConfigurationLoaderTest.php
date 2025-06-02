@@ -220,9 +220,9 @@ class YamlConfigurationLoaderTest extends TestCase
         
         file_put_contents($this->tempYamlFile, '# Empty YAML file\n');
         
-        $this->expectException(\TypeError::class);
+        $result = $this->yamlConfigurationLoader->load($this->tempYamlFile);
         
-        $this->yamlConfigurationLoader->load($this->tempYamlFile);
+        $this->assertEquals([], $result);
         
         $this->tearDownIntegrationTests();
     }

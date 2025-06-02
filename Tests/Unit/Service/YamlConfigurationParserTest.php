@@ -9,6 +9,7 @@ use CPSIT\ImportExportCore\Exception\ParseException;
 use CPSIT\ImportExportCore\Service\YamlConfigurationParser;
 use org\bovigo\vfs\vfsStream;
 use org\bovigo\vfs\vfsStreamDirectory;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 class YamlConfigurationParserTest extends TestCase
@@ -100,5 +101,90 @@ YAML;
         
         $this->expectException(ParseException::class);
         $this->subject->parseString($yamlContent);
+    }
+
+    #[Test]
+    public function parseFileReturnsEmptyArrayForEmptyYamlFile(): void
+    {
+        $fileName = 'empty.yaml';
+        vfsStream::newFile($fileName)
+            ->at($this->root)
+            ->withContent('');
+        
+        $result = $this->subject->parseFile($this->root->url() . '/' . $fileName);
+        
+        $this->assertIsArray($result);
+        $this->assertEmpty($result);
+    }
+
+    #[Test]
+    public function parseFileReturnsEmptyArrayForYamlFileWithOnlyComments(): void
+    {
+        $yamlContent = <<<YAML
+# This is a comment only file
+# Another comment
+
+YAML;
+        
+        $fileName = 'comments_only.yaml';
+        vfsStream::newFile($fileName)
+            ->at($this->root)
+            ->withContent($yamlContent);
+        
+        $result = $this->subject->parseFile($this->root->url() . '/' . $fileName);
+        
+        $this->assertIsArray($result);
+        $this->assertEmpty($result);
+    }
+
+    #[Test]
+    public function parseFileReturnsEmptyArrayForYamlFileWithOnlyWhitespace(): void
+    {
+        $yamlContent = "   \n\n    \n";
+        
+        $fileName = 'whitespace_only.yaml';
+        vfsStream::newFile($fileName)
+            ->at($this->root)
+            ->withContent($yamlContent);
+        
+        $result = $this->subject->parseFile($this->root->url() . '/' . $fileName);
+        
+        $this->assertIsArray($result);
+        $this->assertEmpty($result);
+    }
+
+    #[Test]
+    public function parseStringReturnsEmptyArrayForEmptyYamlString(): void
+    {
+        $result = $this->subject->parseString('');
+        
+        $this->assertIsArray($result);
+        $this->assertEmpty($result);
+    }
+
+    #[Test]
+    public function parseStringReturnsEmptyArrayForYamlStringWithOnlyComments(): void
+    {
+        $yamlContent = <<<YAML
+# This is a comment only string
+# Another comment
+
+YAML;
+        
+        $result = $this->subject->parseString($yamlContent);
+        
+        $this->assertIsArray($result);
+        $this->assertEmpty($result);
+    }
+
+    #[Test]
+    public function parseStringReturnsEmptyArrayForYamlStringWithOnlyWhitespace(): void
+    {
+        $yamlContent = "   \n\n    \n";
+        
+        $result = $this->subject->parseString($yamlContent);
+        
+        $this->assertIsArray($result);
+        $this->assertEmpty($result);
     }
 }

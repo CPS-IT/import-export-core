@@ -46,7 +46,8 @@ class YamlConfigurationParser
         }
         
         try {
-            return Yaml::parseFile($filePath);
+            $result = Yaml::parseFile($filePath);
+            return $result ?? [];
         } catch (SymfonyParseException $e) {
             throw new ParseException('Error parsing YAML file: ' . $e->getMessage(), 1624543212, $e);
         }
@@ -62,7 +63,8 @@ class YamlConfigurationParser
     public function parseString(string $yamlContent): array
     {
         try {
-            return Yaml::parse($yamlContent);
+            $result = Yaml::parse($yamlContent);
+            return $result ?? [];
         } catch (SymfonyParseException $e) {
             throw new ParseException('Error parsing YAML content: ' . $e->getMessage(), 1624543213, $e);
         }
