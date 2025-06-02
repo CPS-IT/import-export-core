@@ -16,13 +16,14 @@
             <directory>Tests/Unit</directory>
         </testsuite>
     </testsuites>
-    <coverage processUncoveredFiles="true">
+    <source>
         <include>
             <directory suffix=".php">Classes</directory>
         </include>
+    </source>
+    <coverage includeUncoveredFiles="true">
         <report>
-            <clover outputFile=".Build/log/coverage/clover.xml"/>
-            <html outputDirectory=".Build/log/coverage/html"/>
+            <php outputFile=".Build/coverage/php/coverage-unit.cov"/>
         </report>
     </coverage>
 </phpunit>

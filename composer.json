@@ -29,6 +29,7 @@
         "helmich/typo3-typoscript-lint": "^3.0",
         "mikey179/vfsstream": "^1.6",
         "phpstan/phpstan": "^2.1",
+        "phpunit/phpcov": "^11.0",
         "phpunit/phpunit": "^11.5 || ^12.1",
         "roave/security-advisories": "dev-latest",
         "ssch/typo3-rector": "^3.0",
@@ -60,7 +61,8 @@
     },
     "scripts": {
         "post-autoload-dump": [
-            "mkdir -p .Build/log/coverage/"
+            "mkdir -p .Build/coverage/php/",
+            "mkdir -p .Build/coverage/html/"
         ],
         "fix": [
             "@fix:composer",
@@ -86,11 +88,12 @@
             "@test:unit"
         ],
         "test:coverage": [
-            "XDEBUG_MODE=coverage .Build/bin/phpunit -c phpunit.xml"
+            "@test:coverage:unit",
+            "@test:coverage:merge"
         ],
-        "test:unit": [
-            ".Build/bin/phpunit -c phpunit.xml Tests/Unit --no-coverage"
-        ]
+        "test:coverage:unit": "XDEBUG_MODE=coverage .Build/bin/phpunit -c phpunit.xml",
+        "test:coverage:merge": "phpcov merge --html .Build/coverage/html/_merged --clover .Build/coverage/clover.xml --text php://stdout .Build/coverage/php",
+        "test:unit": "@test:coverage:unit --no-coverage"
     },
     "scripts-descriptions": {
         "fix": "Fix all code quality issues reported by the registered linters",
