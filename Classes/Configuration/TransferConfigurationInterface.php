@@ -27,7 +27,8 @@ interface TransferConfigurationInterface
     /**
      * @return
      */
-    public function getTasks();
-    public function getSets();
+    public function getTasks(): array;
+
+    public function getSets(): array;
 
 }

@@ -35,16 +35,16 @@ class YamlConfigurationParser
      * Parse a YAML file and return the configuration array
      *
      * @param string $filePath Path to YAML file
-     * @throws FileNotFoundException If file does not exist
+     * @throws FileNotFoundException If the file does not exist
      * @throws ParseException If YAML parsing fails
-     * @return array Parsed configuration
+     * @return mixed|array Parsed configuration
      */
-    public function parseFile(string $filePath): array
+    public function parseFile(string $filePath): mixed
     {
         if (!file_exists($filePath)) {
             throw new FileNotFoundException('Configuration file not found: ' . $filePath, 1624543211);
         }
-        
+
         try {
             $result = Yaml::parseFile($filePath);
             return $result ?? [];
@@ -52,15 +52,15 @@ class YamlConfigurationParser
             throw new ParseException('Error parsing YAML file: ' . $e->getMessage(), 1624543212, $e);
         }
     }
-    
+
     /**
      * Parse YAML string and return the configuration array
      *
      * @param string $yamlContent YAML content
      * @throws ParseException If YAML parsing fails
-     * @return array Parsed configuration
+     * @return mixed|array Parsed configuration
      */
-    public function parseString(string $yamlContent): array
+    public function parseString(string $yamlContent): mixed
     {
         try {
             $result = Yaml::parse($yamlContent);
