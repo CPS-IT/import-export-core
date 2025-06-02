@@ -10,11 +10,20 @@ namespace CPSIT\ImportExportCore\Messaging;
  */
 trait MessageContainerTrait
 {
-    protected MessageContainer $messageContainer;
+    protected MessageContainerInterface $messageContainer;
 
-    public function __construct(?MessageContainer $messageContainer = null)
+    public function __construct(?MessageContainerInterface $messageContainer = null)
     {
         $this->messageContainer = $messageContainer ?? new MessageContainer();
+    }
+
+    /**
+     * Adds all messages.
+     * Existing messages are kept.
+     */
+    public function addMessages(array $messages): void
+    {
+        $this->messageContainer->addMessages($messages);
     }
 
     /**

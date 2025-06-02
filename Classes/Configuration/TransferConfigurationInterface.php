@@ -24,9 +24,6 @@ namespace CPSIT\ImportExportCore\Configuration;
  */
 interface TransferConfigurationInterface
 {
-    /**
-     * @return
-     */
     public function getTasks(): array;
 
     public function getSets(): array;

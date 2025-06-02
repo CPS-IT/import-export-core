@@ -54,8 +54,6 @@ class MessageContainerTraitTest extends TestCase
         // In PHPUnit 12, getMockForTrait is removed - use anonymous class instead
         $this->subject = new class($this->messageContainer) {
             use MessageContainerTrait;
-
-            protected MessageContainer $messageContainer;
         };
     }
 
