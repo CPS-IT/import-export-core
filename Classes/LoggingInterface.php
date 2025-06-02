@@ -54,7 +54,7 @@ interface LoggingInterface
      * 'errorDescription' may contain placeholder (%s) for arguments.
      * @return array
      */
-    public function getErrorCodes();
+    public function getErrorCodes(): array;
 
     /**
      * Returns notice codes for current component.
