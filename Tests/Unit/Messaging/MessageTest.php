@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+
 namespace CPSIT\ImportExportCore\Tests\Unit\Messaging;
 
 /***************************************************************
@@ -22,7 +23,6 @@ namespace CPSIT\ImportExportCore\Tests\Unit\Messaging;
 use CPSIT\ImportExportCore\Messaging\Message;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 
 /**
  * Class MessageTest

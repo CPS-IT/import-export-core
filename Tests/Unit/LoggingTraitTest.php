@@ -22,7 +22,6 @@ namespace CPSIT\ImportExportCore\Tests\Unit;
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
 
-use CPSIT\ImportExportCore\LoggingInterface;
 use CPSIT\ImportExportCore\LoggingTrait;
 use CPSIT\ImportExportCore\Messaging\Message;
 use CPSIT\ImportExportCore\Messaging\MessageContainer;
@@ -64,7 +63,7 @@ class LoggingTraitTest extends TestCase
         $this->messageContainer->expects($this->once())
             ->method('addMessage')
             ->with($this->callback(function (Message $message) {
-                return $message->getTitle() === 'Test Error' 
+                return $message->getTitle() === 'Test Error'
                     && $message->getSeverity() === Message::SEVERITY_ERROR;
             }));
             

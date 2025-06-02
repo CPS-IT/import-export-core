@@ -91,8 +91,8 @@
             "@test:coverage:unit",
             "@test:coverage:merge"
         ],
-        "test:coverage:unit": "XDEBUG_MODE=coverage .Build/bin/phpunit -c phpunit.xml",
         "test:coverage:merge": "phpcov merge --html .Build/coverage/html/_merged --clover .Build/coverage/clover.xml --text php://stdout .Build/coverage/php",
+        "test:coverage:unit": "XDEBUG_MODE=coverage .Build/bin/phpunit -c phpunit.xml",
         "test:unit": "@test:coverage:unit --no-coverage"
     },
     "scripts-descriptions": {

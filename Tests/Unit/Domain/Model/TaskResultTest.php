@@ -141,7 +141,7 @@ class TaskResultTest extends TestCase
             'foo',
             'bar',
         ];
-        $size = count($elements);
+        $size = \count($elements);
 
         $this->subject->setElements($elements);
         $this->assertSame(

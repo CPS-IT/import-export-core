@@ -6,4 +6,3 @@ parameters:
     analyse:
       - .Build/*
       - Tests/*
-  checkMissingIterableValueType: false
