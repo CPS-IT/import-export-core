@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace CPSIT\ImportExportCore\Persistence;
 
 use CPSIT\ImportExportCore\Component\ComponentInterface;
-use TYPO3\CMS\Extbase\DomainObject\DomainObjectInterface;
 
 /**
  * Interface DataTargetInterface
