@@ -42,7 +42,7 @@
     },
     "autoload-dev": {
         "psr-0": {
-            "org\\bovigo\\vfs\\": ".Build/vendor/mikey179/vfsstream/src/main/php"
+            "org\\bovigo\\vfs\\": ".build/vendor/mikey179/vfsstream/src/main/php"
         },
         "psr-4": {
             "CPSIT\\ImportExportCore\\Tests\\": "Tests/"
@@ -55,14 +55,14 @@
             "phpstan/extension-installer": true,
             "typo3/class-alias-loader": true
         },
-        "bin-dir": ".Build/bin",
+        "bin-dir": ".build/bin",
         "sort-packages": true,
-        "vendor-dir": ".Build/vendor"
+        "vendor-dir": ".build/vendor"
     },
     "scripts": {
         "post-autoload-dump": [
-            "mkdir -p .Build/coverage/php/",
-            "mkdir -p .Build/coverage/html/"
+            "mkdir -p .build/coverage/php/",
+            "mkdir -p .build/coverage/html/"
         ],
         "fix": [
             "@fix:composer",
@@ -91,8 +91,8 @@
             "@test:coverage:unit",
             "@test:coverage:merge"
         ],
-        "test:coverage:merge": "phpcov merge --html .Build/coverage/html/_merged --clover .Build/coverage/clover.xml --text php://stdout .Build/coverage/php",
-        "test:coverage:unit": "XDEBUG_MODE=coverage .Build/bin/phpunit -c phpunit.xml",
+        "test:coverage:merge": "phpcov merge --html .build/coverage/html/_merged --clover .build/coverage/clover.xml --text php://stdout .build/coverage/php",
+        "test:coverage:unit": "XDEBUG_MODE=coverage .build/bin/phpunit -c phpunit.xml",
         "test:unit": "@test:coverage:unit --no-coverage"
     },
     "scripts-descriptions": {
