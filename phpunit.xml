@@ -20,7 +20,7 @@
     </source>
     <coverage includeUncoveredFiles="true">
         <report>
-            <php outputFile=".build/coverage/php/coverage-unit.cov"/>
+            <php outputFile=".build/log/coverage/php/coverage-unit.cov"/>
         </report>
     </coverage>
 </phpunit>

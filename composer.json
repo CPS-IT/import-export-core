@@ -61,8 +61,8 @@
     },
     "scripts": {
         "post-autoload-dump": [
-            "mkdir -p .build/coverage/php/",
-            "mkdir -p .build/coverage/html/"
+            "mkdir -p .build/log/coverage/php/",
+            "mkdir -p .build/log/coverage/html/"
         ],
         "fix": [
             "@fix:composer",
@@ -91,7 +91,7 @@
             "@test:coverage:unit",
             "@test:coverage:merge"
         ],
-        "test:coverage:merge": "phpcov merge --html .build/coverage/html/_merged --clover .build/coverage/clover.xml --text php://stdout .build/coverage/php",
+        "test:coverage:merge": "phpcov merge --html .build/log/coverage/html/_merged --clover .build/log/coverage/clover.xml --text php://stdout .build/log/coverage/php",
         "test:coverage:unit": "XDEBUG_MODE=coverage .build/bin/phpunit -c phpunit.xml",
         "test:unit": "@test:coverage:unit --no-coverage"
     },
