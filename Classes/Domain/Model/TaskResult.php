@@ -135,32 +135,4 @@ class TaskResult implements \Iterator
     {
         return $this->info;
     }
-
-    /**
-     * Returns all messages from the message container
-     */
-    public function getMessages(): array
-    {
-        return $this->messageContainer->getMessages();
-    }
-
-    /**
-     * Returns and purges all messages from the message container
-     */
-    public function getAndPurgeMessages(): array
-    {
-        $messages = $this->messageContainer->getMessages();
-        $this->messageContainer->clearMessages();
-
-        return $messages;
-    }
-
-    /**
-     * Adds all messages.
-     * Existing messages are kept.
-     */
-    public function addMessages(array $messages): void
-    {
-        $this->messageContainer->addMessages($messages);
-    }
 }
