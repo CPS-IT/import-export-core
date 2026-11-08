@@ -1,5 +1,16 @@
 <?php
 
+$header = <<<'EOF'
+This file is part of the package cpsit/import-export-core.
+
+It is free software; you can redistribute it and/or modify it under the terms
+of the GNU General Public License, either version 2 of the License, or (at
+your option) any later version.
+
+For the full license information, please read the LICENSE file that was
+distributed with this source code.
+EOF;
+
 $finder = PhpCsFixer\Finder::create()
     ->in(__DIR__ . '/Classes')
     ->in(__DIR__ . '/Tests')
@@ -13,6 +24,12 @@ return (new PhpCsFixer\Config())
         'concat_space' => ['spacing' => 'one'],
         'declare_strict_types' => true,
         'function_typehint_space' => true,
+        'header_comment' => [
+            'header' => $header,
+            'comment_type' => 'comment',
+            'location' => 'after_declare_strict',
+            'separate' => 'both',
+        ],
         'native_function_invocation' => [
             'include' => ['@compiler_optimized'],
             'scope' => 'namespaced',
