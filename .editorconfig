@@ -63,3 +63,9 @@ indent_size = 2
 # .htaccess
 [.htaccess]
 indent_style = tab
+
+# License text is kept verbatim
+[LICENSE]
+indent_style = unset
+indent_size = unset
+trim_trailing_whitespace = unset
