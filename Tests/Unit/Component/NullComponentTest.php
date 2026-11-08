@@ -40,12 +40,12 @@ class NullComponentTest extends TestCase
     {
         $reflection = new \ReflectionClass(NullComponent::class);
         $methods = $reflection->getMethods(\ReflectionMethod::IS_PUBLIC);
-        
+
         // Should only have inherited methods from parent classes/interfaces
         $declaredMethods = array_filter($methods, function ($method) {
             return $method->getDeclaringClass()->getName() === NullComponent::class;
         });
-        
+
         $this->assertEmpty($declaredMethods, 'NullComponent should not declare any methods');
     }
 
@@ -54,11 +54,11 @@ class NullComponentTest extends TestCase
     {
         // Test that the NullComponent can be used safely in place of other components
         $components = [new NullComponent(), new NullComponent()];
-        
+
         foreach ($components as $component) {
             $this->assertInstanceOf(ComponentInterface::class, $component);
         }
-        
+
         // Verify all components are NullComponent instances
         $this->assertContainsOnlyInstancesOf(NullComponent::class, $components);
     }

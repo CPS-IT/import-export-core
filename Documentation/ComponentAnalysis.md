@@ -6,52 +6,52 @@ This document analyzes the components in the existing `cpsit/t3import_export` ex
 
 ### 1. MessageContainerTrait
 
-**Current location**: `Classes/Messaging/MessageContainerTrait.php`  
-**PHPStan issues**: Many `property.notFound` errors with `$messageContainer`  
-**Extraction plan**: 
+**Current location**: `Classes/Messaging/MessageContainerTrait.php`
+**PHPStan issues**: Many `property.notFound` errors with `$messageContainer`
+**Extraction plan**:
 - Move to core library
 - Ensure property is properly initialized
 - Update to use the new `MessageContainer` class
 
 ### 2. ConfigurableTrait
 
-**Current location**: `Classes/ConfigurableTrait.php`  
-**PHPStan issues**: None identified  
-**Extraction plan**: 
+**Current location**: `Classes/ConfigurableTrait.php`
+**PHPStan issues**: None identified
+**Extraction plan**:
 - Move to core library as-is
 - Create corresponding interface
 
 ### 3. IdentifiableTrait
 
-**Current location**: `Classes/IdentifiableTrait.php`  
-**PHPStan issues**: None identified  
-**Extraction plan**: 
+**Current location**: `Classes/IdentifiableTrait.php`
+**PHPStan issues**: None identified
+**Extraction plan**:
 - Move to core library as-is
 - Create corresponding interface
 
 ### 4. RenderContentTrait
 
-**Current location**: `Classes/RenderContentTrait.php`  
-**PHPStan issues**: Multiple `property.notFound` errors with `$contentObjectRenderer` and `$typoScriptService`  
-**Extraction plan**: 
+**Current location**: `Classes/RenderContentTrait.php`
+**PHPStan issues**: Multiple `property.notFound` errors with `$contentObjectRenderer` and `$typoScriptService`
+**Extraction plan**:
 - Extract framework-agnostic parts to core library
 - Leave TYPO3-specific content rendering in extension
 - Create adapter interfaces for framework-specific implementations
 
 ### 5. ResourceStorageTrait
 
-**Current location**: `Classes/Resource/ResourceStorageTrait.php`  
-**PHPStan issues**: Multiple `property.notFound` errors with `$resourceStorage`  
-**Extraction plan**: 
+**Current location**: `Classes/Resource/ResourceStorageTrait.php`
+**PHPStan issues**: Multiple `property.notFound` errors with `$resourceStorage`
+**Extraction plan**:
 - Create abstraction for resource storage in core library
 - Leave TYPO3-specific implementation in extension
 - Create adapter interface for framework-specific implementations
 
 ### 6. LoggingTrait
 
-**Current location**: `Classes/LoggingTrait.php`  
-**PHPStan issues**: `property.notFound` errors with `$messageContainer`  
-**Extraction plan**: 
+**Current location**: `Classes/LoggingTrait.php`
+**PHPStan issues**: `property.notFound` errors with `$messageContainer`
+**Extraction plan**:
 - Move to core library
 - Update to use PSR-3 Logger
 - Ensure property is properly initialized
@@ -60,26 +60,26 @@ This document analyzes the components in the existing `cpsit/t3import_export` ex
 
 ### 1. Component Base Classes
 
-**Current location**: `Classes/Component/AbstractComponent.php` and others  
-**PHPStan issues**: Various property and method issues  
-**Extraction plan**: 
+**Current location**: `Classes/Component/AbstractComponent.php` and others
+**PHPStan issues**: Various property and method issues
+**Extraction plan**:
 - Create component interfaces in core library
 - Extract common base implementations to core library
 - Leave TYPO3-specific implementations in extension
 
 ### 2. Domain Models
 
-**Current location**: `Classes/Domain/Model/`  
-**PHPStan issues**: Various issues with `TaskResult` class  
-**Extraction plan**: 
+**Current location**: `Classes/Domain/Model/`
+**PHPStan issues**: Various issues with `TaskResult` class
+**Extraction plan**:
 - Extract base domain interfaces and models to core library
 - Leave TYPO3-specific implementations in extension
 
 ### 3. Factories
 
-**Current location**: `Classes/Domain/Factory/` and `Classes/Persistence/Factory/`  
-**PHPStan issues**: Various dependency issues  
-**Extraction plan**: 
+**Current location**: `Classes/Domain/Factory/` and `Classes/Persistence/Factory/`
+**PHPStan issues**: Various dependency issues
+**Extraction plan**:
 - Extract factory interfaces to core library
 - Create abstract factory implementations in core
 - Leave TYPO3-specific factory implementations in extension
@@ -108,15 +108,15 @@ The following components should remain in the TYPO3 extension:
 trait MessageContainerTrait
 {
     protected $messageContainer;
-    
+
     // Methods using $messageContainer
 }
 
 // Usage:
-class SomeClass 
+class SomeClass
 {
     use MessageContainerTrait;
-    
+
     public function doSomething()
     {
         $this->messageContainer->addMessage('message');
@@ -130,10 +130,10 @@ class SomeClass
 interface MessageContainerInterface { /* ... */ }
 class MessageContainer implements MessageContainerInterface { /* ... */ }
 
-trait MessageContainerTrait 
+trait MessageContainerTrait
 {
     protected MessageContainerInterface $messageContainer;
-    
+
     public function getMessageContainer(): MessageContainerInterface
     {
         if (!isset($this->messageContainer)) {
@@ -141,15 +141,15 @@ trait MessageContainerTrait
         }
         return $this->messageContainer;
     }
-    
+
     // Other methods
 }
 
 // In extension:
-class SomeClass 
+class SomeClass
 {
     use \CPSIT\ImportExportCore\Messaging\MessageContainerTrait;
-    
+
     public function doSomething()
     {
         $this->getMessageContainer()->addMessage('message');

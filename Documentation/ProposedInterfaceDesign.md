@@ -16,7 +16,7 @@ interface ConfigurableInterface
      * @return void
      */
     public function setConfiguration(array $configuration): void;
-    
+
     /**
      * Gets configuration
      *
@@ -37,7 +37,7 @@ interface IdentifiableInterface
      * @return string
      */
     public function getIdentifier(): string;
-    
+
     /**
      * Sets the identifier
      *
@@ -61,21 +61,21 @@ interface MessageContainerInterface
      * @return void
      */
     public function addMessage(string $message, int $severity = 0): void;
-    
+
     /**
      * Returns all messages
      *
      * @return array
      */
     public function getMessages(): array;
-    
+
     /**
      * Returns whether any messages exist
      *
      * @return bool
      */
     public function hasMessages(): bool;
-    
+
     /**
      * Clears all messages
      *
@@ -171,7 +171,7 @@ interface DataSourceInterface extends ConfigurableInterface, IdentifiableInterfa
      * @return mixed
      */
     public function getData(): mixed;
-    
+
     /**
      * Check if source has data
      *
@@ -204,7 +204,7 @@ interface ResourceStorageInterface
      * @return mixed
      */
     public function getResource(string $identifier): mixed;
-    
+
     /**
      * Store a resource
      *
@@ -213,7 +213,7 @@ interface ResourceStorageInterface
      * @return bool
      */
     public function storeResource(mixed $resource, string $identifier): bool;
-    
+
     /**
      * Check if a resource exists
      *
@@ -283,14 +283,14 @@ interface ResultInterface extends \Iterator, \Countable
      * @return void
      */
     public function addItem(mixed $item): void;
-    
+
     /**
      * Get all result items
      *
      * @return array
      */
     public function getItems(): array;
-    
+
     /**
      * Set success status
      *
@@ -298,7 +298,7 @@ interface ResultInterface extends \Iterator, \Countable
      * @return void
      */
     public function setSuccess(bool $success): void;
-    
+
     /**
      * Get success status
      *

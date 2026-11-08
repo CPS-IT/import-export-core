@@ -36,7 +36,7 @@ class InvalidConfigurationExceptionTest extends TestCase
     {
         $message = 'Invalid configuration provided';
         $exception = new InvalidConfigurationException($message);
-        
+
         $this->assertSame($message, $exception->getMessage());
         $this->assertSame(0, $exception->getCode());
     }
@@ -47,7 +47,7 @@ class InvalidConfigurationExceptionTest extends TestCase
         $message = 'Configuration validation failed';
         $code = 1001;
         $exception = new InvalidConfigurationException($message, $code);
-        
+
         $this->assertSame($message, $exception->getMessage());
         $this->assertSame($code, $exception->getCode());
     }
@@ -59,7 +59,7 @@ class InvalidConfigurationExceptionTest extends TestCase
         $message = 'Configuration error';
         $code = 1002;
         $exception = new InvalidConfigurationException($message, $code, $previous);
-        
+
         $this->assertSame($message, $exception->getMessage());
         $this->assertSame($code, $exception->getCode());
         $this->assertSame($previous, $exception->getPrevious());
@@ -71,7 +71,7 @@ class InvalidConfigurationExceptionTest extends TestCase
         $this->expectException(InvalidConfigurationException::class);
         $this->expectExceptionMessage('Test configuration error');
         $this->expectExceptionCode(1003);
-        
+
         throw new InvalidConfigurationException('Test configuration error', 1003);
     }
 }

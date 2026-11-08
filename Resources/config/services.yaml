@@ -27,4 +27,3 @@ services:
     arguments:
       $configurationHandler: '@CPSIT\ImportExportCore\Configuration\ConfigurationHandler'
       $yamlLoader: '@CPSIT\ImportExportCore\Configuration\YamlConfigurationLoader'
-
