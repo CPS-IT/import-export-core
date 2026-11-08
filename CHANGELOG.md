@@ -4,6 +4,44 @@ All notable changes to this project are documented in this file. The project
 follows [Semantic Versioning](https://semver.org/). While the version is `0.x`,
 a new minor version may contain breaking changes.
 
+## Unreleased
+
+### Added
+
+* `ResultInterface`, implemented by `TaskResult`
+  ([#22](https://github.com/CPS-IT/import-export-core/issues/22))
+* `TransferProcessorInterface` and `DataTransferProcessor`: the processor
+  moved from the extension into the core and depends on core interfaces only.
+  It processes a single task; records can still be read in advance for
+  several tasks with `buildQueue()`
+  ([#22](https://github.com/CPS-IT/import-export-core/issues/22))
+* `DemandProcessor`: processes all tasks of a demand with a shared result
+  ([#22](https://github.com/CPS-IT/import-export-core/issues/22))
+* `TransferTask`, `TransferSet`, `DataStream`, `DataStreamInterface`,
+  `DemandInterface` and `TaskDemand`, moved from the extension
+  ([#22](https://github.com/CPS-IT/import-export-core/issues/22))
+* `DisableableInterface` for data targets that can be disabled per record
+  ([#22](https://github.com/CPS-IT/import-export-core/issues/22))
+
+### Changed
+
+* Breaking: `isDisabled()` of the component interfaces accepts
+  `?ResultInterface` instead of `?TaskResult`. Implementations must change
+  the parameter type
+  ([#22](https://github.com/CPS-IT/import-export-core/issues/22))
+* Compared to the processor in the extension:
+  * `process()` takes one task and returns a `ResultInterface` instead of an
+    array; use `DemandProcessor` for several tasks
+  * a task that is not queued is read from its data source instead of being
+    skipped
+  * queued records are removed from the queue after the task was processed
+  * a task without data source or data target raises an
+    `InvalidConfigurationException`
+  * records from a generator are accepted
+  * a finisher cannot replace the result object
+  * the target is checked with `DisableableInterface` instead of the
+    extension's `AbstractComponent`
+
 ## 0.1.0 - 2026-11-08
 
 First release. The library contains the parts of the TYPO3 extension
