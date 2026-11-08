@@ -34,7 +34,7 @@ interface DataTargetInterface extends ComponentInterface
     /**
      * Persists all record or objects
      *
-     * @param mixed $result Result of the task, e.g. a TaskResult
+     * @param mixed $result Result of the task, usually a ResultInterface
      * @param array<string, mixed>|null $configuration
      * @return mixed
      */
