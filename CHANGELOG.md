@@ -48,6 +48,13 @@ a new minor version may contain breaking changes.
   between batches. New dependency `psr/event-dispatcher`
   ([#40](https://github.com/CPS-IT/import-export-core/issues/40))
 
+* Queue for staged transfers: `Queue\QueueItem`, `Queue\QueueRepositoryInterface`
+  and `Queue\InMemoryQueueRepository`; `Persistence\DataTargetQueue` writes
+  records into a queue, `Persistence\DataSourceQueue` reads and claims them.
+  Claimed items are marked finished after the task
+  (`CompletableSourceInterface`)
+  ([#40](https://github.com/CPS-IT/import-export-core/issues/40))
+
 ### Deprecated
 
 * The component interfaces in `CPSIT\ImportExportCore\Component\`
@@ -99,6 +106,17 @@ Migration of breaking changes is described in [UPGRADE.md](UPGRADE.md).
     `DisableableInterface`; the adapters do
   * records must be arrays if the task has pre-processors, converters or
     post-processors
+* Compared to the queue in the extension
+  ([#40](https://github.com/CPS-IT/import-export-core/issues/40)):
+  * items are marked processing when read and finished after the task;
+    before, their status was never changed and they were read again on every
+    run
+  * the payload is an array (stored as JSON by repositories), not a string;
+    the checksum is computed from queue identifier and JSON
+  * `DataSourceQueue` option `batchSize` is called `limit`
+  * queue identifiers no longer need to start with `import.` or `export.`
+  * `DataTargetQueue` raises an exception for records that are not arrays
+    instead of returning `false`
 * `buildQueue()` reads records of generators in advance. Before, the
   generator was stored and read only when the task was processed
   ([#40](https://github.com/CPS-IT/import-export-core/issues/40))

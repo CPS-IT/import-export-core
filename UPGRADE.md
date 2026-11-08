@@ -217,3 +217,52 @@ final class SetTitle implements \CPSIT\ImportExportCore\Pipeline\PreProcessorInt
 To keep the per-record `disabled` check until
 [#24](https://github.com/CPS-IT/import-export-core/issues/24) is done,
 implement `Component\DisableableInterface`.
+
+### Queue moved into the core
+
+Issue: [#40](https://github.com/CPS-IT/import-export-core/issues/40)
+
+**Affects:** configurations using the extension's `DataSourceQueue` or
+`DataTargetQueue`, code using `QueueItem` or `QueueItemRepository`, existing
+items in the extension's queue table.
+
+**Change:** `QueueItem`, `QueueRepositoryInterface` and an in-memory
+repository are part of the core (`CPSIT\ImportExportCore\Queue\`), as are
+`DataSourceQueue` and `DataTargetQueue`
+(`CPSIT\ImportExportCore\Persistence\`). The extension provides the
+repository for its database table. Differences:
+
+* `DataSourceQueue` claims the items it reads (status processing). After the
+  task, they are marked finished. Before, the status was never changed. If a
+  task fails, its items stay in processing; `QueueRepositoryInterface::release()`
+  sets them back to new.
+* The payload is an array. Repositories store it as JSON. The checksum is
+  `QueueItem::checksum($queue, $data)`.
+* `DataSourceQueue`: the option `batchSize` is called `limit` (number of
+  items per run). It is independent of the batch size of the processor.
+* Queue identifiers are free strings; the prefix `import.` or `export.` is no
+  longer required.
+* `DataTargetQueue::persist()` raises an `UnexpectedValueException` for
+  records that are not arrays.
+
+**Migration:**
+
+```yaml
+# before
+source:
+  class: CPSIT\T3importExport\Persistence\DataSourceQueue
+  config:
+    identifier: import.news
+    batchSize: 50
+
+# after
+source:
+  class: CPSIT\ImportExportCore\Persistence\DataSourceQueue
+  config:
+    identifier: import.news
+    limit: 50
+```
+
+Existing items in the queue table whose `data` is not a JSON object, or
+whose checksum was computed the old way, have to be converted or enqueued
+again.

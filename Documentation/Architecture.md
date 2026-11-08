@@ -47,8 +47,11 @@ and processed in batches; batch aware targets are flushed after each batch,
 and PSR-14 events (`TaskStarted`, `BatchProcessed`, `TaskFinished`) allow
 progress reports and throttling. The result keeps counters
 (`TransferStatistics`); collecting the converted records can be switched off.
-The queue model and stream-based data streams follow
-([#40](https://github.com/CPS-IT/import-export-core/issues/40)). The task and
+Staged transfers use a queue (`Queue\`): `DataTargetQueue` writes records
+into a `QueueRepositoryInterface`, `DataSourceQueue` reads and claims them and
+marks them finished after the task. The core contains an in-memory repository;
+the extension provides one for its database table. Stream-based data streams
+follow ([#40](https://github.com/CPS-IT/import-export-core/issues/40)). The task and
 set models (`TransferTask`, `TransferSet`) are part of the core.
 
 `Factory\TransferSetFactory` and `Factory\TransferTaskFactory` build sets and

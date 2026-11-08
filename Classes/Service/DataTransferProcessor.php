@@ -29,6 +29,7 @@ use CPSIT\ImportExportCore\Exception\InvalidConfigurationException;
 use CPSIT\ImportExportCore\IdentifiableInterface;
 use CPSIT\ImportExportCore\LoggingInterface;
 use CPSIT\ImportExportCore\Persistence\BatchAwareInterface;
+use CPSIT\ImportExportCore\Persistence\CompletableSourceInterface;
 use CPSIT\ImportExportCore\Persistence\DataSourceInterface;
 use CPSIT\ImportExportCore\Persistence\DataTargetInterface;
 use CPSIT\ImportExportCore\Pipeline\Legacy\LegacyAdapterInterface;
@@ -133,6 +134,11 @@ class DataTransferProcessor implements TransferProcessorInterface
 
         if ($recordCount > 0) {
             $target->persistAll($result, $this->getTargetConfiguration($target));
+        }
+
+        $source = $task->getSource();
+        if ($source instanceof CompletableSourceInterface) {
+            $source->complete($result);
         }
 
         $this->processFinishers($task, $result);
