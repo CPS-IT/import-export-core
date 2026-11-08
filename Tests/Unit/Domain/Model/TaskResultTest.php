@@ -15,6 +15,7 @@ declare(strict_types=1);
 
 namespace CPSIT\ImportExportCore\Tests\Unit\Domain\Model;
 
+use CPSIT\ImportExportCore\Domain\Model\ResultInterface;
 use CPSIT\ImportExportCore\Domain\Model\TaskResult;
 use CPSIT\ImportExportCore\Messaging\MessageContainer;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -32,6 +33,11 @@ class TaskResultTest extends TestCase
         $this->messageContainer = $this->getMockBuilder(MessageContainer::class)
             ->getMock();
         $this->subject = new TaskResult($this->messageContainer);
+    }
+
+    public function testImplementsResultInterface(): void
+    {
+        self::assertInstanceOf(ResultInterface::class, $this->subject);
     }
 
     public function testAddAndRemoveObjectsToIterator(): void

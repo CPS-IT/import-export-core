@@ -16,7 +16,7 @@ declare(strict_types=1);
 namespace CPSIT\ImportExportCore\Component\Initializer;
 
 use CPSIT\ImportExportCore\Component\ComponentInterface;
-use CPSIT\ImportExportCore\Domain\Model\TaskResult;
+use CPSIT\ImportExportCore\Domain\Model\ResultInterface;
 
 /**
  * Interface InitializerInterface
@@ -39,7 +39,7 @@ interface InitializerInterface extends ComponentInterface
      * @param array<string, mixed> $configuration
      * @param array<string, mixed> $record
      */
-    public function isDisabled(array $configuration, array $record = [], ?TaskResult $result = null): bool;
+    public function isDisabled(array $configuration, array $record = [], ?ResultInterface $result = null): bool;
 
     /**
      * Sets the configuration

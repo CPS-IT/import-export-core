@@ -37,12 +37,17 @@ A task is processed in this order:
 4. The data target finishes (`persistAll()`).
 5. **Finishers** run once after all records.
 
-Components report messages (`MessageContainer`) and contribute to a
-`TaskResult`.
+Components report messages (`MessageContainer`) and contribute to a result
+(`ResultInterface`, implemented by `TaskResult`).
 
-Today this orchestration (`DataTransferProcessor`), the task and set models and
-the factories are part of the extension. Moving them into the core is planned
-for 0.2.0 (see below).
+The orchestration is `Service\DataTransferProcessor`
+(`TransferProcessorInterface`). It processes one task; `Service\DemandProcessor`
+processes all tasks of a demand with a shared result. All records of a task are
+held in memory; processing in batches is planned
+([#40](https://github.com/CPS-IT/import-export-core/issues/40)). The task and
+set models (`TransferTask`, `TransferSet`) are part of the core. The factories
+are still part of the extension
+([#23](https://github.com/CPS-IT/import-export-core/issues/23)).
 
 ## Current state (0.1.0)
 
@@ -79,8 +84,9 @@ Found in a review of the core and the TYPO3 13 branch of the extension. The
 design issues are addressed in 0.2.0 (milestone
 [0.2.0](https://github.com/CPS-IT/import-export-core/milestone/2)):
 
-* The engine is not in the core, so the core cannot run an import on its own.
-  ([#22](https://github.com/CPS-IT/import-export-core/issues/22))
+* The engine was not in the core, so the core could not run an import on its
+  own. Done in 0.2.0
+  ([#22](https://github.com/CPS-IT/import-export-core/issues/22)).
 * Components are instantiated by a hard-coded factory map and
   `GeneralUtility::makeInstance()`; third parties cannot register component
   types. ([#23](https://github.com/CPS-IT/import-export-core/issues/23))

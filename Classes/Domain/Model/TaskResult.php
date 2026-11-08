@@ -22,7 +22,7 @@ use CPSIT\ImportExportCore\Messaging\MessageContainerTrait;
 /**
  * @implements \Iterator<int, mixed>
  */
-class TaskResult implements \Iterator, \Countable
+class TaskResult implements \Iterator, ResultInterface
 {
     use MessageContainerTrait;
     protected int $position = 0;
