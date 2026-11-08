@@ -18,8 +18,14 @@ namespace CPSIT\ImportExportCore\Configuration;
  */
 interface TransferConfigurationInterface
 {
+    /**
+     * @return array<string, array<string, mixed>>
+     */
     public function getTasks(): array;
 
+    /**
+     * @return array<string, array<string, mixed>>
+     */
     public function getSets(): array;
 
 }

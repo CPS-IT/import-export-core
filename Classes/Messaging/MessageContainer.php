@@ -16,6 +16,9 @@ namespace CPSIT\ImportExportCore\Messaging;
 
 class MessageContainer implements MessageContainerInterface
 {
+    /**
+     * @var array<\CPSIT\ImportExportCore\Messaging\MessageInterface>
+     */
     protected array $messages = [];
 
     public function addMessage(MessageInterface $message): void
@@ -27,7 +30,7 @@ class MessageContainer implements MessageContainerInterface
     /**
      * Add messages to list of messages
      *
-     * @param array $messages
+     * @param array<\CPSIT\ImportExportCore\Messaging\MessageInterface> $messages
      */
     public function addMessages(array $messages): void
     {
@@ -36,6 +39,9 @@ class MessageContainer implements MessageContainerInterface
         }
     }
 
+    /**
+     * @return array<\CPSIT\ImportExportCore\Messaging\MessageInterface>
+     */
     public function getMessages(): array
     {
         return $this->messages;
@@ -48,7 +54,7 @@ class MessageContainer implements MessageContainerInterface
      * @param $id
      * @return bool
      */
-    public function hasMessageWithId($id): bool
+    public function hasMessageWithId(int $id): bool
     {
         /** @var Message $message */
         foreach ($this->getMessages() as $message) {

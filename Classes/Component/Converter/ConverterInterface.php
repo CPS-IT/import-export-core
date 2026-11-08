@@ -23,26 +23,34 @@ use CPSIT\ImportExportCore\Domain\Model\TaskResult;
  */
 interface ConverterInterface extends ComponentInterface
 {
+    /**
+     * @param array<string, mixed> $configuration
+     * @param array<string, mixed> $record
+     */
     public function convert(array &$record, array $configuration): mixed;
 
     /**
      * Tells if the component is disabled
+     * @param array<string, mixed> $configuration
+     * @param array<string, mixed> $record
      */
     public function isDisabled(array $configuration, array $record = [], ?TaskResult $result = null): bool;
 
     /**
-     * @param array $configuration
+     * @param array<string, mixed> $configuration
      * @return bool
      */
     public function isConfigurationValid(array $configuration): bool;
 
     /**
      * Sets the configuration
+     * @param array<string, mixed> $configuration
      */
     public function setConfiguration(array $configuration): void;
 
     /**
      * Returns the configuration
+     * @return array<string, mixed>
      */
     public function getConfiguration(): array;
 }

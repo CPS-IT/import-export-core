@@ -17,9 +17,15 @@ namespace CPSIT\ImportExportCore\Messaging;
 interface MessageContainerInterface
 {
     public function addMessage(MessageInterface $message): void;
+    /**
+     * @param array<\CPSIT\ImportExportCore\Messaging\MessageInterface> $messages
+     */
     public function addMessages(array $messages): void;
+    /**
+     * @return array<\CPSIT\ImportExportCore\Messaging\MessageInterface>
+     */
     public function getMessages(): array;
     public function hasMessages(): bool;
     public function clearMessages(): void;
-    public function hasMessageWithId($id): bool;
+    public function hasMessageWithId(int $id): bool;
 }

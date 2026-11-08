@@ -24,9 +24,8 @@ interface IdentifiableInterface
      * Sets the identifier
      *
      * @param string $identifier
-     * @return mixed
      */
-    public function setIdentifier(string $identifier);
+    public function setIdentifier(string $identifier): void;
 
     /**
      * Gets the identifier

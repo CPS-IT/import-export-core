@@ -24,7 +24,7 @@ use CPSIT\ImportExportCore\Exception\ParseException;
 class ConfigurationHandler implements TransferConfigurationInterface, ConfigurationHandlerInterface
 {
     /**
-     * @var array
+     * @var array<string, mixed>
      */
     private array $configuration = [];
 
@@ -51,7 +51,7 @@ class ConfigurationHandler implements TransferConfigurationInterface, Configurat
     /**
      * Get import/export tasks
      *
-     * @return array
+     * @return array<string, array<string, mixed>>
      */
     public function getTasks(): array
     {
@@ -71,7 +71,7 @@ class ConfigurationHandler implements TransferConfigurationInterface, Configurat
     /**
      * Get import/export sets
      *
-     * @return array
+     * @return array<string, array<string, mixed>>
      */
     public function getSets(): array
     {
@@ -91,6 +91,9 @@ class ConfigurationHandler implements TransferConfigurationInterface, Configurat
     /**
      * Merges $override into $base. Associative arrays are merged recursively;
      * scalar values and lists in $override replace those in $base.
+     * @param array<string, mixed> $base
+     * @param array<string, mixed> $override
+     * @return array<string, mixed>
      */
     private static function merge(array $base, array $override): array
     {
@@ -114,7 +117,7 @@ class ConfigurationHandler implements TransferConfigurationInterface, Configurat
     /**
      * Get the full configuration array
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function getFullConfiguration(): array
     {

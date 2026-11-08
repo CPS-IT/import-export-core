@@ -19,10 +19,16 @@ use CPSIT\ImportExportCore\Messaging\MessageContainer;
 use CPSIT\ImportExportCore\Messaging\MessageContainerInterface;
 use CPSIT\ImportExportCore\Messaging\MessageContainerTrait;
 
+/**
+ * @implements \Iterator<int, mixed>
+ */
 class TaskResult implements \Iterator, \Countable
 {
     use MessageContainerTrait;
     protected int $position = 0;
+    /**
+     * @var array<mixed>
+     */
     protected array $list = [];
     protected int $size = 0;
     protected mixed $info = null;
@@ -84,6 +90,9 @@ class TaskResult implements \Iterator, \Countable
         $this->position = 0;
     }
 
+    /**
+     * @param array<mixed> $elements
+     */
     public function setElements(array $elements): void
     {
         $this->list = $elements;
@@ -130,7 +139,7 @@ class TaskResult implements \Iterator, \Countable
     }
 
     /**
-     * @return array
+     * @return array<mixed>
      */
     public function toArray(): array
     {

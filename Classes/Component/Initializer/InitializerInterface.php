@@ -24,24 +24,32 @@ use CPSIT\ImportExportCore\Domain\Model\TaskResult;
 interface InitializerInterface extends ComponentInterface
 {
     /**
-     * @param array $records Array with prepared records
+     * @param array<mixed> $records Array with prepared records
+     * @param array<string, mixed> $configuration
      */
     public function process(array $configuration, array &$records): bool;
 
+    /**
+     * @param array<string, mixed> $configuration
+     */
     public function isConfigurationValid(array $configuration): bool;
 
     /**
      * Tells if the component is disabled
+     * @param array<string, mixed> $configuration
+     * @param array<string, mixed> $record
      */
     public function isDisabled(array $configuration, array $record = [], ?TaskResult $result = null): bool;
 
     /**
      * Sets the configuration
+     * @param array<string, mixed> $configuration
      */
     public function setConfiguration(array $configuration): void;
 
     /**
      * Returns the configuration
+     * @return array<string, mixed>
      */
     public function getConfiguration(): array;
 }

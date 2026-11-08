@@ -39,21 +39,21 @@ interface ConfigurationHandlerInterface
     /**
      * Get import/export tasks
      *
-     * @return array
+     * @return array<string, array<string, mixed>>
      */
     public function getTasks(): array;
 
     /**
      * Get import/export sets
      *
-     * @return array
+     * @return array<string, array<string, mixed>>
      */
     public function getSets(): array;
 
     /**
      * Get the full configuration array
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function getFullConfiguration(): array;
 }

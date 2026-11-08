@@ -24,27 +24,34 @@ use CPSIT\ImportExportCore\Domain\Model\TaskResult;
 interface PostProcessorInterface extends ComponentInterface
 {
     /**
-     * @param array $configuration
+     * @param array<string, mixed> $configuration
      * @param mixed $convertedRecord
-     * @param array $record
+     * @param array<string, mixed> $record
      * @return bool
      */
     public function process(array $configuration, mixed &$convertedRecord, array &$record): bool;
 
+    /**
+     * @param array<string, mixed> $configuration
+     */
     public function isConfigurationValid(array $configuration): bool;
 
     /**
      * Tells if the component is disabled
+     * @param array<string, mixed> $configuration
+     * @param array<string, mixed> $record
      */
     public function isDisabled(array $configuration, array $record = [], ?TaskResult $result = null): bool;
 
     /**
      * Sets the configuration
+     * @param array<string, mixed> $configuration
      */
     public function setConfiguration(array $configuration): void;
 
     /**
      * Returns the configuration
+     * @return array<string, mixed>
      */
     public function getConfiguration(): array;
 }

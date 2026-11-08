@@ -24,30 +24,35 @@ use CPSIT\ImportExportCore\Domain\Model\TaskResult;
 interface FinisherInterface extends ComponentInterface
 {
     /**
-     * @param array $configuration
-     * @param array $records Array with prepared records
-     * @param array|object $result Array with result records
+     * @param array<string, mixed> $configuration
+     * @param array<mixed> $records Array with prepared records
+     * @param array<mixed>|object $result Array with result records
      * @return bool
      */
     public function process(array $configuration, array &$records, array|object &$result): bool;
 
     /**
+     * @param array<string, mixed> $configuration
      * @return bool
      */
     public function isConfigurationValid(array $configuration): bool;
 
     /**
      * Tells if the component is disabled
+     * @param array<string, mixed> $configuration
+     * @param array<string, mixed> $record
      */
     public function isDisabled(array $configuration, array $record = [], ?TaskResult $result = null): bool;
 
     /**
      * Sets the configuration
+     * @param array<string, mixed> $configuration
      */
     public function setConfiguration(array $configuration): void;
 
     /**
      * Returns the configuration
+     * @return array<string, mixed>
      */
     public function getConfiguration(): array;
 }

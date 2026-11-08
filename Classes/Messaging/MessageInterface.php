@@ -42,11 +42,12 @@ interface MessageInterface
 
     /**
      * Returns additional information
+     * @return array<mixed>
      */
     public function getAdditionalInformation(): ?array;
 
     /**
-     * @param array $additionalInformation
+     * @param array<mixed> $additionalInformation
      * @return void
      */
     public function setAdditionalInformation(array $additionalInformation): void;

@@ -23,6 +23,8 @@ namespace CPSIT\ImportExportCore;
 interface RenderContentInterface
 {
     /**
+     * @param array<string, mixed> $configuration
+     * @param array<string, mixed> $record
      * @return mixed Rendered Content
      */
     public function renderContent(array $record, array $configuration): mixed;

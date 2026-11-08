@@ -27,8 +27,8 @@ interface DataSourceInterface extends ComponentInterface
     /**
      * Fetches records from a data source.
      *
-     * @param array $configuration Source query configuration
-     * @return array Array of records or empty array
+     * @param array<string, mixed> $configuration Source query configuration
+     * @return iterable<mixed> Records; empty if there are none
      */
-    public function getRecords(array $configuration);
+    public function getRecords(array $configuration): iterable;
 }

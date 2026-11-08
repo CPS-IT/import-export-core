@@ -45,7 +45,7 @@ class YamlConfigurationLoader implements ConfigurationLoaderInterface
      * @param string $path Path to YAML file
      * @throws FileNotFoundException If file does not exist
      * @throws ParseException If YAML parsing fails
-     * @return array<string, array<string, array>>
+     * @return array<string, array<string, array<string, mixed>>>
      */
     public function load(string $path): array
     {
@@ -56,8 +56,8 @@ class YamlConfigurationLoader implements ConfigurationLoaderInterface
     /**
      * Keeps the tasks and sets of the import and export sections
      *
-     * @param array $configuration YAML-parsed configuration
-     * @return array<string, array<string, array>>
+     * @param array<string, mixed> $configuration YAML-parsed configuration
+     * @return array<string, array<string, array<string, mixed>>>
      */
     protected function normalize(array $configuration): array
     {

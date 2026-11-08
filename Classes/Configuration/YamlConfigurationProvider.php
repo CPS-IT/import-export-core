@@ -34,7 +34,7 @@ class YamlConfigurationProvider
      *
      * @param string $directory Directory containing YAML files
      * @param string $extension File extension (default: yaml)
-     * @return array Loaded configuration
+     * @return array<string, mixed> Loaded configuration
      */
     public function loadFromDirectory(string $directory, string $extension = 'yaml'): array
     {

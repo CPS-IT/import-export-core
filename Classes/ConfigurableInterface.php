@@ -25,11 +25,12 @@ interface ConfigurableInterface
 
     /**
      * Tells if a given configuration is valid
+     * @param array<string, mixed> $configuration
      */
     public function isConfigurationValid(array $configuration): bool;
 
     /**
-     * @return array
+     * @return array<string, mixed>
      */
     public function getConfiguration(): array;
 
@@ -37,7 +38,8 @@ interface ConfigurableInterface
      * Sets the configuration if it is valid.
      * Throws an exception otherwise.
      *
+     * @param array<string, mixed> $configuration
      * @throws \CPSIT\ImportExportCore\Exception\InvalidConfigurationException
      */
-    public function setConfiguration(array $configuration);
+    public function setConfiguration(array $configuration): void;
 }

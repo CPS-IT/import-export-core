@@ -65,7 +65,7 @@ interface TransferTaskInterface
     /**
      * Sets the target of import
      */
-    public function setTarget(DataTargetInterface $target);
+    public function setTarget(DataTargetInterface $target): void;
 
     /**
      * Gets the pre-processors
@@ -92,7 +92,7 @@ interface TransferTaskInterface
      *
      * @param PostProcessorInterface[] $postProcessors
      */
-    public function setPostProcessors(array $postProcessors);
+    public function setPostProcessors(array $postProcessors): void;
 
     /**
      * Gets the converters
@@ -106,7 +106,7 @@ interface TransferTaskInterface
      *
      * @param ConverterInterface[] $converters
      */
-    public function setConverters(array $converters);
+    public function setConverters(array $converters): void;
 
     /**
      * Gets the finishers
@@ -120,7 +120,7 @@ interface TransferTaskInterface
      *
      * @param FinisherInterface[] $finishers
      */
-    public function setFinishers(array $finishers);
+    public function setFinishers(array $finishers): void;
 
     /**
      * Gets the initializers

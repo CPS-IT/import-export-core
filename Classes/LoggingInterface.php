@@ -38,7 +38,7 @@ interface LoggingInterface
      *  <id> => ['errorTitle', 'errorDescription']
      * ]
      * 'errorDescription' may contain placeholder (%s) for arguments.
-     * @return array
+     * @return array<int, array<int, string>>
      */
     public function getErrorCodes(): array;
 
@@ -50,6 +50,7 @@ interface LoggingInterface
      *  <id> => ['title', 'description']
      * ]
      * 'description' may contain placeholder (%s) for arguments.
+     * @return array<int, array<int, string>>
      */
     public function getNoticeCodes(): array;
 
@@ -57,8 +58,8 @@ interface LoggingInterface
      * Creates an error message and adds it to the message container
      *
      * @param int $id Error id
-     * @param array|null $arguments Optional arguments. Will be used as arguments for formatted message.
-     * @param array|null $additionalInformation Optional array with additional information
+     * @param array<mixed>|null $arguments Optional arguments. Will be used as arguments for formatted message.
+     * @param array<mixed>|null $additionalInformation Optional array with additional information
      */
     public function logError($id, ?array $arguments = null, ?array $additionalInformation = null): void;
 
@@ -66,8 +67,8 @@ interface LoggingInterface
      * Creates a notice and adds it to the message container
      *
      * @param int $id Error id
-     * @param array|null $arguments Optional arguments. Will be used as arguments for formatted message.
-     * @param array|null $additionalInformation Optional array with additional information
+     * @param array<mixed>|null $arguments Optional arguments. Will be used as arguments for formatted message.
+     * @param array<mixed>|null $additionalInformation Optional array with additional information
      */
     public function logNotice($id, ?array $arguments = null, ?array $additionalInformation = null): void;
 
@@ -78,7 +79,7 @@ interface LoggingInterface
      * @param string $description Message content
      * @param int $severity Message severity
      * @param int|null $id Optional message ID
-     * @param array|null $additionalInformation Optional additional information
+     * @param array<mixed>|null $additionalInformation Optional additional information
      */
     public function logMessage($title, $description, $severity = Message::SEVERITY_OK, $id = null, ?array $additionalInformation = null): void;
 
@@ -86,7 +87,7 @@ interface LoggingInterface
      * Renders a title
      *
      * @param int $id Message ID
-     * @param array $codes An array of codes.
+     * @param array<int, array<int, string>> $codes An array of codes.
      * @param string $default Default title
      * @return string
      */
@@ -101,6 +102,7 @@ interface LoggingInterface
 
     /**
      * Returns and purges all messages from the message container
+     * @return array<\CPSIT\ImportExportCore\Messaging\MessageInterface>
      */
     public function getAndPurgeMessages(): array;
 
@@ -108,5 +110,5 @@ interface LoggingInterface
      * Tells by id if a container has a certain message
      * Note: not all messages must have an id!
      */
-    public function hasMessageWithId($id): bool;
+    public function hasMessageWithId(int $id): bool;
 }

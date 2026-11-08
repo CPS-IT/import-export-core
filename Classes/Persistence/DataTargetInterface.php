@@ -25,18 +25,18 @@ interface DataTargetInterface extends ComponentInterface
     /**
      * Persist both new and updated records.
      *
-     * @param array|object $object Record to persist. Either an array or an object, depending on the target.
-     * @param array $configuration Configuration array.
+     * @param array<mixed>|object $object Record to persist. Either an array or an object, depending on the target.
+     * @param array<string, mixed> $configuration Configuration array.
      * @return mixed
      */
-    public function persist($object, ?array $configuration = null);
+    public function persist(array|object $object, ?array $configuration = null): mixed;
 
     /**
      * Persists all record or objects
      *
-     * @param array|null $result
-     * @param array|null $configuration
+     * @param mixed $result Result of the task, e.g. a TaskResult
+     * @param array<string, mixed>|null $configuration
      * @return mixed
      */
-    public function persistAll($result = null, ?array $configuration = null);
+    public function persistAll(mixed $result = null, ?array $configuration = null): mixed;
 }

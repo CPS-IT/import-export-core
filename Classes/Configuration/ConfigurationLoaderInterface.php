@@ -15,5 +15,8 @@ namespace CPSIT\ImportExportCore\Configuration;
 
 interface ConfigurationLoaderInterface
 {
+    /**
+     * @return array<string, mixed>
+     */
     public function load(string $path): array;
 }

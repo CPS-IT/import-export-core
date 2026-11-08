@@ -1,8 +1,12 @@
 parameters:
-  level: 3
+  level: 6
   paths:
     - Classes
   excludePaths:
     analyse:
       - .build/*
       - Tests/*
+  ignoreErrors:
+    # The traits are used by consumers of the library (and in Tests/), not in Classes/.
+    -
+      identifier: trait.unused

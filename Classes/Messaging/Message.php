@@ -32,7 +32,7 @@ class Message implements MessageInterface
      * @param string $title Message title
      * @param int $severity Message severity
      * @param int|null $id Optional message ID
-     * @param array|null $additionalInformation Optional additional information
+     * @param array<mixed>|null $additionalInformation Optional additional information
      */
     public function __construct(
         protected string $message,
@@ -77,6 +77,7 @@ class Message implements MessageInterface
 
     /**
      * Returns additional information
+     * @return array<mixed>
      */
     public function getAdditionalInformation(): ?array
     {
@@ -85,6 +86,7 @@ class Message implements MessageInterface
 
     /**
      * Set the additional information
+     * @param array<mixed> $additionalInformation
      */
     public function setAdditionalInformation(array $additionalInformation): void
     {

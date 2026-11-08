@@ -40,6 +40,7 @@ trait MessageContainerTrait
     /**
      * Adds all messages.
      * Existing messages are kept.
+     * @param array<\CPSIT\ImportExportCore\Messaging\MessageInterface> $messages
      */
     public function addMessages(array $messages): void
     {
@@ -58,6 +59,7 @@ trait MessageContainerTrait
 
     /**
      * Returns and purges all messages from the message container
+     * @return array<\CPSIT\ImportExportCore\Messaging\MessageInterface>
      */
     public function getAndPurgeMessages(): array
     {
@@ -71,7 +73,7 @@ trait MessageContainerTrait
      * Tells by id if a container has a certain message
      * Note: not all messages must have an id!
      */
-    public function hasMessageWithId($id): bool
+    public function hasMessageWithId(int $id): bool
     {
         return $this->getMessageContainer()->hasMessageWithId($id);
     }
