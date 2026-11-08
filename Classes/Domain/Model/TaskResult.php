@@ -19,7 +19,7 @@ use CPSIT\ImportExportCore\Messaging\MessageContainer;
 use CPSIT\ImportExportCore\Messaging\MessageContainerInterface;
 use CPSIT\ImportExportCore\Messaging\MessageContainerTrait;
 
-class TaskResult implements \Iterator
+class TaskResult implements \Iterator, \Countable
 {
     use MessageContainerTrait;
     protected int $position = 0;

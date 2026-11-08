@@ -21,11 +21,20 @@ namespace CPSIT\ImportExportCore\Messaging;
  */
 trait MessageContainerTrait
 {
-    protected MessageContainerInterface $messageContainer;
+    protected ?MessageContainerInterface $messageContainer = null;
 
-    public function __construct(?MessageContainerInterface $messageContainer = null)
+    public function setMessageContainer(MessageContainerInterface $messageContainer): void
     {
-        $this->messageContainer = $messageContainer ?? new MessageContainer();
+        $this->messageContainer = $messageContainer;
+    }
+
+    /**
+     * Returns the message container. A new container is created on first use
+     * if none was set.
+     */
+    protected function getMessageContainer(): MessageContainerInterface
+    {
+        return $this->messageContainer ??= new MessageContainer();
     }
 
     /**
@@ -34,7 +43,7 @@ trait MessageContainerTrait
      */
     public function addMessages(array $messages): void
     {
-        $this->messageContainer->addMessages($messages);
+        $this->getMessageContainer()->addMessages($messages);
     }
 
     /**
@@ -44,7 +53,7 @@ trait MessageContainerTrait
      */
     public function getMessages(): array
     {
-        return $this->messageContainer->getMessages();
+        return $this->getMessageContainer()->getMessages();
     }
 
     /**
@@ -52,8 +61,8 @@ trait MessageContainerTrait
      */
     public function getAndPurgeMessages(): array
     {
-        $messages = $this->messageContainer->getMessages();
-        $this->messageContainer->clearMessages();
+        $messages = $this->getMessageContainer()->getMessages();
+        $this->getMessageContainer()->clearMessages();
 
         return $messages;
     }
@@ -64,6 +73,6 @@ trait MessageContainerTrait
      */
     public function hasMessageWithId($id): bool
     {
-        return $this->messageContainer->hasMessageWithId($id);
+        return $this->getMessageContainer()->hasMessageWithId($id);
     }
 }

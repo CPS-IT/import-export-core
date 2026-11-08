@@ -36,12 +36,12 @@ trait LoggingTrait
      */
     public function getErrorCodes(): array
     {
-        return static::ERROR_CODES ?? [];
+        return \defined(static::class . '::ERROR_CODES') ? static::ERROR_CODES : [];
     }
 
     /**
      * Returns notice codes for current component.
-     * Override this method in instances with actual codes.
+     * Define the constant NOTICE_CODES or override this method.
      * Must be an array in the form
      * [
      *  <id> => ['title', 'description']
@@ -50,7 +50,7 @@ trait LoggingTrait
      */
     public function getNoticeCodes(): array
     {
-        return [];
+        return \defined(static::class . '::NOTICE_CODES') ? static::NOTICE_CODES : [];
     }
 
     /**
@@ -103,7 +103,7 @@ trait LoggingTrait
             $id,
             $additionalInformation
         );
-        $this->messageContainer->addMessage($message);
+        $this->getMessageContainer()->addMessage($message);
     }
 
     /**

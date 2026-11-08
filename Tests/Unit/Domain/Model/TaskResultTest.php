@@ -148,4 +148,13 @@ class TaskResultTest extends TestCase
             $this->subject->getMessages()
         );
     }
+
+    public function testTaskResultIsCountable(): void
+    {
+        $this->subject->add(new stdClass());
+        $this->subject->add(new stdClass());
+
+        $this->assertInstanceOf(\Countable::class, $this->subject);
+        $this->assertCount(2, $this->subject);
+    }
 }

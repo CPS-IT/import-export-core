@@ -15,6 +15,7 @@ declare(strict_types=1);
 
 namespace CPSIT\ImportExportCore\Tests\Unit;
 
+use CPSIT\ImportExportCore\Messaging\Message;
 use CPSIT\ImportExportCore\Messaging\MessageContainer;
 use CPSIT\ImportExportCore\Messaging\MessageContainerTrait;
 use PHPUnit\Framework\Attributes\Test;
@@ -46,9 +47,10 @@ class MessageContainerTraitTest extends TestCase
         $this->messageContainer = $this->createMock(MessageContainer::class);
 
         // In PHPUnit 12, getMockForTrait is removed - use anonymous class instead
-        $this->subject = new class($this->messageContainer) {
+        $this->subject = new class() {
             use MessageContainerTrait;
         };
+        $this->subject->setMessageContainer($this->messageContainer);
     }
 
     #[Test]
@@ -75,5 +77,22 @@ class MessageContainerTraitTest extends TestCase
         $this->assertTrue(
             $this->subject->hasMessageWithId($id)
         );
+    }
+
+    #[Test]
+    public function messagesCanBeAddedInClassWithOwnConstructor(): void
+    {
+        $subject = new class('some value') {
+            use MessageContainerTrait;
+
+            public function __construct(public string $value)
+            {
+            }
+        };
+        $message = new Message('message', 'title');
+
+        $subject->addMessages([$message]);
+
+        $this->assertSame([$message], $subject->getMessages());
     }
 }

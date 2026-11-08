@@ -34,6 +34,20 @@ class LoggingTraitTestClass
     ];
 }
 
+class LoggingTraitWithoutCodesTestClass
+{
+    use LoggingTrait;
+}
+
+class LoggingTraitWithNoticeCodesTestClass
+{
+    use LoggingTrait;
+
+    protected const NOTICE_CODES = [
+        456 => ['Test notice', 'Test notice description'],
+    ];
+}
+
 /**
  * Class LoggingTraitTest
  */
@@ -45,7 +59,8 @@ class LoggingTraitTest extends TestCase
     protected function setUp(): void
     {
         $this->messageContainer = $this->createMock(MessageContainer::class);
-        $this->subject = new LoggingTraitTestClass($this->messageContainer);
+        $this->subject = new LoggingTraitTestClass();
+        $this->subject->setMessageContainer($this->messageContainer);
     }
 
     #[Test]
@@ -67,5 +82,35 @@ class LoggingTraitTest extends TestCase
     public function testGetNoticeCodesInitiallyReturnsEmptyArray(): void
     {
         $this->assertSame([], $this->subject->getNoticeCodes());
+    }
+
+    #[Test]
+    public function getErrorCodesReturnsEmptyArrayIfClassDefinesNoErrorCodes(): void
+    {
+        $subject = new LoggingTraitWithoutCodesTestClass();
+
+        $this->assertSame([], $subject->getErrorCodes());
+    }
+
+    #[Test]
+    public function getNoticeCodesReturnsNoticeCodesConstant(): void
+    {
+        $subject = new LoggingTraitWithNoticeCodesTestClass();
+
+        $this->assertSame(
+            [456 => ['Test notice', 'Test notice description']],
+            $subject->getNoticeCodes()
+        );
+    }
+
+    #[Test]
+    public function logErrorWorksWithoutInjectedMessageContainer(): void
+    {
+        $subject = new LoggingTraitTestClass();
+        $subject->logError(123);
+
+        $messages = $subject->getMessages();
+        $this->assertCount(1, $messages);
+        $this->assertSame(Message::SEVERITY_ERROR, $messages[0]->getSeverity());
     }
 }
