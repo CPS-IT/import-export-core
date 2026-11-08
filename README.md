@@ -72,8 +72,10 @@ composer lint         # composer normalize, editorconfig, PHP-CS-Fixer
 composer sca          # PHPStan
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the branching model, the workflow
-and the release process.
+See [Documentation/Architecture.md](Documentation/Architecture.md) for the
+structure of the library and the planned changes, and
+[CONTRIBUTING.md](CONTRIBUTING.md) for the branching model, the workflow and
+the release process.
 
 ## License
 
