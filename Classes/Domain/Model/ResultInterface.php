@@ -69,4 +69,10 @@ interface ResultInterface extends \Traversable, \Countable
      * Returns the additional information, if any.
      */
     public function getInfo(): mixed;
+
+    /**
+     * Counters of the transfer. They are kept even if the converted records
+     * are not collected.
+     */
+    public function getStatistics(): TransferStatistics;
 }

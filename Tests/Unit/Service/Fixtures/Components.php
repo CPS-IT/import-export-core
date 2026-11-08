@@ -27,9 +27,11 @@ use CPSIT\ImportExportCore\Domain\Model\ResultInterface;
 use CPSIT\ImportExportCore\LoggingInterface;
 use CPSIT\ImportExportCore\LoggingTrait;
 use CPSIT\ImportExportCore\Messaging\Message;
+use CPSIT\ImportExportCore\Persistence\BatchAwareInterface;
 use CPSIT\ImportExportCore\Persistence\DataSourceInterface;
 use CPSIT\ImportExportCore\Persistence\DataTargetInterface;
 use CPSIT\ImportExportCore\Pipeline;
+use Psr\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Small component implementations for processor tests. Each one records how
@@ -330,5 +332,68 @@ final class ResultFinisher extends AbstractPipelineComponent implements Pipeline
         ++$this->calls;
         $this->log[] = 'finisher';
         $this->result = $result;
+    }
+}
+
+/**
+ * Target that records the number of persisted records at each batch flush.
+ */
+final class BatchAwareTarget implements DataTargetInterface, BatchAwareInterface
+{
+    public int $persisted = 0;
+
+    /**
+     * @var list<int>
+     */
+    public array $flushedAt = [];
+
+    /**
+     * @param list<string> $log
+     */
+    public function __construct(public array &$log = [])
+    {
+    }
+
+    public function persist(array|object $object, ?array $configuration = null): bool
+    {
+        ++$this->persisted;
+
+        return true;
+    }
+
+    public function persistAll(mixed $result = null, ?array $configuration = null): bool
+    {
+        $this->log[] = 'persistAll';
+
+        return true;
+    }
+
+    public function flushBatch(ResultInterface $result): void
+    {
+        $this->flushedAt[] = $this->persisted;
+        $this->log[] = 'flush:' . $this->persisted;
+    }
+}
+
+final class RecordingEventDispatcher implements EventDispatcherInterface
+{
+    /**
+     * @var list<object>
+     */
+    public array $events = [];
+
+    /**
+     * @param list<string> $log
+     */
+    public function __construct(public array &$log = [])
+    {
+    }
+
+    public function dispatch(object $event): object
+    {
+        $this->events[] = $event;
+        $this->log[] = 'event:' . (new \ReflectionClass($event))->getShortName();
+
+        return $event;
     }
 }

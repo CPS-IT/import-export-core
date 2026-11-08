@@ -42,8 +42,12 @@ Components report messages (`MessageContainer`) and contribute to a result
 
 The orchestration is `Service\DataTransferProcessor`
 (`TransferProcessorInterface`). It processes one task; `Service\DemandProcessor`
-processes all tasks of a demand with a shared result. All records of a task are
-held in memory; processing in batches is planned
+processes all tasks of a demand with a shared result. Records are read lazily
+and processed in batches; batch aware targets are flushed after each batch,
+and PSR-14 events (`TaskStarted`, `BatchProcessed`, `TaskFinished`) allow
+progress reports and throttling. The result keeps counters
+(`TransferStatistics`); collecting the converted records can be switched off.
+The queue model and stream-based data streams follow
 ([#40](https://github.com/CPS-IT/import-export-core/issues/40)). The task and
 set models (`TransferTask`, `TransferSet`) are part of the core.
 

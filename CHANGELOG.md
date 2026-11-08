@@ -34,6 +34,20 @@ a new minor version may contain breaking changes.
   previous interfaces are wrapped in adapters
   ([#26](https://github.com/CPS-IT/import-export-core/issues/26))
 
+* Batch processing: `DataTransferProcessor` reads records lazily and
+  processes them in batches (`$batchSize`, default 100). Data targets
+  implementing `BatchAwareInterface` are flushed after each batch.
+  `persistAll()` is still called once per task
+  ([#40](https://github.com/CPS-IT/import-export-core/issues/40))
+* `TransferStatistics` (records read, persisted, skipped; batches), available
+  through `ResultInterface::getStatistics()`. Collecting the converted records
+  in the result can be switched off (`$collectRecords`); the counters are kept
+  ([#40](https://github.com/CPS-IT/import-export-core/issues/40))
+* PSR-14 events `TaskStarted`, `BatchProcessed` and `TaskFinished`, dispatched
+  through an optional event dispatcher, e.g. for progress reports or to pause
+  between batches. New dependency `psr/event-dispatcher`
+  ([#40](https://github.com/CPS-IT/import-export-core/issues/40))
+
 ### Deprecated
 
 * The component interfaces in `CPSIT\ImportExportCore\Component\`
@@ -85,6 +99,9 @@ Migration of breaking changes is described in [UPGRADE.md](UPGRADE.md).
     `DisableableInterface`; the adapters do
   * records must be arrays if the task has pre-processors, converters or
     post-processors
+* `buildQueue()` reads records of generators in advance. Before, the
+  generator was stored and read only when the task was processed
+  ([#40](https://github.com/CPS-IT/import-export-core/issues/40))
 
 ## 0.1.0 - 2026-11-08
 

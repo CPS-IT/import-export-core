@@ -32,6 +32,7 @@ class TaskResult implements \Iterator, ResultInterface
     protected array $list = [];
     protected int $size = 0;
     protected mixed $info = null;
+    protected TransferStatistics $statistics;
 
     /**
      * TaskResult constructor.
@@ -43,6 +44,12 @@ class TaskResult implements \Iterator, ResultInterface
         $this->size = 0;
         $this->info = null;
         $this->messageContainer = $messageContainer ?? new MessageContainer();
+        $this->statistics = new TransferStatistics();
+    }
+
+    public function getStatistics(): TransferStatistics
+    {
+        return $this->statistics;
     }
 
     /**
