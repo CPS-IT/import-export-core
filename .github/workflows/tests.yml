@@ -2,9 +2,8 @@ name: Tests
 
 on:
   push:
-    branches: [ master, main, develop, feature/** ]
+    branches: [ main, 'feature/**', 'support/**' ]
   pull_request:
-    branches: [ master, main, develop ]
 
 jobs:
   unit-tests:
@@ -29,7 +28,7 @@ jobs:
 
       - name: Get composer cache directory
         id: composer-cache
-        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
 
       - name: Cache dependencies
         uses: actions/cache@v4
@@ -77,9 +76,9 @@ jobs:
           composer test:coverage
 
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
-          file: .build/log/coverage/clover.xml
+          files: .build/log/coverage/clover.xml
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: false
