@@ -18,6 +18,6 @@ namespace CPSIT\ImportExportCore\Exception;
 /**
  * Exception thrown when a file is not found.
  */
-class FileNotFoundException extends \Exception
+class FileNotFoundException extends \RuntimeException implements ImportExportExceptionInterface
 {
 }

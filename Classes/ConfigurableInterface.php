@@ -20,12 +20,8 @@ namespace CPSIT\ImportExportCore;
  */
 interface ConfigurableInterface
 {
-    public const KEY_TABLE = 'table';
     public const KEY_CONFIG = 'config';
-    public const KEY_WHERE = 'where';
     public const KEY_DISABLED = 'disabled';
-    public const KEY_SET_FIELDS = 'setFields';
-    public const KEY_TYPES = 'types';
 
     /**
      * Tells if a given configuration is valid

@@ -15,6 +15,6 @@ declare(strict_types=1);
 
 namespace CPSIT\ImportExportCore\Exception;
 
-class InvalidClassException extends \Exception
+class InvalidClassException extends \RuntimeException implements ImportExportExceptionInterface
 {
 }

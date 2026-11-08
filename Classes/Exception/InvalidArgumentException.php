@@ -15,6 +15,6 @@ declare(strict_types=1);
 
 namespace CPSIT\ImportExportCore\Exception;
 
-class InvalidArgumentException extends \Exception
+class InvalidArgumentException extends \InvalidArgumentException implements ImportExportExceptionInterface
 {
 }

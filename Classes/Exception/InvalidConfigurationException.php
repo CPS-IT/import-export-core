@@ -18,6 +18,6 @@ namespace CPSIT\ImportExportCore\Exception;
 /**
  * Exception thrown when an invalid configuration is provided
  */
-class InvalidConfigurationException extends \Exception
+class InvalidConfigurationException extends \RuntimeException implements ImportExportExceptionInterface
 {
 }

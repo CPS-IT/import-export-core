@@ -15,6 +15,10 @@ declare(strict_types=1);
 
 namespace CPSIT\ImportExportCore\Exception;
 
-class MissingDatabaseException extends \Exception
+/**
+ * Implemented by all exceptions of this library, so that callers can catch
+ * them with a single type.
+ */
+interface ImportExportExceptionInterface extends \Throwable
 {
 }

@@ -15,6 +15,6 @@ declare(strict_types=1);
 
 namespace CPSIT\ImportExportCore\Exception;
 
-class MissingInterfaceException extends \Exception
+class MissingInterfaceException extends \RuntimeException implements ImportExportExceptionInterface
 {
 }

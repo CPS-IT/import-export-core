@@ -18,6 +18,6 @@ namespace CPSIT\ImportExportCore\Exception;
 /**
  * Exception thrown when parsing fails.
  */
-class ParseException extends \Exception
+class ParseException extends \RuntimeException implements ImportExportExceptionInterface
 {
 }

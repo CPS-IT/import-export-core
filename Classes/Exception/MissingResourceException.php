@@ -15,6 +15,6 @@ declare(strict_types=1);
 
 namespace CPSIT\ImportExportCore\Exception;
 
-class MissingResourceException extends \Exception
+class MissingResourceException extends \RuntimeException implements ImportExportExceptionInterface
 {
 }
