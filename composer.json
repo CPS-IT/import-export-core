@@ -1,0 +1,112 @@
+{
+    "name": "cpsit/import-export-core",
+    "description": "Core library for import/export functionality",
+    "license": [
+        "GPL-2.0-or-later"
+    ],
+    "type": "library",
+    "keywords": [
+        "import",
+        "export",
+        "data",
+        "integration"
+    ],
+    "authors": [
+        {
+            "name": "Dirk Wenzel",
+            "email": "wenzel@cps-it.de",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": ">=8.3",
+        "symfony/yaml": "^6.0 || ^7.2"
+    },
+    "require-dev": {
+        "armin/editorconfig-cli": "^2.0",
+        "ergebnis/composer-normalize": "^2.28",
+        "friendsofphp/php-cs-fixer": "^3.57",
+        "mikey179/vfsstream": "^1.6",
+        "phpstan/phpstan": "^2.1",
+        "phpunit/phpcov": "^11.0",
+        "phpunit/phpunit": "^11.5 || ^12.1",
+        "roave/security-advisories": "dev-latest"
+    },
+    "autoload": {
+        "psr-4": {
+            "CPSIT\\ImportExportCore\\": "Classes/"
+        }
+    },
+    "autoload-dev": {
+        "psr-0": {
+            "org\\bovigo\\vfs\\": ".build/vendor/mikey179/vfsstream/src/main/php"
+        },
+        "psr-4": {
+            "CPSIT\\ImportExportCore\\Tests\\": "Tests/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "ergebnis/composer-normalize": true
+        },
+        "bin-dir": ".build/bin",
+        "sort-packages": true,
+        "vendor-dir": ".build/vendor"
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "0.1.x-dev"
+        }
+    },
+    "scripts": {
+        "post-autoload-dump": [
+            "mkdir -p .build/log/coverage/php/",
+            "mkdir -p .build/log/coverage/html/"
+        ],
+        "fix": [
+            "@fix:composer",
+            "@fix:editorconfig",
+            "@fix:php"
+        ],
+        "fix:composer": "@composer normalize",
+        "fix:editorconfig": "ec --fix",
+        "fix:php": "php-cs-fixer fix",
+        "lint": [
+            "@lint:composer",
+            "@lint:editorconfig",
+            "@lint:php"
+        ],
+        "lint:composer": "@composer normalize --dry-run",
+        "lint:editorconfig": "ec",
+        "lint:php": "php-cs-fixer fix --dry-run --diff",
+        "sca": [
+            "@sca:php"
+        ],
+        "sca:php": "phpstan analyse -c phpstan.neon --memory-limit=1G",
+        "test": [
+            "@test:unit"
+        ],
+        "test:coverage": [
+            "@test:coverage:unit",
+            "@test:coverage:merge"
+        ],
+        "test:coverage:merge": "phpcov merge --html .build/log/coverage/html/_merged --clover .build/log/coverage/clover.xml --text php://stdout .build/log/coverage/php",
+        "test:coverage:unit": "XDEBUG_MODE=coverage .build/bin/phpunit -c phpunit.xml",
+        "test:unit": "@test:coverage:unit --no-coverage"
+    },
+    "scripts-descriptions": {
+        "fix": "Fix all code quality issues reported by the registered linters",
+        "fix:composer": "Fix all issues in `composer.json`",
+        "fix:editorconfig": "Fix all styling issues violating the `.editorconfig` rules",
+        "fix:php": "Fix all styling issues violating the configured PHP-CS-Fixer rules",
+        "lint": "Run all registered linters to detect code quality issues",
+        "lint:composer": "Lint `composer.json` to detect unnormalized styles",
+        "lint:editorconfig": "Lint all project files to detect violations of the `.editorconfig` rules",
+        "lint:php": "Lint all PHP files to detect coding style violations",
+        "sca": "Run all registered static code analyzers to detect issues in the codebase",
+        "sca:php": "Analyze all PHP files by using PHPStan, based on the configured level",
+        "test": "Run all configured test suites",
+        "test:coverage": "Generate code coverage report",
+        "test:unit": "Run unit tests"
+    }
+}

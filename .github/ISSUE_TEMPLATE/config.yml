@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: GitHub Discussions
+    url: https://github.com/CPS-IT/import-export-core/discussions
+    about: For general discussions and questions, please use GitHub Discussions.
+  - name: Documentation
+    url: https://github.com/CPS-IT/import-export-core/blob/main/README.md
+    about: Check if your question is already answered in the documentation.

@@ -1,0 +1,54 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the package cpsit/import-export-core.
+ *
+ * It is free software; you can redistribute it and/or modify it under the terms
+ * of the GNU General Public License, either version 2 of the License, or (at
+ * your option) any later version.
+ *
+ * For the full license information, please read the LICENSE file that was
+ * distributed with this source code.
+ */
+
+namespace CPSIT\ImportExportCore\Messaging;
+
+/**
+ * Interface for messages
+ */
+interface MessageInterface
+{
+    /**
+     * Returns the message content
+     */
+    public function getMessage(): string;
+
+    /**
+     * Returns the message title
+     */
+    public function getTitle(): string;
+
+    /**
+     * Returns the message severity
+     */
+    public function getSeverity(): int;
+
+    /**
+     * Returns the message ID
+     */
+    public function getId(): ?int;
+
+    /**
+     * Returns additional information
+     * @return array<mixed>
+     */
+    public function getAdditionalInformation(): ?array;
+
+    /**
+     * @param array<mixed> $additionalInformation
+     * @return void
+     */
+    public function setAdditionalInformation(array $additionalInformation): void;
+}
