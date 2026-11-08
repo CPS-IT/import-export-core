@@ -19,6 +19,8 @@ use CPSIT\ImportExportCore\Configuration\ConfigurationHandler;
 use CPSIT\ImportExportCore\Configuration\ConfigurationLoaderInterface;
 use CPSIT\ImportExportCore\Exception\FileNotFoundException;
 use CPSIT\ImportExportCore\Exception\ParseException;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 class ConfigurationHandlerTest extends TestCase
@@ -323,5 +325,54 @@ class ConfigurationHandlerTest extends TestCase
 
         $this->assertArrayHasKey('test2', $result['module']['tx_t3importexport']['settings']['import']['tasks']);
         $this->assertEquals('Test Task 2', $result['module']['tx_t3importexport']['settings']['import']['tasks']['test2']['label']);
+    }
+
+    /**
+     * @return array<string, array{array, array, array}>
+     */
+    public static function mergeDataProvider(): array
+    {
+        return [
+            'scalar value of later configuration wins' => [
+                ['task' => ['class' => 'A', 'label' => 'first']],
+                ['task' => ['class' => 'B']],
+                ['task' => ['class' => 'B', 'label' => 'first']],
+            ],
+            'list of later configuration replaces list' => [
+                ['task' => ['fields' => ['a', 'b', 'c']]],
+                ['task' => ['fields' => ['x']]],
+                ['task' => ['fields' => ['x']]],
+            ],
+            'nested associative arrays are merged' => [
+                ['task' => ['source' => ['class' => 'A', 'config' => ['file' => 'a.csv', 'delimiter' => ',']]]],
+                ['task' => ['source' => ['config' => ['delimiter' => ';']]]],
+                ['task' => ['source' => ['class' => 'A', 'config' => ['file' => 'a.csv', 'delimiter' => ';']]]],
+            ],
+            'associative array replaces scalar' => [
+                ['task' => ['source' => 'A']],
+                ['task' => ['source' => ['class' => 'B']]],
+                ['task' => ['source' => ['class' => 'B']]],
+            ],
+            'numeric keys of associative arrays are kept' => [
+                ['preProcessors' => [10 => ['class' => 'A'], 20 => ['class' => 'B']]],
+                ['preProcessors' => [20 => ['class' => 'C']]],
+                ['preProcessors' => [10 => ['class' => 'A'], 20 => ['class' => 'C']]],
+            ],
+        ];
+    }
+
+    #[Test]
+    #[DataProvider('mergeDataProvider')]
+    public function addConfigurationMergesWithLaterConfigurationWinning(array $first, array $second, array $expected): void
+    {
+        $this->loader->method('load')->willReturnMap([
+            ['first.yaml', $first],
+            ['second.yaml', $second],
+        ]);
+
+        $this->subject->addConfiguration($this->loader, 'first.yaml');
+        $this->subject->addConfiguration($this->loader, 'second.yaml');
+
+        $this->assertSame($expected, $this->subject->getFullConfiguration());
     }
 }

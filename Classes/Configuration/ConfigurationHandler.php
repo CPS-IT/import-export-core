@@ -31,6 +31,10 @@ class ConfigurationHandler implements TransferConfigurationInterface, Configurat
     /**
      * Add configuration from a loader
      *
+     * The new configuration is merged into the existing one: associative
+     * arrays are merged recursively, scalar values and lists of the new
+     * configuration replace existing ones.
+     *
      * @param ConfigurationLoaderInterface $loader
      * @param string $path Path to configuration file
      * @throws FileNotFoundException
@@ -40,7 +44,7 @@ class ConfigurationHandler implements TransferConfigurationInterface, Configurat
     public function addConfiguration(ConfigurationLoaderInterface $loader, string $path): self
     {
         $newConfig = $loader->load($path);
-        $this->configuration = array_merge_recursive($this->configuration, $newConfig);
+        $this->configuration = self::merge($this->configuration, $newConfig);
         return $this;
     }
 
@@ -82,6 +86,29 @@ class ConfigurationHandler implements TransferConfigurationInterface, Configurat
         }
 
         return $sets;
+    }
+
+    /**
+     * Merges $override into $base. Associative arrays are merged recursively;
+     * scalar values and lists in $override replace those in $base.
+     */
+    private static function merge(array $base, array $override): array
+    {
+        foreach ($override as $key => $value) {
+            if (
+                \is_array($value)
+                && isset($base[$key])
+                && \is_array($base[$key])
+                && !array_is_list($value)
+                && !array_is_list($base[$key])
+            ) {
+                $base[$key] = self::merge($base[$key], $value);
+                continue;
+            }
+            $base[$key] = $value;
+        }
+
+        return $base;
     }
 
     /**

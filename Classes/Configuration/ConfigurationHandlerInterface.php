@@ -24,6 +24,10 @@ interface ConfigurationHandlerInterface
     /**
      * Add configuration from a loader
      *
+     * The new configuration is merged into the existing one: associative
+     * arrays are merged recursively, scalar values and lists of the new
+     * configuration replace existing ones.
+     *
      * @param ConfigurationLoaderInterface $loader
      * @param string $path Path to configuration file
      * @throws FileNotFoundException
