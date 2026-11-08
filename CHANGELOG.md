@@ -25,6 +25,8 @@ a new minor version may contain breaking changes.
 
 ### Changed
 
+Migration of breaking changes is described in [UPGRADE.md](UPGRADE.md).
+
 * Breaking: `isDisabled()` of the component interfaces accepts
   `?ResultInterface` instead of `?TaskResult`. Implementations must change
   the parameter type

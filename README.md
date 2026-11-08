@@ -84,7 +84,8 @@ composer sca          # PHPStan
 See [Documentation/Architecture.md](Documentation/Architecture.md) for the
 structure of the library and the planned changes, and
 [CONTRIBUTING.md](CONTRIBUTING.md) for the branching model, the workflow and
-the release process.
+the release process. [UPGRADE.md](UPGRADE.md) describes how to migrate code
+for breaking changes.
 
 ## License
 

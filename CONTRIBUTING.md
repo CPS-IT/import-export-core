@@ -76,7 +76,9 @@ under `archive/` (for example `archive/develop`).
 
 1. Create or pick a GitHub issue.
 2. Create a feature branch from the target branch.
-3. Make the change, including tests.
+3. Make the change, including tests. Add an entry to `CHANGELOG.md`. For a
+   breaking change or a deprecation, also add an entry to `UPGRADE.md`
+   describing who is affected and how to migrate.
 4. Run tests and linters locally.
 5. Open a pull request into the target branch and reference the issue
    (`Closes #12`).
