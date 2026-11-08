@@ -28,6 +28,19 @@ a new minor version may contain breaking changes.
   `TransferTaskFactory` and `TransferSetFactory`. New dependency
   `psr/container`
   ([#23](https://github.com/CPS-IT/import-export-core/issues/23))
+* Pipeline contracts in `CPSIT\ImportExportCore\Pipeline\`: components return
+  values instead of changing arguments by reference and receive their
+  configuration once, when they are created. Components implementing the
+  previous interfaces are wrapped in adapters
+  ([#26](https://github.com/CPS-IT/import-export-core/issues/26))
+
+### Deprecated
+
+* The component interfaces in `CPSIT\ImportExportCore\Component\`
+  (`InitializerInterface`, `PreProcessorInterface`, `ConverterInterface`,
+  `PostProcessorInterface`, `FinisherInterface`). Implement the interfaces in
+  `CPSIT\ImportExportCore\Pipeline\` instead
+  ([#26](https://github.com/CPS-IT/import-export-core/issues/26))
 
 ### Changed
 
@@ -61,6 +74,17 @@ Migration of breaking changes is described in [UPGRADE.md](UPGRADE.md).
     reading them from the configuration handler
   * there is no fallback to `NullComponent` and no check of `object.class` in
     target settings
+* Breaking: the processor works with the pipeline contracts
+  ([#26](https://github.com/CPS-IT/import-export-core/issues/26)):
+  * initializers do not receive records and cannot add records
+  * finishers receive the result only, no records
+  * changes of post-processors to the record before conversion are discarded
+  * `TransferTask` wraps components implementing the deprecated interfaces in
+    adapters; its getters return the pipeline interfaces
+  * components are skipped per record only if they implement
+    `DisableableInterface`; the adapters do
+  * records must be arrays if the task has pre-processors, converters or
+    post-processors
 
 ## 0.1.0 - 2026-11-08
 

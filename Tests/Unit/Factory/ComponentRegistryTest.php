@@ -20,6 +20,7 @@ use CPSIT\ImportExportCore\Exception\InvalidClassException;
 use CPSIT\ImportExportCore\Exception\InvalidConfigurationException;
 use CPSIT\ImportExportCore\Factory\ComponentRegistry;
 use CPSIT\ImportExportCore\Persistence\DataSourceInterface;
+use CPSIT\ImportExportCore\Pipeline;
 use CPSIT\ImportExportCore\Tests\Unit\Factory\Fixtures\IdentifiableSource;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\SetFieldPreProcessor;
 use PHPUnit\Framework\TestCase;
@@ -106,5 +107,12 @@ class ComponentRegistryTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
 
         $this->subject->register(DataSourceInterface::class, '', IdentifiableSource::class);
+    }
+
+    public function testAcceptsDeprecatedClassForPipelineInterface(): void
+    {
+        $this->subject->register(Pipeline\PreProcessorInterface::class, 'setField', SetFieldPreProcessor::class);
+
+        self::assertSame(SetFieldPreProcessor::class, $this->subject->resolve(Pipeline\PreProcessorInterface::class, 'setField'));
     }
 }

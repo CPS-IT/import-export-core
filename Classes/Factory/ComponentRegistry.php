@@ -17,7 +17,12 @@ namespace CPSIT\ImportExportCore\Factory;
 
 use CPSIT\ImportExportCore\Exception\InvalidClassException;
 use CPSIT\ImportExportCore\Exception\InvalidConfigurationException;
+use CPSIT\ImportExportCore\Pipeline\Legacy\LegacyComponents;
 
+/**
+ * Classes implementing the deprecated counterpart of a pipeline interface
+ * (`CPSIT\\ImportExportCore\\Component\\`) are accepted for that interface.
+ */
 final class ComponentRegistry implements ComponentRegistryInterface
 {
     /**
@@ -65,7 +70,7 @@ final class ComponentRegistry implements ComponentRegistryInterface
                 1794230004
             );
         }
-        if (!is_a($className, $interface, true)) {
+        if (!LegacyComponents::isCompatible($className, $interface)) {
             throw new InvalidConfigurationException(
                 \sprintf('Class "%s" must implement "%s".', $className, $interface),
                 1794230005
@@ -82,7 +87,7 @@ final class ComponentRegistry implements ComponentRegistryInterface
 
     private function assertImplements(string $interface, string $className): void
     {
-        if (!is_a($className, $interface, true)) {
+        if (!LegacyComponents::isCompatible($className, $interface)) {
             throw new InvalidClassException(
                 \sprintf('Class "%s" must implement "%s".', $className, $interface),
                 1794230006

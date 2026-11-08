@@ -15,15 +15,17 @@ declare(strict_types=1);
 
 namespace CPSIT\ImportExportCore\Domain\Model;
 
-use CPSIT\ImportExportCore\Component\Converter\ConverterInterface;
-use CPSIT\ImportExportCore\Component\Finisher\FinisherInterface;
-use CPSIT\ImportExportCore\Component\Initializer\InitializerInterface;
-use CPSIT\ImportExportCore\Component\PostProcessor\PostProcessorInterface;
-use CPSIT\ImportExportCore\Component\PreProcessor\PreProcessorInterface;
+use CPSIT\ImportExportCore\Component\ComponentInterface;
 use CPSIT\ImportExportCore\IdentifiableInterface;
 use CPSIT\ImportExportCore\IdentifiableTrait;
 use CPSIT\ImportExportCore\Persistence\DataSourceInterface;
 use CPSIT\ImportExportCore\Persistence\DataTargetInterface;
+use CPSIT\ImportExportCore\Pipeline\ConverterInterface;
+use CPSIT\ImportExportCore\Pipeline\FinisherInterface;
+use CPSIT\ImportExportCore\Pipeline\InitializerInterface;
+use CPSIT\ImportExportCore\Pipeline\Legacy\LegacyComponents;
+use CPSIT\ImportExportCore\Pipeline\PostProcessorInterface;
+use CPSIT\ImportExportCore\Pipeline\PreProcessorInterface;
 
 /**
  * Describes a transfer from one data source to one data target.
@@ -39,27 +41,27 @@ class TransferTask implements IdentifiableInterface, TransferTaskInterface
     protected ?DataTargetInterface $target = null;
 
     /**
-     * @var PreProcessorInterface[]
+     * @var array<int|string, PreProcessorInterface>
      */
     protected array $preProcessors = [];
 
     /**
-     * @var PostProcessorInterface[]
+     * @var array<int|string, PostProcessorInterface>
      */
     protected array $postProcessors = [];
 
     /**
-     * @var ConverterInterface[]
+     * @var array<int|string, ConverterInterface>
      */
     protected array $converters = [];
 
     /**
-     * @var FinisherInterface[]
+     * @var array<int|string, FinisherInterface>
      */
     protected array $finishers = [];
 
     /**
-     * @var InitializerInterface[]
+     * @var array<int|string, InitializerInterface>
      */
     protected array $initializers = [];
 
@@ -110,7 +112,7 @@ class TransferTask implements IdentifiableInterface, TransferTaskInterface
 
     public function setPreProcessors(array $preProcessors): void
     {
-        $this->preProcessors = $preProcessors;
+        $this->preProcessors = $this->adapt($preProcessors, PreProcessorInterface::class);
     }
 
     public function getPostProcessors(): array
@@ -120,7 +122,7 @@ class TransferTask implements IdentifiableInterface, TransferTaskInterface
 
     public function setPostProcessors(array $postProcessors): void
     {
-        $this->postProcessors = $postProcessors;
+        $this->postProcessors = $this->adapt($postProcessors, PostProcessorInterface::class);
     }
 
     public function getConverters(): array
@@ -130,7 +132,7 @@ class TransferTask implements IdentifiableInterface, TransferTaskInterface
 
     public function setConverters(array $converters): void
     {
-        $this->converters = $converters;
+        $this->converters = $this->adapt($converters, ConverterInterface::class);
     }
 
     public function getFinishers(): array
@@ -140,7 +142,7 @@ class TransferTask implements IdentifiableInterface, TransferTaskInterface
 
     public function setFinishers(array $finishers): void
     {
-        $this->finishers = $finishers;
+        $this->finishers = $this->adapt($finishers, FinisherInterface::class);
     }
 
     public function getInitializers(): array
@@ -150,7 +152,7 @@ class TransferTask implements IdentifiableInterface, TransferTaskInterface
 
     public function setInitializers(array $initializers): void
     {
-        $this->initializers = $initializers;
+        $this->initializers = $this->adapt($initializers, InitializerInterface::class);
     }
 
     public function getLabel(): string
@@ -161,5 +163,28 @@ class TransferTask implements IdentifiableInterface, TransferTaskInterface
     public function setLabel(string $label): void
     {
         $this->label = $label;
+    }
+
+    /**
+     * @template T of ComponentInterface
+     * @param array<int|string, ComponentInterface> $components
+     * @param class-string<T> $interface
+     * @return array<int|string, T>
+     */
+    private function adapt(array $components, string $interface): array
+    {
+        $adapted = [];
+        foreach ($components as $key => $component) {
+            $component = LegacyComponents::adapt($component, $interface);
+            if (!$component instanceof $interface) {
+                throw new \InvalidArgumentException(
+                    \sprintf('Component "%s" must implement "%s".', $component::class, $interface),
+                    1794260003
+                );
+            }
+            $adapted[$key] = $component;
+        }
+
+        return $adapted;
     }
 }

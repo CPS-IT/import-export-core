@@ -143,3 +143,77 @@ $set = $setFactory->create('legacyData', $setSettings, $configuration['import'][
 Remove `set` entries for tasks that do not exist. Check components that are
 configured without `config`: `isConfigurationValid([])` must be `true` for
 them, or the configuration must be added.
+
+### Pipeline contracts replace the component interfaces
+
+Issue: [#26](https://github.com/CPS-IT/import-export-core/issues/26)
+
+**Affects:** implementations of the component interfaces in
+`CPSIT\ImportExportCore\Component\` (deprecated), code that reads the
+components of a `TransferTask`, initializers that add records, finishers that
+read records, post-processors that change the record before conversion.
+
+**Change:** new interfaces in `CPSIT\ImportExportCore\Pipeline\`. Components
+return values instead of changing arguments by reference. They receive their
+configuration once, when they are created (`setConfiguration()`), not with
+each call. The interfaces do not contain `isDisabled()`; conditions will be
+handled by the processor
+([#24](https://github.com/CPS-IT/import-export-core/issues/24)).
+
+| Deprecated (`Component\`) | Pipeline (`Pipeline\`) |
+|---|---|
+| `process(array $configuration, array &$records): bool` | `InitializerInterface::initialize(): void` |
+| `process(array $configuration, array &$record): bool` | `PreProcessorInterface::process(array $record): array` |
+| `convert(array &$record, array $configuration): mixed` | `ConverterInterface::convert(array $record): mixed` |
+| `process(array $configuration, mixed &$convertedRecord, array &$record): bool` | `PostProcessorInterface::process(mixed $convertedRecord, array $record): mixed` |
+| `process(array $configuration, array &$records, array\|object &$result): bool` | `FinisherInterface::finish(ResultInterface $result): void` |
+
+Components implementing the deprecated interfaces keep working: the
+component factory and `TransferTask` wrap them in adapters. The adapters
+pass the configuration with each call and delegate `isDisabled()`, as before.
+Differences:
+
+* Initializers receive an empty list of records; records they add are not
+  processed.
+* Finishers receive an empty list of records.
+* Changes of post-processors to `$record` are discarded; changes to
+  `$convertedRecord` are kept.
+* `TransferTask::get*()` return the adapters. Use
+  `LegacyAdapterInterface::getComponent()` to get the wrapped component.
+
+**Migration:** implement the pipeline interface, read the configuration from
+the component (e.g. `ConfigurableTrait`) and return the result:
+
+```php
+// before
+final class SetTitle implements \CPSIT\ImportExportCore\Component\PreProcessor\PreProcessorInterface
+{
+    public function process(array $configuration, array &$record): bool
+    {
+        $record['title'] = $configuration['value'];
+        return true;
+    }
+    // isDisabled(), isConfigurationValid(), setConfiguration(), getConfiguration()
+}
+
+// after
+final class SetTitle implements \CPSIT\ImportExportCore\Pipeline\PreProcessorInterface, ConfigurableInterface
+{
+    use ConfigurableTrait;
+
+    public function process(array $record): array
+    {
+        $record['title'] = $this->configuration['value'];
+        return $record;
+    }
+
+    public function isConfigurationValid(array $configuration): bool
+    {
+        return isset($configuration['value']);
+    }
+}
+```
+
+To keep the per-record `disabled` check until
+[#24](https://github.com/CPS-IT/import-export-core/issues/24) is done,
+implement `Component\DisableableInterface`.

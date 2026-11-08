@@ -20,6 +20,9 @@ use CPSIT\ImportExportCore\Domain\Model\ResultInterface;
 
 /**
  * Interface ConverterInterface
+ *
+ * @deprecated since 0.2.0, implement `CPSIT\ImportExportCore\Pipeline\ConverterInterface` instead.
+ *             Components implementing this interface are wrapped in an adapter.
  */
 interface ConverterInterface extends ComponentInterface
 {
