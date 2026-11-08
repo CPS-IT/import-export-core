@@ -55,37 +55,28 @@ for 0.2.0 (see below).
 | `Messaging\`        | `Message`, `MessageContainer` and interfaces |
 | `Configuration\`    | `ConfigurationHandler`, `YamlConfigurationLoader`, `YamlConfigurationProvider` |
 | `Service\`          | `YamlConfigurationParser` |
-| `Exception\`        | exceptions |
+| `Exception\`        | `ImportExportExceptionInterface` and exceptions |
 
 The 0.1.0 interfaces are largely the contracts of the extension, moved into
-the core. They are released as they are, after the cleanup listed below, so
-that the extension can depend on a tagged version. While the version is `0.x`,
-a new minor version may change them.
+the core. Before the release they were cleaned up (milestone
+[0.1.0](https://github.com/CPS-IT/import-export-core/milestone/1)):
+
+* a neutral configuration schema (`import|export` -> `tasks|sets`) instead of
+  the TypoScript structure `module.tx_t3importexport.settings`; later
+  configuration files replace values of earlier ones
+* no TYPO3 references in code, docblocks or file headers; database-specific
+  exceptions and constants moved to the extension
+* one exception interface (`Exception\ImportExportExceptionInterface`);
+  exceptions extend SPL exceptions
+* native types on the public interfaces; PHPStan level 6
+* fixes in `MessageContainerTrait`, `LoggingTrait` and `TaskResult`
+
+While the version is `0.x`, a new minor version may change the interfaces.
 
 ## Known issues
 
-Found in a review of the core (`feature/yamlConfiguration`) and the TYPO3 13
-branch of the extension (`feature/v13compatible`).
-
-To be fixed before 0.1.0 (milestone
-[0.1.0](https://github.com/CPS-IT/import-export-core/milestone/1)):
-
-* The configuration loader and `ConfigurationHandler` return and read the
-  TypoScript structure `module.tx_t3importexport.settings`. The extension
-  partly reads `['settings']` instead. ([#15](https://github.com/CPS-IT/import-export-core/issues/15))
-* Several configuration files are merged with `array_merge_recursive()`, which
-  turns repeated scalar keys into arrays. ([#16](https://github.com/CPS-IT/import-export-core/issues/16))
-* Docblocks and file headers refer to TYPO3. ([#17](https://github.com/CPS-IT/import-export-core/issues/17))
-* `MessageContainerTrait` declares a constructor; `LoggingTrait` fails if the
-  using class does not define `ERROR_CODES`; `TaskResult` is not `Countable`.
-  ([#18](https://github.com/CPS-IT/import-export-core/issues/18))
-* Public interfaces lack native types; PHPStan runs at level 3. ([#19](https://github.com/CPS-IT/import-export-core/issues/19))
-* There is no common exception type; database-specific exceptions and
-  constants (`KEY_TABLE`, `KEY_WHERE`, ...) are part of the core. ([#20](https://github.com/CPS-IT/import-export-core/issues/20))
-* `Resources/config/services.yaml` and the TYPO3 development dependencies.
-  ([#21](https://github.com/CPS-IT/import-export-core/issues/21))
-
-Design issues addressed in 0.2.0 (milestone
+Found in a review of the core and the TYPO3 13 branch of the extension. The
+design issues are addressed in 0.2.0 (milestone
 [0.2.0](https://github.com/CPS-IT/import-export-core/milestone/2)):
 
 * The engine is not in the core, so the core cannot run an import on its own.
