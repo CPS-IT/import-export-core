@@ -25,6 +25,8 @@ trait ConfigurableTrait
     /**
      * Configuration for this component
      * A plain configuration array
+     *
+     * @var array<string, mixed>
      */
     protected array $configuration = [];
 
@@ -54,6 +56,8 @@ trait ConfigurableTrait
 
     /**
      * Tells if a given configuration is valid
+     *
+     * @param array<string, mixed> $configuration
      */
     abstract public function isConfigurationValid(array $configuration): bool;
 }
