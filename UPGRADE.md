@@ -93,3 +93,53 @@ $records = $result->toArray();
 
 Data sources that return objects which must be processed as arrays (e.g.
 domain objects) have to convert them in the source, not in the processor.
+
+### Factories moved into the core
+
+Issue: [#23](https://github.com/CPS-IT/import-export-core/issues/23)
+
+**Affects:** code that uses the extension's `FactoryFactory`,
+`ComponentFactoryMap`, the component factories (`PreProcessorFactory` etc.),
+`DataSourceFactory`, `DataTargetFactory`, `TransferTaskFactory` or
+`TransferSetFactory`; configurations that rely on their behaviour.
+
+**Change:** the core contains `ComponentRegistry`, one `ComponentFactory` for
+all component roles, and `TransferTaskFactory`/`TransferSetFactory` in
+`CPSIT\ImportExportCore\Factory\`. Differences:
+
+* Component classes can be given as registered short name or as fully
+  qualified class name. A missing `class` uses the default registered for the
+  role; without default, an `InvalidConfigurationException` is raised.
+* Configurable components always receive a configuration; a missing `config`
+  is passed as `[]`. Components that do not accept an empty configuration
+  raise an exception when they are created, not when they are used.
+* A set that refers to an undefined task raises an
+  `InvalidConfigurationException`. Before, the task was skipped.
+* `TransferTaskFactory::create($identifier, $settings)` and
+  `TransferSetFactory::create($identifier, $settings, $taskDefinitions)`
+  replace `get($settings, $identifier)`. The set factory does not read the
+  configuration handler; the caller passes the task definitions.
+* Objects are created by an `InstantiatorInterface`. `ContainerInstantiator`
+  clones the object returned by a PSR-11 container, like the extension cloned
+  the result of `GeneralUtility::makeInstance()`.
+
+**Migration:**
+
+```php
+// before (extension)
+$set = $transferSetFactory->get($setSettings, 'legacyData');
+
+// after (core)
+$registry = new ComponentRegistry();
+$registry->setDefault(DataSourceInterface::class, DataSourceDB::class);
+$registry->setDefault(DataTargetInterface::class, DataTargetRepository::class);
+$componentFactory = new ComponentFactory($registry, new ContainerInstantiator($container));
+$setFactory = new TransferSetFactory(new TransferTaskFactory($componentFactory));
+
+$configuration = $configurationHandler->getFullConfiguration();
+$set = $setFactory->create('legacyData', $setSettings, $configuration['import']['tasks']);
+```
+
+Remove `set` entries for tasks that do not exist. Check components that are
+configured without `config`: `isConfigurationValid([])` must be `true` for
+them, or the configuration must be added.
