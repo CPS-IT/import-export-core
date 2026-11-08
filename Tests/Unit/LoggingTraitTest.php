@@ -35,7 +35,7 @@ use PHPUnit\Framework\TestCase;
 class LoggingTraitTestClass
 {
     use LoggingTrait;
-    
+
     protected const ERROR_CODES = [
         123 => ['Test Error', 'Test error description']
     ];
@@ -59,14 +59,14 @@ class LoggingTraitTest extends TestCase
     public function testLogErrorCreatesDefaultMessage(): void
     {
         $errorId = 123;
-        
+
         $this->messageContainer->expects($this->once())
             ->method('addMessage')
             ->with($this->callback(function (Message $message) {
                 return $message->getTitle() === 'Test Error'
                     && $message->getSeverity() === Message::SEVERITY_ERROR;
             }));
-            
+
         $this->subject->logError($errorId);
     }
 

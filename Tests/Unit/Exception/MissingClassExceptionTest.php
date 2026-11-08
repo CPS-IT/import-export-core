@@ -36,7 +36,7 @@ class MissingClassExceptionTest extends TestCase
     {
         $message = 'Class not found: SomeClass';
         $exception = new MissingClassException($message);
-        
+
         $this->assertSame($message, $exception->getMessage());
         $this->assertSame(0, $exception->getCode());
     }
@@ -47,7 +47,7 @@ class MissingClassExceptionTest extends TestCase
         $message = 'Required class is missing';
         $code = 1404;
         $exception = new MissingClassException($message, $code);
-        
+
         $this->assertSame($message, $exception->getMessage());
         $this->assertSame($code, $exception->getCode());
     }
@@ -59,7 +59,7 @@ class MissingClassExceptionTest extends TestCase
         $message = 'Class loading failed';
         $code = 1500;
         $exception = new MissingClassException($message, $code, $previous);
-        
+
         $this->assertSame($message, $exception->getMessage());
         $this->assertSame($code, $exception->getCode());
         $this->assertSame($previous, $exception->getPrevious());
@@ -71,7 +71,7 @@ class MissingClassExceptionTest extends TestCase
         $this->expectException(MissingClassException::class);
         $this->expectExceptionMessage('Test class not found');
         $this->expectExceptionCode(1404);
-        
+
         throw new MissingClassException('Test class not found', 1404);
     }
 }
