@@ -59,6 +59,11 @@
         "sort-packages": true,
         "vendor-dir": ".build/vendor"
     },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "0.1.x-dev"
+        }
+    },
     "scripts": {
         "post-autoload-dump": [
             "mkdir -p .build/log/coverage/php/",
