@@ -11,6 +11,8 @@ functionality that do not depend on TYPO3:
 * persistence interfaces for data sources and data targets
 * messaging (`Message`, `MessageContainer`) and the task result model
 * configuration handling, including loading and parsing YAML configuration
+* the processor, task and set models, and factories that build them from
+  configuration, with a registry for component types
 * exceptions
 
 The library is in an early stage. While the version is `0.x`, a new minor
@@ -20,6 +22,7 @@ version may contain breaking changes.
 
 * PHP 8.3 or newer
 * `symfony/yaml` 6 or 7
+* `psr/container` 1.1 or 2
 
 ## Installation
 
@@ -71,6 +74,32 @@ The loader returns the tasks and sets of the import and export sections:
 
 Several files can be combined with `ConfigurationHandler::addConfiguration()`;
 values of later files replace those of earlier ones.
+
+Build a set and its tasks from the configuration. Components are given by
+fully qualified class name or by a short name registered for their role:
+
+```php
+use CPSIT\ImportExportCore\Component\PreProcessor\PreProcessorInterface;
+use CPSIT\ImportExportCore\Factory\ComponentFactory;
+use CPSIT\ImportExportCore\Factory\ComponentRegistry;
+use CPSIT\ImportExportCore\Factory\TransferSetFactory;
+use CPSIT\ImportExportCore\Factory\TransferTaskFactory;
+
+$registry = new ComponentRegistry();
+$registry->register(PreProcessorInterface::class, 'mapFields', MapFields::class);
+
+$setFactory = new TransferSetFactory(
+    new TransferTaskFactory(new ComponentFactory($registry))
+);
+$set = $setFactory->create(
+    'legacyData',
+    $configuration['import']['sets']['legacyData'],
+    $configuration['import']['tasks']
+);
+```
+
+`ComponentFactory` creates components with `new` by default. Pass a
+`ContainerInstantiator` to get them from a PSR-11 container.
 
 ## Development
 

@@ -22,6 +22,12 @@ a new minor version may contain breaking changes.
   ([#22](https://github.com/CPS-IT/import-export-core/issues/22))
 * `DisableableInterface` for data targets that can be disabled per record
   ([#22](https://github.com/CPS-IT/import-export-core/issues/22))
+* Factory and registry layer: `ComponentRegistry` (short names and default
+  classes per component role), `ComponentFactory` (one factory for all
+  roles), `Instantiator` and `ContainerInstantiator` (PSR-11),
+  `TransferTaskFactory` and `TransferSetFactory`. New dependency
+  `psr/container`
+  ([#23](https://github.com/CPS-IT/import-export-core/issues/23))
 
 ### Changed
 
@@ -43,6 +49,18 @@ Migration of breaking changes is described in [UPGRADE.md](UPGRADE.md).
   * a finisher cannot replace the result object
   * the target is checked with `DisableableInterface` instead of the
     extension's `AbstractComponent`
+* Compared to the factories in the extension
+  ([#23](https://github.com/CPS-IT/import-export-core/issues/23)):
+  * configurable components always receive a configuration; without `config`
+    it is `[]`. Before, a data source without `config` raised an exception and
+    other components were not configured
+  * the configuration is set once by the component factory
+  * a set that refers to an undefined task raises an
+    `InvalidConfigurationException` instead of skipping the task
+  * `TransferSetFactory::create()` receives the task definitions instead of
+    reading them from the configuration handler
+  * there is no fallback to `NullComponent` and no check of `object.class` in
+    target settings
 
 ## 0.1.0 - 2026-11-08
 

@@ -45,9 +45,16 @@ The orchestration is `Service\DataTransferProcessor`
 processes all tasks of a demand with a shared result. All records of a task are
 held in memory; processing in batches is planned
 ([#40](https://github.com/CPS-IT/import-export-core/issues/40)). The task and
-set models (`TransferTask`, `TransferSet`) are part of the core. The factories
-are still part of the extension
-([#23](https://github.com/CPS-IT/import-export-core/issues/23)).
+set models (`TransferTask`, `TransferSet`) are part of the core.
+
+`Factory\TransferSetFactory` and `Factory\TransferTaskFactory` build sets and
+tasks from configuration. Components are built by one
+`Factory\ComponentFactory` for all roles. It resolves the class with a
+`ComponentRegistry` (short name or fully qualified class name, optional default
+class per role) and creates the object with an `InstantiatorInterface`:
+`Instantiator` uses `new`, `ContainerInstantiator` gets a clone from a PSR-11
+container. The extension registers its components and defaults in the
+registry ([#23](https://github.com/CPS-IT/import-export-core/issues/23)).
 
 ## Current state (0.1.0)
 
@@ -89,7 +96,7 @@ design issues are addressed in 0.2.0 (milestone
   ([#22](https://github.com/CPS-IT/import-export-core/issues/22)).
 * Components are instantiated by a hard-coded factory map and
   `GeneralUtility::makeInstance()`; third parties cannot register component
-  types. ([#23](https://github.com/CPS-IT/import-export-core/issues/23))
+  types. Done in 0.2.0 ([#23](https://github.com/CPS-IT/import-export-core/issues/23))
 * Every component inherits a TYPO3 frontend dependency: the extension's
   `AbstractComponent` evaluates `disabled` conditions with TypoScript. ([#24](https://github.com/CPS-IT/import-export-core/issues/24))
 * There is no abstraction for paths and resources, so file-based sources and
