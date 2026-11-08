@@ -23,6 +23,7 @@ version may contain breaking changes.
 * PHP 8.3 or newer
 * `symfony/yaml` 6 or 7
 * `psr/container` 1.1 or 2
+* `psr/event-dispatcher` 1
 
 ## Installation
 
@@ -96,6 +97,21 @@ $set = $setFactory->create(
     $configuration['import']['sets']['legacyData'],
     $configuration['import']['tasks']
 );
+```
+
+Process the tasks of the set in batches of 500 records, without keeping the
+converted records in memory:
+
+```php
+use CPSIT\ImportExportCore\Domain\Model\Dto\TaskDemand;
+use CPSIT\ImportExportCore\Service\DataTransferProcessor;
+use CPSIT\ImportExportCore\Service\DemandProcessor;
+
+$demand = new TaskDemand();
+$demand->setTasks($set->getTasks());
+$processor = new DataTransferProcessor(batchSize: 500, collectRecords: false, eventDispatcher: $dispatcher);
+$result = (new DemandProcessor($processor))->process($demand);
+echo $result->getStatistics()->getPersisted() . ' records persisted' . PHP_EOL;
 ```
 
 `ComponentFactory` creates components with `new` by default. Pass a

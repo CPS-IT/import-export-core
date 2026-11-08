@@ -21,30 +21,57 @@ use CPSIT\ImportExportCore\Domain\Model\Dto\DemandInterface;
 use CPSIT\ImportExportCore\Domain\Model\ResultInterface;
 use CPSIT\ImportExportCore\Domain\Model\TaskResult;
 use CPSIT\ImportExportCore\Domain\Model\TransferTaskInterface;
+use CPSIT\ImportExportCore\Event\BatchProcessed;
+use CPSIT\ImportExportCore\Event\NullEventDispatcher;
+use CPSIT\ImportExportCore\Event\TaskFinished;
+use CPSIT\ImportExportCore\Event\TaskStarted;
 use CPSIT\ImportExportCore\Exception\InvalidConfigurationException;
 use CPSIT\ImportExportCore\IdentifiableInterface;
 use CPSIT\ImportExportCore\LoggingInterface;
+use CPSIT\ImportExportCore\Persistence\BatchAwareInterface;
 use CPSIT\ImportExportCore\Persistence\DataSourceInterface;
 use CPSIT\ImportExportCore\Persistence\DataTargetInterface;
 use CPSIT\ImportExportCore\Pipeline\Legacy\LegacyAdapterInterface;
+use Psr\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Processes transfer tasks: reads the records of the data source, runs them
  * through initializers, pre-processors, converters and post-processors,
  * persists them with the data target and runs the finishers.
  *
- * All records of a task are held in memory. Records can be read in advance
- * for several tasks with buildQueue(), e.g. to read all sources of a set
- * before any task writes.
+ * Records are read lazily and processed in batches of `$batchSize`. After each
+ * batch, batch aware targets are flushed and `BatchProcessed` is dispatched.
+ * `persistAll()` of the target is called once, after the last batch.
+ *
+ * Converted records are collected in the result unless `$collectRecords` is
+ * false; the counters of the result are kept in any case. Memory usage is
+ * bounded by the batch size only if records are not collected and the source
+ * yields records lazily.
+ *
+ * Records can be read in advance for several tasks with buildQueue(), e.g. to
+ * read all sources of a set before any task writes. Queued records are held in
+ * memory.
  */
 class DataTransferProcessor implements TransferProcessorInterface
 {
+    public const int DEFAULT_BATCH_SIZE = 100;
+
     /**
      * Records read in advance, by task key
      *
      * @var array<string, iterable<mixed>>
      */
     protected array $queue = [];
+
+    public function __construct(
+        protected readonly int $batchSize = self::DEFAULT_BATCH_SIZE,
+        protected readonly bool $collectRecords = true,
+        protected readonly EventDispatcherInterface $eventDispatcher = new NullEventDispatcher(),
+    ) {
+        if ($batchSize < 1) {
+            throw new \InvalidArgumentException('The batch size must be at least 1.', 1794400001);
+        }
+    }
 
     /**
      * @param array<string, iterable<mixed>> $queue
@@ -72,7 +99,7 @@ class DataTransferProcessor implements TransferProcessorInterface
     public function buildQueue(DemandInterface $demand): void
     {
         foreach ($demand->getTasks() as $task) {
-            $this->queue[$this->getTaskKey($task)] = $this->readRecords($task);
+            $this->queue[$this->getTaskKey($task)] = $this->toArray($this->readRecords($task));
         }
     }
 
@@ -82,46 +109,96 @@ class DataTransferProcessor implements TransferProcessorInterface
         $target = $this->getTarget($task);
 
         $key = $this->getTaskKey($task);
-        $records = $this->toArray($this->queue[$key] ?? $this->readRecords($task));
+        $records = $this->queue[$key] ?? $this->readRecords($task);
         unset($this->queue[$key]);
 
+        $this->eventDispatcher->dispatch(new TaskStarted($task, $key));
         $this->processInitializers($task, $result);
 
-        if ($records !== []) {
-            $targetConfiguration = $target instanceof ConfigurableInterface ? $target->getConfiguration() : null;
-            $needsArray = $task->getPreProcessors() !== [] || $task->getConverters() !== [] || $task->getPostProcessors() !== [];
-
-            foreach ($records as $record) {
-                if (\is_array($record)) {
-                    $record = $this->preProcessSingle($record, $task, $result);
-                    $convertedRecord = $this->convertSingle($record, $task, $result);
-                    $convertedRecord = $this->postProcessSingle($convertedRecord, $record, $task, $result);
-                } elseif ($needsArray) {
-                    throw new \UnexpectedValueException(
-                        \sprintf('Task "%s": records must be arrays to be processed, got %s.', $key, get_debug_type($record)),
-                        1794260001
-                    );
-                } else {
-                    $convertedRecord = $record;
-                }
-
-                if (
-                    $target instanceof DisableableInterface
-                    && $target->isDisabled($targetConfiguration ?? [], \is_array($record) ? $record : [], $result)
-                ) {
-                    continue;
-                }
-
-                $target->persist($convertedRecord, $targetConfiguration);
-                $result->add($convertedRecord);
+        $recordCount = 0;
+        $batchNumber = 0;
+        $batch = [];
+        foreach ($records as $record) {
+            $batch[] = $record;
+            if (\count($batch) >= $this->batchSize) {
+                $this->processBatch($batch, ++$batchNumber, $task, $key, $target, $result);
+                $recordCount += \count($batch);
+                $batch = [];
             }
+        }
+        if ($batch !== []) {
+            $this->processBatch($batch, ++$batchNumber, $task, $key, $target, $result);
+            $recordCount += \count($batch);
+        }
 
-            $target->persistAll($result, $targetConfiguration);
+        if ($recordCount > 0) {
+            $target->persistAll($result, $this->getTargetConfiguration($target));
         }
 
         $this->processFinishers($task, $result);
+        $this->eventDispatcher->dispatch(new TaskFinished($task, $key, $recordCount, $result));
 
         return $result;
+    }
+
+    /**
+     * @param list<mixed> $batch
+     */
+    protected function processBatch(
+        array $batch,
+        int $batchNumber,
+        TransferTaskInterface $task,
+        string $key,
+        DataTargetInterface $target,
+        ResultInterface $result
+    ): void {
+        $statistics = $result->getStatistics();
+        $targetConfiguration = $this->getTargetConfiguration($target);
+        $needsArray = $task->getPreProcessors() !== [] || $task->getConverters() !== [] || $task->getPostProcessors() !== [];
+
+        foreach ($batch as $record) {
+            $statistics->countRead();
+            if (\is_array($record)) {
+                $record = $this->preProcessSingle($record, $task, $result);
+                $convertedRecord = $this->convertSingle($record, $task, $result);
+                $convertedRecord = $this->postProcessSingle($convertedRecord, $record, $task, $result);
+            } elseif ($needsArray) {
+                throw new \UnexpectedValueException(
+                    \sprintf('Task "%s": records must be arrays to be processed, got %s.', $key, get_debug_type($record)),
+                    1794260001
+                );
+            } else {
+                $convertedRecord = $record;
+            }
+
+            if (
+                $target instanceof DisableableInterface
+                && $target->isDisabled($targetConfiguration ?? [], \is_array($record) ? $record : [], $result)
+            ) {
+                $statistics->countSkipped();
+                continue;
+            }
+
+            $target->persist($convertedRecord, $targetConfiguration);
+            $statistics->countPersisted();
+            if ($this->collectRecords) {
+                $result->add($convertedRecord);
+            }
+        }
+
+        if ($target instanceof BatchAwareInterface) {
+            $target->flushBatch($result);
+        }
+        $statistics->countBatch();
+        $this->eventDispatcher->dispatch(new BatchProcessed($task, $key, $batchNumber, \count($batch), $result));
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    protected function getTargetConfiguration(DataTargetInterface $target): ?array
+    {
+        return $target instanceof ConfigurableInterface ? $target->getConfiguration() : null;
     }
 
     /**
