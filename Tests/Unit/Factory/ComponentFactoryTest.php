@@ -22,6 +22,8 @@ use CPSIT\ImportExportCore\Factory\ComponentFactory;
 use CPSIT\ImportExportCore\Factory\ComponentRegistry;
 use CPSIT\ImportExportCore\Factory\InstantiatorInterface;
 use CPSIT\ImportExportCore\Persistence\DataSourceInterface;
+use CPSIT\ImportExportCore\Pipeline;
+use CPSIT\ImportExportCore\Pipeline\Legacy\LegacyPreProcessorAdapter;
 use CPSIT\ImportExportCore\Tests\Unit\Factory\Fixtures\IdentifiableSource;
 use CPSIT\ImportExportCore\Tests\Unit\Factory\Fixtures\PlainComponent;
 use CPSIT\ImportExportCore\Tests\Unit\Factory\Fixtures\StrictSource;
@@ -151,5 +153,27 @@ class ComponentFactoryTest extends TestCase
         $this->expectExceptionMessage('in task "foo"');
 
         $this->subject->create(DataSourceInterface::class, $settings, 'foo');
+    }
+
+    public function testWrapsDeprecatedComponentForPipelineInterface(): void
+    {
+        $this->registry->register(Pipeline\PreProcessorInterface::class, 'setField', SetFieldPreProcessor::class);
+
+        $component = $this->subject->create(Pipeline\PreProcessorInterface::class, ['class' => 'setField', 'config' => ['field' => 'a']]);
+
+        self::assertInstanceOf(LegacyPreProcessorAdapter::class, $component);
+        self::assertSame(['field' => 'a'], $component->getConfiguration());
+    }
+
+    public function testThrowsIfInstantiatorReturnsIncompatibleObject(): void
+    {
+        $instantiator = self::createStub(InstantiatorInterface::class);
+        $instantiator->method('instantiate')->willReturn(new PlainComponent());
+        $subject = new ComponentFactory($this->registry, $instantiator);
+
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionCode(1794230014);
+
+        $subject->create(PreProcessorInterface::class, ['class' => SetFieldPreProcessor::class]);
     }
 }

@@ -13,13 +13,18 @@
 
 namespace CPSIT\ImportExportCore\Domain\Model;
 
-use CPSIT\ImportExportCore\Component\Converter\ConverterInterface;
-use CPSIT\ImportExportCore\Component\Finisher\FinisherInterface;
-use CPSIT\ImportExportCore\Component\Initializer\InitializerInterface;
-use CPSIT\ImportExportCore\Component\PostProcessor\PostProcessorInterface;
-use CPSIT\ImportExportCore\Component\PreProcessor\PreProcessorInterface;
+use CPSIT\ImportExportCore\Component\Converter\ConverterInterface as LegacyConverterInterface;
+use CPSIT\ImportExportCore\Component\Finisher\FinisherInterface as LegacyFinisherInterface;
+use CPSIT\ImportExportCore\Component\Initializer\InitializerInterface as LegacyInitializerInterface;
+use CPSIT\ImportExportCore\Component\PostProcessor\PostProcessorInterface as LegacyPostProcessorInterface;
+use CPSIT\ImportExportCore\Component\PreProcessor\PreProcessorInterface as LegacyPreProcessorInterface;
 use CPSIT\ImportExportCore\Persistence\DataSourceInterface;
 use CPSIT\ImportExportCore\Persistence\DataTargetInterface;
+use CPSIT\ImportExportCore\Pipeline\ConverterInterface;
+use CPSIT\ImportExportCore\Pipeline\FinisherInterface;
+use CPSIT\ImportExportCore\Pipeline\InitializerInterface;
+use CPSIT\ImportExportCore\Pipeline\PostProcessorInterface;
+use CPSIT\ImportExportCore\Pipeline\PreProcessorInterface;
 
 /**
  * Class TransferTask
@@ -70,69 +75,79 @@ interface TransferTaskInterface
     /**
      * Gets the pre-processors
      *
-     * @return PreProcessorInterface[]
+     * @return array<int|string, PreProcessorInterface>
      */
     public function getPreProcessors(): array;
 
     /**
      * Sets the pre-processors
-     * @param PreProcessorInterface[] $preProcessors
+     * Components implementing the deprecated interface are wrapped in an adapter.
+     *
+     * @param array<int|string, PreProcessorInterface|LegacyPreProcessorInterface> $preProcessors
      */
     public function setPreProcessors(array $preProcessors): void;
 
     /**
      * Gets the post-processors
      *
-     * @return PostProcessorInterface[]
+     * @return array<int|string, PostProcessorInterface>
      */
     public function getPostProcessors(): array;
 
     /**
      * Sets the post-processors
      *
-     * @param PostProcessorInterface[] $postProcessors
+     * Components implementing the deprecated interface are wrapped in an adapter.
+     *
+     * @param array<int|string, PostProcessorInterface|LegacyPostProcessorInterface> $postProcessors
      */
     public function setPostProcessors(array $postProcessors): void;
 
     /**
      * Gets the converters
      *
-     * @return ConverterInterface[]
+     * @return array<int|string, ConverterInterface>
      */
     public function getConverters(): array;
 
     /**
      * Sets the converters
      *
-     * @param ConverterInterface[] $converters
+     * Components implementing the deprecated interface are wrapped in an adapter.
+     *
+     * @param array<int|string, ConverterInterface|LegacyConverterInterface> $converters
      */
     public function setConverters(array $converters): void;
 
     /**
      * Gets the finishers
      *
-     * @return FinisherInterface[]
+     * @return array<int|string, FinisherInterface>
      */
     public function getFinishers(): array;
 
     /**
      * sets the finishers
      *
-     * @param FinisherInterface[] $finishers
+     * Components implementing the deprecated interface are wrapped in an adapter.
+     *
+     * @param array<int|string, FinisherInterface|LegacyFinisherInterface> $finishers
      */
     public function setFinishers(array $finishers): void;
 
     /**
      * Gets the initializers
      *
-     * @return InitializerInterface[]
+     * @return array<int|string, InitializerInterface>
      */
     public function getInitializers(): array;
 
     /**
      * Sets the initializers
      *
-     * @param InitializerInterface[] $initializers
+     * Components implementing the deprecated interface are wrapped in an adapter.
+     *
+     * @param array<int|string, InitializerInterface|LegacyInitializerInterface> $initializers
      */
     public function setInitializers(array $initializers): void;
 

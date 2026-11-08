@@ -20,6 +20,9 @@ use CPSIT\ImportExportCore\Domain\Model\ResultInterface;
 
 /**
  * Interface FinisherInterface
+ *
+ * @deprecated since 0.2.0, implement `CPSIT\ImportExportCore\Pipeline\FinisherInterface` instead.
+ *             Components implementing this interface are wrapped in an adapter.
  */
 interface FinisherInterface extends ComponentInterface
 {

@@ -56,6 +56,14 @@ class per role) and creates the object with an `InstantiatorInterface`:
 container. The extension registers its components and defaults in the
 registry ([#23](https://github.com/CPS-IT/import-export-core/issues/23)).
 
+Components implement the pipeline contracts in `Pipeline\`: they return
+values and receive their configuration once, when they are created.
+Components implementing the deprecated interfaces in `Component\` are
+wrapped in adapters (`Pipeline\Legacy\`) by the component factory and by
+`TransferTask`, so the processor only works with the pipeline contracts
+([#26](https://github.com/CPS-IT/import-export-core/issues/26)). Typed task
+and component definitions are planned as a follow-up.
+
 ## Current state (0.1.0)
 
 | Namespace (`CPSIT\ImportExportCore\`) | Content |
@@ -102,7 +110,7 @@ design issues are addressed in 0.2.0 (milestone
 * There is no abstraction for paths and resources, so file-based sources and
   targets cannot move into the core. ([#25](https://github.com/CPS-IT/import-export-core/issues/25))
 * Components modify arrays by reference and receive their configuration twice
-  (per call and via setter). ([#26](https://github.com/CPS-IT/import-export-core/issues/26))
+  (per call and via setter). Done in 0.2.0 ([#26](https://github.com/CPS-IT/import-export-core/issues/26))
 * Messages are collected through traits instead of injected collaborators.
   ([#27](https://github.com/CPS-IT/import-export-core/issues/27))
 * Task and set models are mutable; `TaskResult` keeps iterator state. ([#28](https://github.com/CPS-IT/import-export-core/issues/28))

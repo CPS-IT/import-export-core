@@ -21,13 +21,23 @@ use CPSIT\ImportExportCore\Factory\ComponentRegistry;
 use CPSIT\ImportExportCore\Factory\TransferTaskFactory;
 use CPSIT\ImportExportCore\Persistence\DataSourceInterface;
 use CPSIT\ImportExportCore\Persistence\DataTargetInterface;
+use CPSIT\ImportExportCore\Pipeline\Legacy\LegacyConverterAdapter;
+use CPSIT\ImportExportCore\Pipeline\Legacy\LegacyFinisherAdapter;
+use CPSIT\ImportExportCore\Pipeline\Legacy\LegacyInitializerAdapter;
+use CPSIT\ImportExportCore\Pipeline\Legacy\LegacyPostProcessorAdapter;
+use CPSIT\ImportExportCore\Pipeline\Legacy\LegacyPreProcessorAdapter;
 use CPSIT\ImportExportCore\Tests\Unit\Factory\Fixtures\IdentifiableSource;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\AppendingInitializer;
+use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\FieldPreProcessor;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\InMemoryTarget;
+use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\LogInitializer;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\MarkingPostProcessor;
+use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\MarkPostProcessor;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\ObjectConverter;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\RecordingFinisher;
+use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\ResultFinisher;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\SetFieldPreProcessor;
+use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\ToObjectConverter;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -54,14 +64,14 @@ class TransferTaskFactoryTest extends TestCase
             'class' => \stdClass::class,
             'source' => ['class' => 'test', 'identifier' => 'legacy', 'config' => ['table' => 'news']],
             'target' => ['config' => ['table' => 'tx_news']],
-            'initializers' => [['class' => AppendingInitializer::class]],
+            'initializers' => [['class' => LogInitializer::class]],
             'preProcessors' => [
-                '20' => ['class' => SetFieldPreProcessor::class, 'config' => ['field' => 'b']],
-                '10' => ['class' => SetFieldPreProcessor::class, 'config' => ['field' => 'a']],
+                '20' => ['class' => FieldPreProcessor::class, 'config' => ['field' => 'b']],
+                '10' => ['class' => FieldPreProcessor::class, 'config' => ['field' => 'a']],
             ],
-            'converters' => [['class' => ObjectConverter::class]],
-            'postProcessors' => [['class' => MarkingPostProcessor::class]],
-            'finishers' => [['class' => RecordingFinisher::class]],
+            'converters' => [['class' => ToObjectConverter::class]],
+            'postProcessors' => [['class' => MarkPostProcessor::class]],
+            'finishers' => [['class' => ResultFinisher::class]],
         ]);
 
         self::assertSame('import-news', $task->getIdentifier());
@@ -78,12 +88,36 @@ class TransferTaskFactoryTest extends TestCase
         self::assertInstanceOf(InMemoryTarget::class, $target);
         self::assertSame(['table' => 'tx_news'], $target->getConfiguration());
 
-        self::assertInstanceOf(AppendingInitializer::class, $task->getInitializers()[0]);
+        self::assertInstanceOf(LogInitializer::class, $task->getInitializers()[0]);
         self::assertSame([20, 10], array_keys($task->getPreProcessors()));
-        self::assertSame(['field' => 'a'], $task->getPreProcessors()[10]->getConfiguration());
-        self::assertInstanceOf(ObjectConverter::class, $task->getConverters()[0]);
-        self::assertInstanceOf(MarkingPostProcessor::class, $task->getPostProcessors()[0]);
-        self::assertInstanceOf(RecordingFinisher::class, $task->getFinishers()[0]);
+        $preProcessor = $task->getPreProcessors()[10];
+        self::assertInstanceOf(FieldPreProcessor::class, $preProcessor);
+        self::assertSame(['field' => 'a'], $preProcessor->getConfiguration());
+        self::assertInstanceOf(ToObjectConverter::class, $task->getConverters()[0]);
+        self::assertInstanceOf(MarkPostProcessor::class, $task->getPostProcessors()[0]);
+        self::assertInstanceOf(ResultFinisher::class, $task->getFinishers()[0]);
+    }
+
+    public function testWrapsDeprecatedComponents(): void
+    {
+        $task = $this->subject->create('legacy', [
+            'source' => ['class' => 'test'],
+            'target' => [],
+            'initializers' => [['class' => AppendingInitializer::class]],
+            'preProcessors' => [['class' => SetFieldPreProcessor::class, 'config' => ['field' => 'a']]],
+            'converters' => [['class' => ObjectConverter::class]],
+            'postProcessors' => [['class' => MarkingPostProcessor::class]],
+            'finishers' => [['class' => RecordingFinisher::class]],
+        ]);
+
+        self::assertInstanceOf(LegacyInitializerAdapter::class, $task->getInitializers()[0]);
+        $preProcessor = $task->getPreProcessors()[0];
+        self::assertInstanceOf(LegacyPreProcessorAdapter::class, $preProcessor);
+        self::assertInstanceOf(SetFieldPreProcessor::class, $preProcessor->getComponent());
+        self::assertSame(['field' => 'a'], $preProcessor->getConfiguration());
+        self::assertInstanceOf(LegacyConverterAdapter::class, $task->getConverters()[0]);
+        self::assertInstanceOf(LegacyPostProcessorAdapter::class, $task->getPostProcessors()[0]);
+        self::assertInstanceOf(LegacyFinisherAdapter::class, $task->getFinishers()[0]);
     }
 
     public function testComponentListsAreOptional(): void

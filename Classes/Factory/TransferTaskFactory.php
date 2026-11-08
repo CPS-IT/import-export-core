@@ -16,15 +16,15 @@ declare(strict_types=1);
 namespace CPSIT\ImportExportCore\Factory;
 
 use CPSIT\ImportExportCore\Component\ComponentInterface;
-use CPSIT\ImportExportCore\Component\Converter\ConverterInterface;
-use CPSIT\ImportExportCore\Component\Finisher\FinisherInterface;
-use CPSIT\ImportExportCore\Component\Initializer\InitializerInterface;
-use CPSIT\ImportExportCore\Component\PostProcessor\PostProcessorInterface;
-use CPSIT\ImportExportCore\Component\PreProcessor\PreProcessorInterface;
 use CPSIT\ImportExportCore\Domain\Model\TransferTask;
 use CPSIT\ImportExportCore\Exception\InvalidConfigurationException;
 use CPSIT\ImportExportCore\Persistence\DataSourceInterface;
 use CPSIT\ImportExportCore\Persistence\DataTargetInterface;
+use CPSIT\ImportExportCore\Pipeline\ConverterInterface;
+use CPSIT\ImportExportCore\Pipeline\FinisherInterface;
+use CPSIT\ImportExportCore\Pipeline\InitializerInterface;
+use CPSIT\ImportExportCore\Pipeline\PostProcessorInterface;
+use CPSIT\ImportExportCore\Pipeline\PreProcessorInterface;
 
 /**
  * Builds a transfer task from the configuration of a task.

@@ -26,6 +26,7 @@ use CPSIT\ImportExportCore\IdentifiableInterface;
 use CPSIT\ImportExportCore\LoggingInterface;
 use CPSIT\ImportExportCore\Persistence\DataSourceInterface;
 use CPSIT\ImportExportCore\Persistence\DataTargetInterface;
+use CPSIT\ImportExportCore\Pipeline\Legacy\LegacyAdapterInterface;
 
 /**
  * Processes transfer tasks: reads the records of the data source, runs them
@@ -84,19 +85,29 @@ class DataTransferProcessor implements TransferProcessorInterface
         $records = $this->toArray($this->queue[$key] ?? $this->readRecords($task));
         unset($this->queue[$key]);
 
-        $this->processInitializers($records, $task, $result);
+        $this->processInitializers($task, $result);
 
         if ($records !== []) {
             $targetConfiguration = $target instanceof ConfigurableInterface ? $target->getConfiguration() : null;
+            $needsArray = $task->getPreProcessors() !== [] || $task->getConverters() !== [] || $task->getPostProcessors() !== [];
 
-            foreach ($records as &$record) {
-                $this->preProcessSingle($record, $task, $result);
-                $convertedRecord = $this->convertSingle($record, $task, $result);
-                $this->postProcessSingle($convertedRecord, $record, $task, $result);
+            foreach ($records as $record) {
+                if (\is_array($record)) {
+                    $record = $this->preProcessSingle($record, $task, $result);
+                    $convertedRecord = $this->convertSingle($record, $task, $result);
+                    $convertedRecord = $this->postProcessSingle($convertedRecord, $record, $task, $result);
+                } elseif ($needsArray) {
+                    throw new \UnexpectedValueException(
+                        \sprintf('Task "%s": records must be arrays to be processed, got %s.', $key, get_debug_type($record)),
+                        1794260001
+                    );
+                } else {
+                    $convertedRecord = $record;
+                }
 
                 if (
                     $target instanceof DisableableInterface
-                    && $target->isDisabled($targetConfiguration ?? [], $record, $result)
+                    && $target->isDisabled($targetConfiguration ?? [], \is_array($record) ? $record : [], $result)
                 ) {
                     continue;
                 }
@@ -104,12 +115,11 @@ class DataTransferProcessor implements TransferProcessorInterface
                 $target->persist($convertedRecord, $targetConfiguration);
                 $result->add($convertedRecord);
             }
-            unset($record);
 
             $target->persistAll($result, $targetConfiguration);
         }
 
-        $this->processFinishers($records, $task, $result);
+        $this->processFinishers($task, $result);
 
         return $result;
     }
@@ -167,38 +177,49 @@ class DataTransferProcessor implements TransferProcessorInterface
         return \is_array($records) ? $records : iterator_to_array($records, false);
     }
 
-    /**
-     * @param array<mixed> $records
-     */
-    protected function processInitializers(array &$records, TransferTaskInterface $task, ResultInterface $result): void
+    protected function processInitializers(TransferTaskInterface $task, ResultInterface $result): void
     {
         foreach ($task->getInitializers() as $initializer) {
-            $configuration = $initializer->getConfiguration();
-            if (!$initializer->isDisabled($configuration, [], $result)) {
-                $initializer->process($configuration, $records);
+            if (!$this->isDisabled($initializer, [], $result)) {
+                $initializer->initialize();
             }
             $this->gatherMessages($initializer, $result);
         }
     }
 
-    protected function preProcessSingle(mixed &$record, TransferTaskInterface $task, ResultInterface $result): void
+    /**
+     * @param array<mixed> $record
+     * @return array<mixed>
+     */
+    protected function preProcessSingle(array $record, TransferTaskInterface $task, ResultInterface $result): array
     {
         foreach ($task->getPreProcessors() as $preProcessor) {
-            $configuration = $preProcessor->getConfiguration();
-            if (!$preProcessor->isDisabled($configuration, $record, $result)) {
-                $preProcessor->process($configuration, $record);
+            if (!$this->isDisabled($preProcessor, $record, $result)) {
+                $record = $preProcessor->process($record);
             }
             $this->gatherMessages($preProcessor, $result);
         }
+
+        return $record;
     }
 
-    protected function convertSingle(mixed $record, TransferTaskInterface $task, ResultInterface $result): mixed
+    /**
+     * Each converter receives the output of the previous one.
+     *
+     * @param array<mixed> $record
+     */
+    protected function convertSingle(array $record, TransferTaskInterface $task, ResultInterface $result): mixed
     {
         $convertedRecord = $record;
         foreach ($task->getConverters() as $converter) {
-            $configuration = $converter->getConfiguration();
-            if (!$converter->isDisabled($configuration, $record, $result)) {
-                $convertedRecord = $converter->convert($convertedRecord, $configuration);
+            if (!$this->isDisabled($converter, $record, $result)) {
+                if (!\is_array($convertedRecord)) {
+                    throw new \UnexpectedValueException(
+                        \sprintf('Converters can only be chained while their output is an array, got %s.', get_debug_type($convertedRecord)),
+                        1794260002
+                    );
+                }
+                $convertedRecord = $converter->convert($convertedRecord);
             }
             $this->gatherMessages($converter, $result);
         }
@@ -206,41 +227,56 @@ class DataTransferProcessor implements TransferProcessorInterface
         return $convertedRecord;
     }
 
+    /**
+     * @param array<mixed> $record
+     */
     protected function postProcessSingle(
-        mixed &$convertedRecord,
-        mixed &$record,
+        mixed $convertedRecord,
+        array $record,
         TransferTaskInterface $task,
         ResultInterface $result
-    ): void {
+    ): mixed {
         foreach ($task->getPostProcessors() as $postProcessor) {
-            $configuration = $postProcessor->getConfiguration();
-            if (!$postProcessor->isDisabled($configuration, $record, $result)) {
-                $postProcessor->process($configuration, $convertedRecord, $record);
+            if (!$this->isDisabled($postProcessor, $record, $result)) {
+                $convertedRecord = $postProcessor->process($convertedRecord, $record);
             }
             $this->gatherMessages($postProcessor, $result);
         }
+
+        return $convertedRecord;
     }
 
-    /**
-     * Finishers receive the result by reference. Changes to the result object
-     * are kept; replacing it with another value has no effect.
-     *
-     * @param array<mixed> $records
-     */
-    protected function processFinishers(array &$records, TransferTaskInterface $task, ResultInterface $result): void
+    protected function processFinishers(TransferTaskInterface $task, ResultInterface $result): void
     {
         foreach ($task->getFinishers() as $finisher) {
-            $configuration = $finisher->getConfiguration();
-            if (!$finisher->isDisabled($configuration, [], $result)) {
-                $finisherResult = $result;
-                $finisher->process($configuration, $records, $finisherResult);
+            if (!$this->isDisabled($finisher, [], $result)) {
+                $finisher->finish($result);
             }
             $this->gatherMessages($finisher, $result);
         }
     }
 
+    /**
+     * Components can be disabled only if they implement
+     * `DisableableInterface`. Adapters of deprecated components do.
+     *
+     * @param array<mixed> $record
+     */
+    protected function isDisabled(object $component, array $record, ResultInterface $result): bool
+    {
+        if (!$component instanceof DisableableInterface) {
+            return false;
+        }
+        $configuration = $component instanceof ConfigurableInterface ? $component->getConfiguration() : [];
+
+        return $component->isDisabled($configuration, $record, $result);
+    }
+
     protected function gatherMessages(object $component, ResultInterface $result): void
     {
+        if ($component instanceof LegacyAdapterInterface) {
+            $component = $component->getComponent();
+        }
         if ($component instanceof LoggingInterface) {
             $result->addMessages($component->getAndPurgeMessages());
         }

@@ -25,13 +25,18 @@ use CPSIT\ImportExportCore\Service\DataTransferProcessor;
 use CPSIT\ImportExportCore\Service\TransferProcessorInterface;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\AppendingInitializer;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\ArraySource;
+use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\FieldPreProcessor;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\InMemoryTarget;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\LoggingPreProcessor;
+use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\LogInitializer;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\MarkingPostProcessor;
+use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\MarkPostProcessor;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\ObjectConverter;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\RecordingFinisher;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\ReplacingFinisher;
+use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\ResultFinisher;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\SetFieldPreProcessor;
+use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\ToObjectConverter;
 use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/Fixtures/Components.php';
@@ -136,13 +141,13 @@ class DataTransferProcessorTest extends TestCase
     {
         $log = [];
         $task = $this->createTask([['id' => 1], ['id' => 2]]);
-        $task->setInitializers([new AppendingInitializer($log)]);
-        $preProcessor = new SetFieldPreProcessor($log);
+        $task->setInitializers([new LogInitializer($log)]);
+        $preProcessor = new FieldPreProcessor($log);
         $preProcessor->setConfiguration(['field' => 'title', 'value' => 'foo']);
         $task->setPreProcessors([$preProcessor]);
-        $task->setConverters([new ObjectConverter($log)]);
-        $task->setPostProcessors([new MarkingPostProcessor($log)]);
-        $task->setFinishers([new RecordingFinisher($log)]);
+        $task->setConverters([new ToObjectConverter($log)]);
+        $task->setPostProcessors([new MarkPostProcessor($log)]);
+        $task->setFinishers([new ResultFinisher($log)]);
 
         $this->subject->process($task);
 
@@ -151,7 +156,6 @@ class DataTransferProcessorTest extends TestCase
                 'initializer',
                 'preProcessor:1', 'converter:1', 'postProcessor:1',
                 'preProcessor:2', 'converter:2', 'postProcessor:2',
-                'preProcessor:appended', 'converter:appended', 'postProcessor:appended',
                 'finisher',
             ],
             $log
@@ -162,11 +166,11 @@ class DataTransferProcessorTest extends TestCase
     {
         $target = new InMemoryTarget();
         $task = $this->createTask([['id' => 1]], $target);
-        $preProcessor = new SetFieldPreProcessor();
+        $preProcessor = new FieldPreProcessor();
         $preProcessor->setConfiguration(['field' => 'title', 'value' => 'foo']);
         $task->setPreProcessors([$preProcessor]);
-        $task->setConverters([new ObjectConverter()]);
-        $task->setPostProcessors([new MarkingPostProcessor()]);
+        $task->setConverters([new ToObjectConverter()]);
+        $task->setPostProcessors([new MarkPostProcessor()]);
 
         $result = $this->subject->process($task);
 
@@ -175,17 +179,73 @@ class DataTransferProcessorTest extends TestCase
         self::assertEquals([$expected], $result->toArray());
     }
 
-    public function testFinishersReceiveModifiedRecordsAndResult(): void
+    public function testRunsDeprecatedComponentsThroughAdapters(): void
     {
-        $task = $this->createTask([['id' => 1]]);
-        $task->setPostProcessors([new MarkingPostProcessor()]);
-        $finisher = new RecordingFinisher();
+        $log = [];
+        $target = new InMemoryTarget();
+        $task = $this->createTask([['id' => 1]], $target);
+        $task->setInitializers([new AppendingInitializer($log)]);
+        $preProcessor = new SetFieldPreProcessor($log);
+        $preProcessor->setConfiguration(['field' => 'title', 'value' => 'foo']);
+        $task->setPreProcessors([$preProcessor]);
+        $task->setConverters([new ObjectConverter($log)]);
+        $task->setPostProcessors([new MarkingPostProcessor($log)]);
+        $finisher = new RecordingFinisher($log);
         $task->setFinishers([$finisher]);
 
         $result = $this->subject->process($task);
 
-        self::assertSame([['id' => 1, 'postProcessed' => true]], $finisher->records);
+        // initializers cannot add records any more; finishers receive no records
+        self::assertSame(
+            ['initializer', 'preProcessor:1', 'converter:1', 'postProcessor:1', 'finisher'],
+            $log
+        );
+        self::assertEquals([(object)['id' => 1, 'title' => 'foo', 'postProcessed' => true]], $target->persisted);
+        self::assertSame([], $finisher->records);
         self::assertSame($result, $finisher->result);
+    }
+
+    public function testFinishersReceiveResult(): void
+    {
+        $task = $this->createTask([['id' => 1]]);
+        $finisher = new ResultFinisher();
+        $task->setFinishers([$finisher]);
+
+        $result = $this->subject->process($task);
+
+        self::assertSame($result, $finisher->result);
+    }
+
+    public function testThrowsForNonArrayRecordsWithComponents(): void
+    {
+        $task = $this->createTask([(object)['id' => 1]]);
+        $task->setConverters([new ToObjectConverter()]);
+
+        $this->expectException(\UnexpectedValueException::class);
+        $this->expectExceptionCode(1794260001);
+
+        $this->subject->process($task);
+    }
+
+    public function testPersistsNonArrayRecordsWithoutComponents(): void
+    {
+        $target = new InMemoryTarget();
+        $record = (object)['id' => 1];
+
+        $this->subject->process($this->createTask([$record], $target));
+
+        self::assertSame([$record], $target->persisted);
+    }
+
+    public function testThrowsIfConverterOutputCannotBeChained(): void
+    {
+        $task = $this->createTask([['id' => 1]]);
+        $task->setConverters([new ToObjectConverter(), new ToObjectConverter()]);
+
+        $this->expectException(\UnexpectedValueException::class);
+        $this->expectExceptionCode(1794260002);
+
+        $this->subject->process($task);
     }
 
     public function testRunsFinishersWithoutRecords(): void

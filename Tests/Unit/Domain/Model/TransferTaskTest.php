@@ -15,17 +15,22 @@ declare(strict_types=1);
 
 namespace CPSIT\ImportExportCore\Tests\Unit\Domain\Model;
 
-use CPSIT\ImportExportCore\Component\Converter\ConverterInterface;
-use CPSIT\ImportExportCore\Component\Finisher\FinisherInterface;
-use CPSIT\ImportExportCore\Component\Initializer\InitializerInterface;
-use CPSIT\ImportExportCore\Component\PostProcessor\PostProcessorInterface;
-use CPSIT\ImportExportCore\Component\PreProcessor\PreProcessorInterface;
 use CPSIT\ImportExportCore\Domain\Model\TransferTask;
 use CPSIT\ImportExportCore\Domain\Model\TransferTaskInterface;
 use CPSIT\ImportExportCore\IdentifiableInterface;
 use CPSIT\ImportExportCore\Persistence\DataSourceInterface;
 use CPSIT\ImportExportCore\Persistence\DataTargetInterface;
+use CPSIT\ImportExportCore\Pipeline\ConverterInterface;
+use CPSIT\ImportExportCore\Pipeline\FinisherInterface;
+use CPSIT\ImportExportCore\Pipeline\InitializerInterface;
+use CPSIT\ImportExportCore\Pipeline\Legacy\LegacyPreProcessorAdapter;
+use CPSIT\ImportExportCore\Pipeline\PostProcessorInterface;
+use CPSIT\ImportExportCore\Pipeline\PreProcessorInterface;
+use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\SetFieldPreProcessor;
+use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\ToObjectConverter;
 use PHPUnit\Framework\TestCase;
+
+require_once __DIR__ . '/../../Service/Fixtures/Components.php';
 
 class TransferTaskTest extends TestCase
 {
@@ -101,5 +106,25 @@ class TransferTaskTest extends TestCase
         self::assertSame($converters, $this->subject->getConverters());
         self::assertSame($postProcessors, $this->subject->getPostProcessors());
         self::assertSame($finishers, $this->subject->getFinishers());
+    }
+
+    public function testWrapsDeprecatedComponentsAndKeepsKeys(): void
+    {
+        $legacy = new SetFieldPreProcessor();
+
+        $this->subject->setPreProcessors(['20' => $legacy]);
+
+        $preProcessors = $this->subject->getPreProcessors();
+        self::assertSame([20], array_keys($preProcessors));
+        self::assertInstanceOf(LegacyPreProcessorAdapter::class, $preProcessors[20]);
+        self::assertSame($legacy, $preProcessors[20]->getComponent());
+    }
+
+    public function testRejectsComponentOfWrongRole(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionCode(1794260003);
+
+        $this->subject->setPreProcessors([new ToObjectConverter()]);
     }
 }

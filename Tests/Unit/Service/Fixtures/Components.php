@@ -29,6 +29,7 @@ use CPSIT\ImportExportCore\LoggingTrait;
 use CPSIT\ImportExportCore\Messaging\Message;
 use CPSIT\ImportExportCore\Persistence\DataSourceInterface;
 use CPSIT\ImportExportCore\Persistence\DataTargetInterface;
+use CPSIT\ImportExportCore\Pipeline;
 
 /**
  * Small component implementations for processor tests. Each one records how
@@ -244,5 +245,90 @@ final class LoggingPreProcessor extends AbstractTestComponent implements PreProc
         $this->logMessage('Processed', 'Record ' . $record['id'], Message::SEVERITY_NOTICE);
 
         return true;
+    }
+}
+
+/**
+ * Components implementing the pipeline contracts. They write to a shared
+ * call log to check the order.
+ */
+abstract class AbstractPipelineComponent
+{
+    public int $calls = 0;
+
+    /**
+     * @param list<string> $log
+     */
+    public function __construct(public array &$log = [])
+    {
+    }
+}
+
+final class LogInitializer extends AbstractPipelineComponent implements Pipeline\InitializerInterface
+{
+    public function initialize(): void
+    {
+        ++$this->calls;
+        $this->log[] = 'initializer';
+    }
+}
+
+/**
+ * Sets the configured field to the configured value.
+ */
+final class FieldPreProcessor extends AbstractPipelineComponent implements Pipeline\PreProcessorInterface, ConfigurableInterface
+{
+    use ConfigurableTrait;
+
+    public function isConfigurationValid(array $configuration): bool
+    {
+        return isset($configuration['field']);
+    }
+
+    public function process(array $record): array
+    {
+        ++$this->calls;
+        $this->log[] = 'preProcessor:' . $record['id'];
+        $record[(string)$this->configuration['field']] = $this->configuration['value'] ?? null;
+
+        return $record;
+    }
+}
+
+final class ToObjectConverter extends AbstractPipelineComponent implements Pipeline\ConverterInterface
+{
+    public function convert(array $record): object
+    {
+        ++$this->calls;
+        $this->log[] = 'converter:' . $record['id'];
+
+        return (object)$record;
+    }
+}
+
+final class MarkPostProcessor extends AbstractPipelineComponent implements Pipeline\PostProcessorInterface
+{
+    public function process(mixed $convertedRecord, array $record): mixed
+    {
+        ++$this->calls;
+        $this->log[] = 'postProcessor:' . $record['id'];
+        if (\is_object($convertedRecord)) {
+            $convertedRecord = clone $convertedRecord;
+            $convertedRecord->postProcessed = true;
+        }
+
+        return $convertedRecord;
+    }
+}
+
+final class ResultFinisher extends AbstractPipelineComponent implements Pipeline\FinisherInterface
+{
+    public ?ResultInterface $result = null;
+
+    public function finish(ResultInterface $result): void
+    {
+        ++$this->calls;
+        $this->log[] = 'finisher';
+        $this->result = $result;
     }
 }

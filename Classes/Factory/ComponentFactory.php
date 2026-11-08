@@ -18,7 +18,12 @@ namespace CPSIT\ImportExportCore\Factory;
 use CPSIT\ImportExportCore\Component\ComponentInterface;
 use CPSIT\ImportExportCore\Exception\InvalidConfigurationException;
 use CPSIT\ImportExportCore\IdentifiableInterface;
+use CPSIT\ImportExportCore\Pipeline\Legacy\LegacyComponents;
 
+/**
+ * Components implementing the deprecated counterpart of a pipeline interface
+ * are wrapped in an adapter.
+ */
 final class ComponentFactory implements ComponentFactoryInterface
 {
     private readonly InstantiatorInterface $instantiator;
@@ -72,6 +77,14 @@ final class ComponentFactory implements ComponentFactoryInterface
         if (method_exists($component, 'setConfiguration')) {
             /** @var array<string, mixed> $configuration */
             $component->setConfiguration($configuration);
+        }
+
+        $component = LegacyComponents::adapt($component, $interface);
+        if (!$component instanceof $interface) {
+            throw new InvalidConfigurationException(
+                \sprintf('Class "%s" must implement "%s"%s.', $className, $interface, $this->describe($context)),
+                1794230014
+            );
         }
 
         return $component;
