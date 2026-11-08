@@ -38,15 +38,9 @@ class ConfigurationHandlerTest extends TestCase
     {
         $path = '/path/to/config.yaml';
         $config = [
-            'module' => [
-                'tx_t3importexport' => [
-                    'settings' => [
-                        'import' => [
-                            'tasks' => [
-                                'test' => ['label' => 'Test Task']
-                            ]
-                        ]
-                    ]
+            'import' => [
+                'tasks' => [
+                    'test' => ['label' => 'Test Task']
                 ]
             ]
         ];
@@ -88,7 +82,7 @@ class ConfigurationHandlerTest extends TestCase
     public function testAddConfigurationReturnsInstanceOfSelf(): void
     {
         $path = '/path/to/config.yaml';
-        $config = ['module' => ['tx_t3importexport' => ['settings' => []]]];
+        $config = [];
 
         $this->loader->expects($this->once())
             ->method('load')
@@ -103,20 +97,14 @@ class ConfigurationHandlerTest extends TestCase
     {
         $path = '/path/to/config.yaml';
         $config = [
-            'module' => [
-                'tx_t3importexport' => [
-                    'settings' => [
-                        'import' => [
-                            'tasks' => [
-                                'test' => ['label' => 'Test Task']
-                            ]
-                        ],
-                        'export' => [
-                            'tasks' => [
-                                'export' => ['label' => 'Export Task']
-                            ]
-                        ]
-                    ]
+            'import' => [
+                'tasks' => [
+                    'test' => ['label' => 'Test Task']
+                ]
+            ],
+            'export' => [
+                'tasks' => [
+                    'export' => ['label' => 'Export Task']
                 ]
             ]
         ];
@@ -142,13 +130,7 @@ class ConfigurationHandlerTest extends TestCase
     public function testGetTasksReturnsEmptyArrayWhenNoTasksExist(): void
     {
         $path = '/path/to/config.yaml';
-        $config = [
-            'module' => [
-                'tx_t3importexport' => [
-                    'settings' => []
-                ]
-            ]
-        ];
+        $config = ['import' => ['sets' => ['testSet' => ['tasks' => 'test']]]];
 
         $this->loader->expects($this->once())
             ->method('load')
@@ -166,25 +148,19 @@ class ConfigurationHandlerTest extends TestCase
     {
         $path = '/path/to/config.yaml';
         $config = [
-            'module' => [
-                'tx_t3importexport' => [
-                    'settings' => [
-                        'import' => [
-                            'sets' => [
-                                'testSet' => [
-                                    'label' => 'Test Set',
-                                    'tasks' => 'test'
-                                ]
-                            ]
-                        ],
-                        'export' => [
-                            'sets' => [
-                                'exportSet' => [
-                                    'label' => 'Export Set',
-                                    'tasks' => 'export'
-                                ]
-                            ]
-                        ]
+            'import' => [
+                'sets' => [
+                    'testSet' => [
+                        'label' => 'Test Set',
+                        'tasks' => 'test'
+                    ]
+                ]
+            ],
+            'export' => [
+                'sets' => [
+                    'exportSet' => [
+                        'label' => 'Export Set',
+                        'tasks' => 'export'
                     ]
                 ]
             ]
@@ -213,13 +189,7 @@ class ConfigurationHandlerTest extends TestCase
     public function testGetSetsReturnsEmptyArrayWhenNoSetsExist(): void
     {
         $path = '/path/to/config.yaml';
-        $config = [
-            'module' => [
-                'tx_t3importexport' => [
-                    'settings' => []
-                ]
-            ]
-        ];
+        $config = ['import' => ['tasks' => ['test' => ['label' => 'Test Task']]]];
 
         $this->loader->expects($this->once())
             ->method('load')
@@ -237,20 +207,14 @@ class ConfigurationHandlerTest extends TestCase
     {
         $path = '/path/to/config.yaml';
         $config = [
-            'module' => [
-                'tx_t3importexport' => [
-                    'settings' => [
-                        'import' => [
-                            'tasks' => [
-                                'test' => ['label' => 'Test Task']
-                            ],
-                            'sets' => [
-                                'testSet' => [
-                                    'label' => 'Test Set',
-                                    'tasks' => 'test'
-                                ]
-                            ]
-                        ]
+            'import' => [
+                'tasks' => [
+                    'test' => ['label' => 'Test Task']
+                ],
+                'sets' => [
+                    'testSet' => [
+                        'label' => 'Test Set',
+                        'tasks' => 'test'
                     ]
                 ]
             ]
@@ -272,30 +236,18 @@ class ConfigurationHandlerTest extends TestCase
     {
         $path1 = '/path/to/config1.yaml';
         $config1 = [
-            'module' => [
-                'tx_t3importexport' => [
-                    'settings' => [
-                        'import' => [
-                            'tasks' => [
-                                'test1' => ['label' => 'Test Task 1']
-                            ]
-                        ]
-                    ]
+            'import' => [
+                'tasks' => [
+                    'test1' => ['label' => 'Test Task 1']
                 ]
             ]
         ];
 
         $path2 = '/path/to/config2.yaml';
         $config2 = [
-            'module' => [
-                'tx_t3importexport' => [
-                    'settings' => [
-                        'import' => [
-                            'tasks' => [
-                                'test2' => ['label' => 'Test Task 2']
-                            ]
-                        ]
-                    ]
+            'import' => [
+                'tasks' => [
+                    'test2' => ['label' => 'Test Task 2']
                 ]
             ]
         ];
@@ -313,18 +265,15 @@ class ConfigurationHandlerTest extends TestCase
         $result = $this->subject->getFullConfiguration();
 
         $this->assertIsArray($result);
-        $this->assertArrayHasKey('module', $result);
-        $this->assertArrayHasKey('tx_t3importexport', $result['module']);
-        $this->assertArrayHasKey('settings', $result['module']['tx_t3importexport']);
-        $this->assertArrayHasKey('import', $result['module']['tx_t3importexport']['settings']);
-        $this->assertArrayHasKey('tasks', $result['module']['tx_t3importexport']['settings']['import']);
+        $this->assertArrayHasKey('import', $result);
+        $this->assertArrayHasKey('tasks', $result['import']);
 
         // Both tasks should be present
-        $this->assertArrayHasKey('test1', $result['module']['tx_t3importexport']['settings']['import']['tasks']);
-        $this->assertEquals('Test Task 1', $result['module']['tx_t3importexport']['settings']['import']['tasks']['test1']['label']);
+        $this->assertArrayHasKey('test1', $result['import']['tasks']);
+        $this->assertEquals('Test Task 1', $result['import']['tasks']['test1']['label']);
 
-        $this->assertArrayHasKey('test2', $result['module']['tx_t3importexport']['settings']['import']['tasks']);
-        $this->assertEquals('Test Task 2', $result['module']['tx_t3importexport']['settings']['import']['tasks']['test2']['label']);
+        $this->assertArrayHasKey('test2', $result['import']['tasks']);
+        $this->assertEquals('Test Task 2', $result['import']['tasks']['test2']['label']);
     }
 
     /**

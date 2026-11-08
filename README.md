@@ -60,8 +60,17 @@ $loader = new YamlConfigurationLoader(new YamlConfigurationParser());
 $configuration = $loader->load('config/import.yaml');
 ```
 
-The loader returns the configuration in the structure the extension expects
-(`['module']['tx_t3importexport']['settings'][...]`).
+The loader returns the tasks and sets of the import and export sections:
+
+```php
+[
+    'import' => ['tasks' => [/* identifier => task */], 'sets' => [/* ... */]],
+    'export' => ['tasks' => [/* ... */], 'sets' => [/* ... */]],
+]
+```
+
+Several files can be combined with `ConfigurationHandler::addConfiguration()`;
+values of later files replace those of earlier ones.
 
 ## Development
 

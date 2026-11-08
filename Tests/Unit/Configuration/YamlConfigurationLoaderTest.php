@@ -76,7 +76,7 @@ class YamlConfigurationLoaderTest extends TestCase
         $this->subject->load($path);
     }
 
-    public function testLoadConvertsYamlConfigurationToTypoScriptFormat(): void
+    public function testLoadReturnsImportAndExportConfiguration(): void
     {
         $path = '/path/to/config.yaml';
         $parsedConfig = [
@@ -116,31 +116,28 @@ class YamlConfigurationLoaderTest extends TestCase
         $result = $this->subject->load($path);
 
         $this->assertIsArray($result);
-        $this->assertArrayHasKey('module', $result);
-        $this->assertArrayHasKey('tx_t3importexport', $result['module']);
-        $this->assertArrayHasKey('settings', $result['module']['tx_t3importexport']);
 
         // Check import tasks
-        $this->assertArrayHasKey('import', $result['module']['tx_t3importexport']['settings']);
-        $this->assertArrayHasKey('tasks', $result['module']['tx_t3importexport']['settings']['import']);
-        $this->assertArrayHasKey('test', $result['module']['tx_t3importexport']['settings']['import']['tasks']);
-        $this->assertEquals('Test Task', $result['module']['tx_t3importexport']['settings']['import']['tasks']['test']['label']);
+        $this->assertArrayHasKey('import', $result);
+        $this->assertArrayHasKey('tasks', $result['import']);
+        $this->assertArrayHasKey('test', $result['import']['tasks']);
+        $this->assertEquals('Test Task', $result['import']['tasks']['test']['label']);
 
         // Check import sets
-        $this->assertArrayHasKey('sets', $result['module']['tx_t3importexport']['settings']['import']);
-        $this->assertArrayHasKey('testSet', $result['module']['tx_t3importexport']['settings']['import']['sets']);
-        $this->assertEquals('Test Set', $result['module']['tx_t3importexport']['settings']['import']['sets']['testSet']['label']);
+        $this->assertArrayHasKey('sets', $result['import']);
+        $this->assertArrayHasKey('testSet', $result['import']['sets']);
+        $this->assertEquals('Test Set', $result['import']['sets']['testSet']['label']);
 
         // Check export tasks
-        $this->assertArrayHasKey('export', $result['module']['tx_t3importexport']['settings']);
-        $this->assertArrayHasKey('tasks', $result['module']['tx_t3importexport']['settings']['export']);
-        $this->assertArrayHasKey('export', $result['module']['tx_t3importexport']['settings']['export']['tasks']);
-        $this->assertEquals('Export Task', $result['module']['tx_t3importexport']['settings']['export']['tasks']['export']['label']);
+        $this->assertArrayHasKey('export', $result);
+        $this->assertArrayHasKey('tasks', $result['export']);
+        $this->assertArrayHasKey('export', $result['export']['tasks']);
+        $this->assertEquals('Export Task', $result['export']['tasks']['export']['label']);
 
         // Check export sets
-        $this->assertArrayHasKey('sets', $result['module']['tx_t3importexport']['settings']['export']);
-        $this->assertArrayHasKey('exportSet', $result['module']['tx_t3importexport']['settings']['export']['sets']);
-        $this->assertEquals('Export Set', $result['module']['tx_t3importexport']['settings']['export']['sets']['exportSet']['label']);
+        $this->assertArrayHasKey('sets', $result['export']);
+        $this->assertArrayHasKey('exportSet', $result['export']['sets']);
+        $this->assertEquals('Export Set', $result['export']['sets']['exportSet']['label']);
     }
 
     public function testLoadHandlesPartialConfiguration(): void
@@ -164,17 +161,14 @@ class YamlConfigurationLoaderTest extends TestCase
         $result = $this->subject->load($path);
 
         $this->assertIsArray($result);
-        $this->assertArrayHasKey('module', $result);
-        $this->assertArrayHasKey('tx_t3importexport', $result['module']);
-        $this->assertArrayHasKey('settings', $result['module']['tx_t3importexport']);
-        $this->assertArrayHasKey('import', $result['module']['tx_t3importexport']['settings']);
-        $this->assertArrayHasKey('tasks', $result['module']['tx_t3importexport']['settings']['import']);
-        $this->assertArrayHasKey('test', $result['module']['tx_t3importexport']['settings']['import']['tasks']);
-        $this->assertEquals('Test Task', $result['module']['tx_t3importexport']['settings']['import']['tasks']['test']['label']);
+        $this->assertArrayHasKey('import', $result);
+        $this->assertArrayHasKey('tasks', $result['import']);
+        $this->assertArrayHasKey('test', $result['import']['tasks']);
+        $this->assertEquals('Test Task', $result['import']['tasks']['test']['label']);
 
         // These keys should not exist
-        $this->assertArrayNotHasKey('sets', $result['module']['tx_t3importexport']['settings']['import']);
-        $this->assertArrayNotHasKey('export', $result['module']['tx_t3importexport']['settings']);
+        $this->assertArrayNotHasKey('sets', $result['import']);
+        $this->assertArrayNotHasKey('export', $result);
     }
 
     /**
@@ -271,10 +265,9 @@ YAML;
 
         $result = $this->yamlConfigurationLoader->load($this->tempYamlFile);
 
-        $this->assertArrayHasKey('module', $result);
-        $this->assertArrayHasKey('import', $result['module']['tx_t3importexport']['settings']);
-        $this->assertArrayNotHasKey('export', $result['module']['tx_t3importexport']['settings']);
-        $this->assertArrayHasKey('importPages', $result['module']['tx_t3importexport']['settings']['import']['tasks']);
+        $this->assertArrayHasKey('import', $result);
+        $this->assertArrayNotHasKey('export', $result);
+        $this->assertArrayHasKey('importPages', $result['import']['tasks']);
 
         $this->tearDownIntegrationTests();
     }
@@ -298,11 +291,28 @@ YAML;
 
         $result = $this->yamlConfigurationLoader->load($this->tempYamlFile);
 
-        $this->assertArrayHasKey('module', $result);
-        $this->assertArrayNotHasKey('import', $result['module']['tx_t3importexport']['settings']);
-        $this->assertArrayHasKey('export', $result['module']['tx_t3importexport']['settings']);
-        $this->assertArrayHasKey('exportPages', $result['module']['tx_t3importexport']['settings']['export']['tasks']);
+        $this->assertArrayNotHasKey('import', $result);
+        $this->assertArrayHasKey('export', $result);
+        $this->assertArrayHasKey('exportPages', $result['export']['tasks']);
 
         $this->tearDownIntegrationTests();
+    }
+
+    public function testLoadIgnoresUnknownKeys(): void
+    {
+        $parsedConfig = [
+            'import' => [
+                'tasks' => ['test' => ['label' => 'Test Task']],
+                'unknown' => ['foo' => 'bar'],
+            ],
+            'module' => ['tx_example' => ['settings' => []]],
+            'other' => 'value',
+        ];
+        $this->parser->method('parseFile')->willReturn($parsedConfig);
+
+        $this->assertSame(
+            ['import' => ['tasks' => ['test' => ['label' => 'Test Task']]]],
+            $this->subject->load('/path/to/config.yaml')
+        );
     }
 }

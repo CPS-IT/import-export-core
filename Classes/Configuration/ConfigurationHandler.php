@@ -57,12 +57,12 @@ class ConfigurationHandler implements TransferConfigurationInterface, Configurat
     {
         $tasks = [];
 
-        if (isset($this->configuration['module']['tx_t3importexport']['settings']['import']['tasks'])) {
-            $tasks['import'] = $this->configuration['module']['tx_t3importexport']['settings']['import']['tasks'];
+        if (isset($this->configuration['import']['tasks'])) {
+            $tasks['import'] = $this->configuration['import']['tasks'];
         }
 
-        if (isset($this->configuration['module']['tx_t3importexport']['settings']['export']['tasks'])) {
-            $tasks['export'] = $this->configuration['module']['tx_t3importexport']['settings']['export']['tasks'];
+        if (isset($this->configuration['export']['tasks'])) {
+            $tasks['export'] = $this->configuration['export']['tasks'];
         }
 
         return $tasks;
@@ -77,12 +77,12 @@ class ConfigurationHandler implements TransferConfigurationInterface, Configurat
     {
         $sets = [];
 
-        if (isset($this->configuration['module']['tx_t3importexport']['settings']['import']['sets'])) {
-            $sets['import'] = $this->configuration['module']['tx_t3importexport']['settings']['import']['sets'];
+        if (isset($this->configuration['import']['sets'])) {
+            $sets['import'] = $this->configuration['import']['sets'];
         }
 
-        if (isset($this->configuration['module']['tx_t3importexport']['settings']['export']['sets'])) {
-            $sets['export'] = $this->configuration['module']['tx_t3importexport']['settings']['export']['sets'];
+        if (isset($this->configuration['export']['sets'])) {
+            $sets['export'] = $this->configuration['export']['sets'];
         }
 
         return $sets;

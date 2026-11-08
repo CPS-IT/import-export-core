@@ -24,6 +24,9 @@ use CPSIT\ImportExportCore\Service\YamlConfigurationParser;
  */
 class YamlConfigurationLoader implements ConfigurationLoaderInterface
 {
+    private const TRANSFER_TYPES = ['import', 'export'];
+    private const SECTIONS = ['tasks', 'sets'];
+
     /**
      * YamlConfigurationLoader constructor.
      */
@@ -35,49 +38,36 @@ class YamlConfigurationLoader implements ConfigurationLoaderInterface
     /**
      * Load configuration from YAML file
      *
+     * Returns the import and export configuration in the form
+     * `['import' => ['tasks' => [...], 'sets' => [...]], 'export' => [...]]`.
+     * Other keys of the file are ignored.
+     *
      * @param string $path Path to YAML file
      * @throws FileNotFoundException If file does not exist
      * @throws ParseException If YAML parsing fails
-     * @return array Configuration array in TypoScript-compatible format
+     * @return array<string, array<string, array>>
      */
     public function load(string $path): array
     {
         $configuration = $this->parser->parseFile($path);
-        return $this->convertToTypoScriptFormat($configuration);
+        return $this->normalize(\is_array($configuration) ? $configuration : []);
     }
 
     /**
-     * Converts YAML structure to TypoScript-compatible array format
+     * Keeps the tasks and sets of the import and export sections
      *
      * @param array $configuration YAML-parsed configuration
-     * @return array TypoScript-compatible configuration array
+     * @return array<string, array<string, array>>
      */
-    protected function convertToTypoScriptFormat(array $configuration): array
+    protected function normalize(array $configuration): array
     {
         $result = [];
-
-        // Handle import tasks
-        if (isset($configuration['import']['tasks'])) {
-            $result['module']['tx_t3importexport']['settings']['import']['tasks'] =
-                $configuration['import']['tasks'];
-        }
-
-        // Handle import sets
-        if (isset($configuration['import']['sets'])) {
-            $result['module']['tx_t3importexport']['settings']['import']['sets'] =
-                $configuration['import']['sets'];
-        }
-
-        // Handle export tasks
-        if (isset($configuration['export']['tasks'])) {
-            $result['module']['tx_t3importexport']['settings']['export']['tasks'] =
-                $configuration['export']['tasks'];
-        }
-
-        // Handle export sets
-        if (isset($configuration['export']['sets'])) {
-            $result['module']['tx_t3importexport']['settings']['export']['sets'] =
-                $configuration['export']['sets'];
+        foreach (self::TRANSFER_TYPES as $type) {
+            foreach (self::SECTIONS as $section) {
+                if (isset($configuration[$type][$section]) && \is_array($configuration[$type][$section])) {
+                    $result[$type][$section] = $configuration[$type][$section];
+                }
+            }
         }
 
         return $result;
