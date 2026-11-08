@@ -29,7 +29,7 @@ interface DataTargetInterface extends ComponentInterface
      * @param array<string, mixed> $configuration Configuration array.
      * @return mixed
      */
-    public function persist(array|object $object, ?array $configuration = null): mixed;
+    public function persist(array|object $object, ?array $configuration = null);
 
     /**
      * Persists all record or objects
@@ -38,5 +38,5 @@ interface DataTargetInterface extends ComponentInterface
      * @param array<string, mixed>|null $configuration
      * @return mixed
      */
-    public function persistAll(mixed $result = null, ?array $configuration = null): mixed;
+    public function persistAll(mixed $result = null, ?array $configuration = null);
 }
