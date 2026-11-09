@@ -266,3 +266,42 @@ source:
 Existing items in the queue table whose `data` is not a JSON object, or
 whose checksum was computed the old way, have to be converted or enqueued
 again.
+
+### `DataStreamInterface` holds a stream
+
+Issue: [#40](https://github.com/CPS-IT/import-export-core/issues/40)
+
+**Affects:** implementations of `DataStreamInterface`, callers of
+`setStreamBuffer()` and `getStreamBuffer()`.
+
+**Change:** the output of an export is held in a PSR-7 `StreamInterface`
+instead of a string. `DataStreamInterface` declares `getStream()` and
+`setStream()`. `getStream()` never returns null; `DataStream` starts with an
+empty `Stream\TemporaryStream`, which keeps up to 2 MB in memory and moves
+larger content to a temporary file. `setStreamBuffer()` and
+`getStreamBuffer()` are deprecated and work on the stream: they replace it
+and read its whole content. `getStreamBuffer()` returns null for an empty
+stream, also after `setStreamBuffer('')`.
+
+**Migration:** implementations of `DataStreamInterface` must add
+`getStream()` and `setStream()`; extending `DataStream` covers both. Callers
+should write to and read from the stream instead of passing one string:
+
+```php
+// before
+$dataStream->setStreamBuffer($xml);
+file_put_contents($path, $dataStream->getStreamBuffer());
+
+// after
+$stream = $dataStream->getStream();
+foreach ($chunks as $chunk) {
+    $stream->write($chunk);
+}
+
+$stream->rewind();
+$file = fopen($path, 'wb');
+while (!$stream->eof()) {
+    fwrite($file, $stream->read(8192));
+}
+fclose($file);
+```

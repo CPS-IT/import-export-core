@@ -54,6 +54,11 @@ a new minor version may contain breaking changes.
   Claimed items are marked finished after the task
   (`CompletableSourceInterface`)
   ([#40](https://github.com/CPS-IT/import-export-core/issues/40))
+* `DataStreamInterface::getStream()` and `setStream()`: the output of an
+  export is held in a PSR-7 stream, so it can be written and read in chunks.
+  `Stream\TemporaryStream` (backed by `php://temp`) is the default stream of
+  `DataStream`. New dependency `psr/http-message`
+  ([#40](https://github.com/CPS-IT/import-export-core/issues/40))
 
 ### Deprecated
 
@@ -62,6 +67,9 @@ a new minor version may contain breaking changes.
   `PostProcessorInterface`, `FinisherInterface`). Implement the interfaces in
   `CPSIT\ImportExportCore\Pipeline\` instead
   ([#26](https://github.com/CPS-IT/import-export-core/issues/26))
+* `DataStreamInterface::setStreamBuffer()` and `getStreamBuffer()`. Use
+  `setStream()` and `getStream()` instead
+  ([#40](https://github.com/CPS-IT/import-export-core/issues/40))
 
 ### Changed
 
@@ -119,6 +127,10 @@ Migration of breaking changes is described in [UPGRADE.md](UPGRADE.md).
     instead of returning `false`
 * `buildQueue()` reads records of generators in advance. Before, the
   generator was stored and read only when the task was processed
+  ([#40](https://github.com/CPS-IT/import-export-core/issues/40))
+* Breaking: `DataStreamInterface` declares `getStream()` and `setStream()`.
+  `DataStream` keeps its content in a stream; `getStreamBuffer()` returns
+  null for an empty stream, also after `setStreamBuffer('')`
   ([#40](https://github.com/CPS-IT/import-export-core/issues/40))
 
 ## 0.1.0 - 2026-11-08
