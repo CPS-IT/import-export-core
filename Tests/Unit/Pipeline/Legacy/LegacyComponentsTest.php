@@ -16,6 +16,7 @@ declare(strict_types=1);
 namespace CPSIT\ImportExportCore\Tests\Unit\Pipeline\Legacy;
 
 use CPSIT\ImportExportCore\Domain\Model\TaskResult;
+use CPSIT\ImportExportCore\Domain\Model\TransferTask;
 use CPSIT\ImportExportCore\Persistence\DataSourceInterface;
 use CPSIT\ImportExportCore\Pipeline\ConverterInterface;
 use CPSIT\ImportExportCore\Pipeline\Legacy\LegacyComponents;
@@ -25,6 +26,10 @@ use CPSIT\ImportExportCore\Pipeline\Legacy\LegacyInitializerAdapter;
 use CPSIT\ImportExportCore\Pipeline\Legacy\LegacyPostProcessorAdapter;
 use CPSIT\ImportExportCore\Pipeline\Legacy\LegacyPreProcessorAdapter;
 use CPSIT\ImportExportCore\Pipeline\PreProcessorInterface;
+use CPSIT\ImportExportCore\Pipeline\TaskContext;
+use CPSIT\ImportExportCore\State\Checkpoint;
+use CPSIT\ImportExportCore\State\NullCheckpointStore;
+use CPSIT\ImportExportCore\State\NullIdMap;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\AppendingInitializer;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\FieldPreProcessor;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\MarkingPostProcessor;
@@ -104,7 +109,7 @@ class LegacyComponentsTest extends TestCase
     {
         $component = new AppendingInitializer();
 
-        (new LegacyInitializerAdapter($component))->initialize();
+        (new LegacyInitializerAdapter($component))->initialize(self::context(new TaskResult()));
 
         self::assertSame(1, $component->calls);
     }
@@ -114,9 +119,14 @@ class LegacyComponentsTest extends TestCase
         $component = new RecordingFinisher();
         $result = new TaskResult();
 
-        (new LegacyFinisherAdapter($component))->finish($result);
+        (new LegacyFinisherAdapter($component))->finish(self::context($result));
 
         self::assertSame([], $component->records);
         self::assertSame($result, $component->result);
+    }
+
+    private static function context(TaskResult $result): TaskContext
+    {
+        return new TaskContext('task', new TransferTask(), $result, new NullIdMap(), new NullCheckpointStore(), new Checkpoint('task'));
     }
 }

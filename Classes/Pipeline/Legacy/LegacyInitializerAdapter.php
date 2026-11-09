@@ -17,9 +17,11 @@ namespace CPSIT\ImportExportCore\Pipeline\Legacy;
 
 use CPSIT\ImportExportCore\Component\Initializer\InitializerInterface as LegacyInitializerInterface;
 use CPSIT\ImportExportCore\Pipeline\InitializerInterface;
+use CPSIT\ImportExportCore\Pipeline\TaskContext;
 
 /**
- * The adapted initializer receives an empty list of records.
+ * The adapted initializer receives an empty list of records. The context is
+ * not passed on.
  *
  * @internal
  * @extends AbstractLegacyAdapter<LegacyInitializerInterface>
@@ -31,7 +33,7 @@ final class LegacyInitializerAdapter extends AbstractLegacyAdapter implements In
         parent::__construct($component);
     }
 
-    public function initialize(): void
+    public function initialize(TaskContext $context): void
     {
         $records = [];
         $this->component->process($this->component->getConfiguration(), $records);

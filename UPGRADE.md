@@ -162,11 +162,18 @@ handled by the processor
 
 | Deprecated (`Component\`) | Pipeline (`Pipeline\`) |
 |---|---|
-| `process(array $configuration, array &$records): bool` | `InitializerInterface::initialize(): void` |
+| `process(array $configuration, array &$records): bool` | `InitializerInterface::initialize(TaskContext $context): void` |
 | `process(array $configuration, array &$record): bool` | `PreProcessorInterface::process(array $record): array` |
 | `convert(array &$record, array $configuration): mixed` | `ConverterInterface::convert(array $record): mixed` |
 | `process(array $configuration, mixed &$convertedRecord, array &$record): bool` | `PostProcessorInterface::process(mixed $convertedRecord, array $record): mixed` |
-| `process(array $configuration, array &$records, array\|object &$result): bool` | `FinisherInterface::finish(ResultInterface $result): void` |
+| `process(array $configuration, array &$records, array\|object &$result): bool` | `FinisherInterface::finish(TaskContext $context): void` |
+
+Initializers and finishers receive a `Pipeline\TaskContext` with the task
+key, the task, the result, the ID map, the checkpoint store and the
+checkpoint the run started from
+([#41](https://github.com/CPS-IT/import-export-core/issues/41)). The result
+is `$context->result`. An initializer that resets the target should check
+`$context->isResumed()` first.
 
 Components implementing the deprecated interfaces keep working: the
 component factory and `TransferTask` wrap them in adapters. The adapters
@@ -174,8 +181,9 @@ pass the configuration with each call and delegate `isDisabled()`, as before.
 Differences:
 
 * Initializers receive an empty list of records; records they add are not
-  processed.
-* Finishers receive an empty list of records.
+  processed. They do not receive the `TaskContext`.
+* Finishers receive an empty list of records and the result of the
+  `TaskContext`.
 * Changes of post-processors to `$record` are discarded; changes to
   `$convertedRecord` are kept.
 * `TransferTask::get*()` return the adapters. Use

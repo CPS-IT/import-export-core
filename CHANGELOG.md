@@ -59,6 +59,21 @@ a new minor version may contain breaking changes.
   `Stream\TemporaryStream` (backed by `php://temp`) is the default stream of
   `DataStream`. New dependency `psr/http-message`
   ([#40](https://github.com/CPS-IT/import-export-core/issues/40))
+* State store in `CPSIT\ImportExportCore\State\`: `IdMapInterface` maps source
+  IDs to target IDs per namespace (`IdMapping`, `NullIdMapping` for a missing
+  mapping); `CheckpointStoreInterface` stores the position of a task
+  (`Checkpoint`). In-memory and null implementations
+  ([#41](https://github.com/CPS-IT/import-export-core/issues/41))
+* `Pipeline\TaskContext`, passed to initializers and finishers: task key,
+  task, result, ID map, checkpoint store and the checkpoint the run started
+  from ([#41](https://github.com/CPS-IT/import-export-core/issues/41))
+* Resuming interrupted tasks: `DataTransferProcessor` accepts an ID map and a
+  checkpoint store. With a batch aware target, it saves a checkpoint after
+  each batch and clears it when the task completed. A task with a checkpoint
+  continues after it; sources implementing the new
+  `Persistence\ResumableSourceInterface` continue from their cursor, other
+  sources are read again and the processed records are skipped
+  ([#41](https://github.com/CPS-IT/import-export-core/issues/41))
 
 ### Deprecated
 

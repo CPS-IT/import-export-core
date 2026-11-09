@@ -30,6 +30,7 @@ use CPSIT\ImportExportCore\Messaging\Message;
 use CPSIT\ImportExportCore\Persistence\BatchAwareInterface;
 use CPSIT\ImportExportCore\Persistence\DataSourceInterface;
 use CPSIT\ImportExportCore\Persistence\DataTargetInterface;
+use CPSIT\ImportExportCore\Persistence\ResumableSourceInterface;
 use CPSIT\ImportExportCore\Pipeline;
 use Psr\EventDispatcher\EventDispatcherInterface;
 
@@ -268,9 +269,12 @@ abstract class AbstractPipelineComponent
 
 final class LogInitializer extends AbstractPipelineComponent implements Pipeline\InitializerInterface
 {
-    public function initialize(): void
+    public ?Pipeline\TaskContext $context = null;
+
+    public function initialize(Pipeline\TaskContext $context): void
     {
         ++$this->calls;
+        $this->context = $context;
         $this->log[] = 'initializer';
     }
 }
@@ -327,11 +331,14 @@ final class ResultFinisher extends AbstractPipelineComponent implements Pipeline
 {
     public ?ResultInterface $result = null;
 
-    public function finish(ResultInterface $result): void
+    public ?Pipeline\TaskContext $context = null;
+
+    public function finish(Pipeline\TaskContext $context): void
     {
         ++$this->calls;
         $this->log[] = 'finisher';
-        $this->result = $result;
+        $this->result = $context->result;
+        $this->context = $context;
     }
 }
 
@@ -395,5 +402,81 @@ final class RecordingEventDispatcher implements EventDispatcherInterface
         $this->log[] = 'event:' . (new \ReflectionClass($event))->getShortName();
 
         return $event;
+    }
+}
+
+/**
+ * Source of records with field "id" that can resume after an ID.
+ */
+final class CursorSource implements DataSourceInterface, ResumableSourceInterface
+{
+    public string $resumedFrom = '';
+
+    private string $cursor = '';
+
+    /**
+     * @param list<array{id: int}> $records
+     */
+    public function __construct(private readonly array $records)
+    {
+    }
+
+    public function getRecords(array $configuration): iterable
+    {
+        $started = $this->resumedFrom === '';
+        foreach ($this->records as $record) {
+            if (!$started) {
+                $started = (string)$record['id'] === $this->resumedFrom;
+                continue;
+            }
+            $this->cursor = (string)$record['id'];
+            yield $record;
+        }
+    }
+
+    public function getCursor(): string
+    {
+        return $this->cursor;
+    }
+
+    public function resumeFrom(string $cursor): void
+    {
+        $this->resumedFrom = $cursor;
+    }
+}
+
+/**
+ * Batch aware target that records the IDs of persisted records and fails when
+ * persisting the record with the given ID.
+ */
+final class FailingBatchTarget implements DataTargetInterface, BatchAwareInterface
+{
+    /**
+     * @var list<int>
+     */
+    public array $ids = [];
+
+    public function __construct(public int $failAtId = 0)
+    {
+    }
+
+    public function persist(array|object $object, ?array $configuration = null): bool
+    {
+        $id = \is_array($object) ? (int)$object['id'] : 0;
+        if ($id === $this->failAtId) {
+            throw new \RuntimeException('Persisting failed', 1794500100);
+        }
+        $this->ids[] = $id;
+
+        return true;
+    }
+
+    public function persistAll(mixed $result = null, ?array $configuration = null): bool
+    {
+        return true;
+    }
+
+    public function flushBatch(ResultInterface $result): void
+    {
     }
 }
