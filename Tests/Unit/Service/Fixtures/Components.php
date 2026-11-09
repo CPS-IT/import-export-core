@@ -295,7 +295,7 @@ final class FieldPreProcessor extends AbstractPipelineComponent implements Pipel
     public function process(array $record): array
     {
         ++$this->calls;
-        $this->log[] = 'preProcessor:' . $record['id'];
+        $this->log[] = 'preProcessor:' . ($record['id'] ?? '');
         $record[(string)$this->configuration['field']] = $this->configuration['value'] ?? null;
 
         return $record;
