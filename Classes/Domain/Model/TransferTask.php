@@ -21,11 +21,13 @@ use CPSIT\ImportExportCore\IdentifiableTrait;
 use CPSIT\ImportExportCore\Persistence\DataSourceInterface;
 use CPSIT\ImportExportCore\Persistence\DataTargetInterface;
 use CPSIT\ImportExportCore\Pipeline\ConverterInterface;
+use CPSIT\ImportExportCore\Pipeline\FilterInterface;
 use CPSIT\ImportExportCore\Pipeline\FinisherInterface;
 use CPSIT\ImportExportCore\Pipeline\InitializerInterface;
 use CPSIT\ImportExportCore\Pipeline\Legacy\LegacyComponents;
 use CPSIT\ImportExportCore\Pipeline\PostProcessorInterface;
 use CPSIT\ImportExportCore\Pipeline\PreProcessorInterface;
+use CPSIT\ImportExportCore\State\IdMapSettings;
 
 /**
  * Describes a transfer from one data source to one data target.
@@ -39,6 +41,13 @@ class TransferTask implements IdentifiableInterface, TransferTaskInterface
     protected string $description = '';
     protected ?DataSourceInterface $source = null;
     protected ?DataTargetInterface $target = null;
+
+    /**
+     * @var array<int|string, FilterInterface>
+     */
+    protected array $filters = [];
+
+    protected IdMapSettings $idMapSettings;
 
     /**
      * @var array<int|string, PreProcessorInterface>
@@ -103,6 +112,26 @@ class TransferTask implements IdentifiableInterface, TransferTaskInterface
     public function setTarget(DataTargetInterface $target): void
     {
         $this->target = $target;
+    }
+
+    public function getFilters(): array
+    {
+        return $this->filters;
+    }
+
+    public function setFilters(array $filters): void
+    {
+        $this->filters = $this->adapt($filters, FilterInterface::class);
+    }
+
+    public function getIdMapSettings(): IdMapSettings
+    {
+        return $this->idMapSettings ??= new IdMapSettings();
+    }
+
+    public function setIdMapSettings(IdMapSettings $settings): void
+    {
+        $this->idMapSettings = $settings;
     }
 
     public function getPreProcessors(): array
