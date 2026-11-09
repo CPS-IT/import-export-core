@@ -54,6 +54,15 @@ the extension provides one for its database table. Stream-based data streams
 follow ([#40](https://github.com/CPS-IT/import-export-core/issues/40)). The task and
 set models (`TransferTask`, `TransferSet`) are part of the core.
 
+`Dbal\DataSourceDBAL` and `Dbal\DataTargetDBAL` read from and write to
+database tables via Doctrine DBAL, without TYPO3. They get their connections
+by name from a `Dbal\ConnectionProviderInterface`, so a task can read from
+one database and write to another. Conditions are configured as field/value
+pairs and passed as parameters; there is no SQL in the configuration. The
+source supports resuming with a cursor field; the target commits each batch
+in one transaction and reports target IDs for the ID map. `doctrine/dbal` is
+an optional dependency ([#42](https://github.com/CPS-IT/import-export-core/issues/42)).
+
 `Factory\TransferSetFactory` and `Factory\TransferTaskFactory` build sets and
 tasks from configuration. Components are built by one
 `Factory\ComponentFactory` for all roles. It resolves the class with a

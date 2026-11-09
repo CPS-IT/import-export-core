@@ -92,6 +92,15 @@ a new minor version may contain breaking changes.
 * `State\Component\UnchangedRecordFilter`: incremental mode, skips records
   whose checksum matches their mapping
   ([#41](https://github.com/CPS-IT/import-export-core/issues/41))
+* Database source and target based on Doctrine DBAL (`Dbal\`), usable
+  without TYPO3. `DataSourceDBAL` reads a table with fields, equality
+  conditions (`where`), order and limit; with `cursorField` it reads in pages
+  (keyset pagination) and resumes after the last processed record.
+  `DataTargetDBAL` inserts records or updates the row with the same `key`,
+  writes each batch in one transaction and reports target IDs for the ID map.
+  Connections come from a `ConnectionProviderInterface` by name
+  (`ConnectionRegistry`). `doctrine/dbal` (^4.3) is a suggested dependency
+  ([#42](https://github.com/CPS-IT/import-export-core/issues/42))
 
 ### Deprecated
 
