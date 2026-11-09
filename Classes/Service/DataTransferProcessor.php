@@ -32,7 +32,14 @@ use CPSIT\ImportExportCore\Persistence\BatchAwareInterface;
 use CPSIT\ImportExportCore\Persistence\CompletableSourceInterface;
 use CPSIT\ImportExportCore\Persistence\DataSourceInterface;
 use CPSIT\ImportExportCore\Persistence\DataTargetInterface;
+use CPSIT\ImportExportCore\Persistence\ResumableSourceInterface;
 use CPSIT\ImportExportCore\Pipeline\Legacy\LegacyAdapterInterface;
+use CPSIT\ImportExportCore\Pipeline\TaskContext;
+use CPSIT\ImportExportCore\State\Checkpoint;
+use CPSIT\ImportExportCore\State\CheckpointStoreInterface;
+use CPSIT\ImportExportCore\State\IdMapInterface;
+use CPSIT\ImportExportCore\State\NullCheckpointStore;
+use CPSIT\ImportExportCore\State\NullIdMap;
 use Psr\EventDispatcher\EventDispatcherInterface;
 
 /**
@@ -52,6 +59,14 @@ use Psr\EventDispatcher\EventDispatcherInterface;
  * Records can be read in advance for several tasks with buildQueue(), e.g. to
  * read all sources of a set before any task writes. Queued records are held in
  * memory.
+ *
+ * Initializers and finishers receive a `TaskContext` with the result, the ID
+ * map and the checkpoint store. If the target is batch aware, a checkpoint is
+ * saved after each batch and cleared when the task completed. A task with a
+ * checkpoint continues after it: resumable sources continue from their
+ * cursor, other sources are read from the beginning and the records already
+ * processed are skipped. Without a checkpoint store, every run starts from the
+ * beginning.
  */
 class DataTransferProcessor implements TransferProcessorInterface
 {
@@ -68,6 +83,8 @@ class DataTransferProcessor implements TransferProcessorInterface
         protected readonly int $batchSize = self::DEFAULT_BATCH_SIZE,
         protected readonly bool $collectRecords = true,
         protected readonly EventDispatcherInterface $eventDispatcher = new NullEventDispatcher(),
+        protected readonly IdMapInterface $idMap = new NullIdMap(),
+        protected readonly CheckpointStoreInterface $checkpointStore = new NullCheckpointStore(),
     ) {
         if ($batchSize < 1) {
             throw new \InvalidArgumentException('The batch size must be at least 1.', 1794400001);
@@ -110,38 +127,60 @@ class DataTransferProcessor implements TransferProcessorInterface
         $target = $this->getTarget($task);
 
         $key = $this->getTaskKey($task);
-        $records = $this->queue[$key] ?? $this->readRecords($task);
-        unset($this->queue[$key]);
+        $checkpoint = $this->checkpointStore->get($key);
+        $source = $task->getSource();
+        $resumableSource = null;
+        $skip = $checkpoint->recordsProcessed;
+        if (\array_key_exists($key, $this->queue)) {
+            $records = $this->queue[$key];
+            unset($this->queue[$key]);
+        } else {
+            if ($source instanceof ResumableSourceInterface) {
+                $resumableSource = $source;
+                if ($checkpoint->cursor !== '') {
+                    $source->resumeFrom($checkpoint->cursor);
+                    $skip = 0;
+                }
+            }
+            $records = $this->readRecords($task);
+        }
 
+        $context = new TaskContext($key, $task, $result, $this->idMap, $this->checkpointStore, $checkpoint);
         $this->eventDispatcher->dispatch(new TaskStarted($task, $key));
-        $this->processInitializers($task, $result);
+        $this->processInitializers($task, $context);
 
         $recordCount = 0;
-        $batchNumber = 0;
+        $batchNumber = $checkpoint->batchNumber;
         $batch = [];
         foreach ($records as $record) {
+            if ($skip > 0) {
+                --$skip;
+                continue;
+            }
             $batch[] = $record;
             if (\count($batch) >= $this->batchSize) {
                 $this->processBatch($batch, ++$batchNumber, $task, $key, $target, $result);
                 $recordCount += \count($batch);
                 $batch = [];
+                $this->saveCheckpoint($key, $batchNumber, $checkpoint->recordsProcessed + $recordCount, $target, $resumableSource);
             }
         }
         if ($batch !== []) {
             $this->processBatch($batch, ++$batchNumber, $task, $key, $target, $result);
             $recordCount += \count($batch);
+            $this->saveCheckpoint($key, $batchNumber, $checkpoint->recordsProcessed + $recordCount, $target, $resumableSource);
         }
 
         if ($recordCount > 0) {
             $target->persistAll($result, $this->getTargetConfiguration($target));
         }
 
-        $source = $task->getSource();
         if ($source instanceof CompletableSourceInterface) {
             $source->complete($result);
         }
 
-        $this->processFinishers($task, $result);
+        $this->processFinishers($task, $context);
+        $this->checkpointStore->clear($key);
         $this->eventDispatcher->dispatch(new TaskFinished($task, $key, $recordCount, $result));
 
         return $result;
@@ -197,6 +236,25 @@ class DataTransferProcessor implements TransferProcessorInterface
         }
         $statistics->countBatch();
         $this->eventDispatcher->dispatch(new BatchProcessed($task, $key, $batchNumber, \count($batch), $result));
+    }
+
+    /**
+     * Saves a checkpoint after a batch. Only batch aware targets are known to
+     * have written the batch at this point; for other targets, records may be
+     * held until `persistAll()`.
+     */
+    protected function saveCheckpoint(
+        string $key,
+        int $batchNumber,
+        int $recordsProcessed,
+        DataTargetInterface $target,
+        ?ResumableSourceInterface $source
+    ): void {
+        if (!$target instanceof BatchAwareInterface) {
+            return;
+        }
+        $cursor = $source instanceof ResumableSourceInterface ? $source->getCursor() : '';
+        $this->checkpointStore->save(new Checkpoint($key, $batchNumber, $recordsProcessed, $cursor));
     }
 
     /**
@@ -260,13 +318,13 @@ class DataTransferProcessor implements TransferProcessorInterface
         return \is_array($records) ? $records : iterator_to_array($records, false);
     }
 
-    protected function processInitializers(TransferTaskInterface $task, ResultInterface $result): void
+    protected function processInitializers(TransferTaskInterface $task, TaskContext $context): void
     {
         foreach ($task->getInitializers() as $initializer) {
-            if (!$this->isDisabled($initializer, [], $result)) {
-                $initializer->initialize();
+            if (!$this->isDisabled($initializer, [], $context->result)) {
+                $initializer->initialize($context);
             }
-            $this->gatherMessages($initializer, $result);
+            $this->gatherMessages($initializer, $context->result);
         }
     }
 
@@ -329,13 +387,13 @@ class DataTransferProcessor implements TransferProcessorInterface
         return $convertedRecord;
     }
 
-    protected function processFinishers(TransferTaskInterface $task, ResultInterface $result): void
+    protected function processFinishers(TransferTaskInterface $task, TaskContext $context): void
     {
         foreach ($task->getFinishers() as $finisher) {
-            if (!$this->isDisabled($finisher, [], $result)) {
-                $finisher->finish($result);
+            if (!$this->isDisabled($finisher, [], $context->result)) {
+                $finisher->finish($context);
             }
-            $this->gatherMessages($finisher, $result);
+            $this->gatherMessages($finisher, $context->result);
         }
     }
 

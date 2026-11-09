@@ -19,12 +19,14 @@ use CPSIT\ImportExportCore\Component\ComponentInterface;
 
 /**
  * Runs once before the records of a task are processed, e.g. to prepare
- * the target. Initializers do not receive records.
+ * the target. Initializers do not receive records. If the run resumes an
+ * interrupted one (`TaskContext::isResumed()`), records written before must
+ * not be removed.
  *
  * Components receive their configuration once, when they are created
  * (`ConfigurableInterface::setConfiguration()`).
  */
 interface InitializerInterface extends ComponentInterface
 {
-    public function initialize(): void;
+    public function initialize(TaskContext $context): void;
 }

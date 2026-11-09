@@ -16,12 +16,12 @@ declare(strict_types=1);
 namespace CPSIT\ImportExportCore\Pipeline;
 
 use CPSIT\ImportExportCore\Component\ComponentInterface;
-use CPSIT\ImportExportCore\Domain\Model\ResultInterface;
 
 /**
- * Runs once after all records of a task were persisted.
+ * Runs once after all records of a task were persisted. The result is
+ * available as `TaskContext::$result`.
  */
 interface FinisherInterface extends ComponentInterface
 {
-    public function finish(ResultInterface $result): void;
+    public function finish(TaskContext $context): void;
 }

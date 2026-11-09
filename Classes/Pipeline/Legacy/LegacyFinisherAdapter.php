@@ -16,8 +16,8 @@ declare(strict_types=1);
 namespace CPSIT\ImportExportCore\Pipeline\Legacy;
 
 use CPSIT\ImportExportCore\Component\Finisher\FinisherInterface as LegacyFinisherInterface;
-use CPSIT\ImportExportCore\Domain\Model\ResultInterface;
 use CPSIT\ImportExportCore\Pipeline\FinisherInterface;
+use CPSIT\ImportExportCore\Pipeline\TaskContext;
 
 /**
  * The adapted finisher receives an empty list of records. Replacing the
@@ -33,9 +33,10 @@ final class LegacyFinisherAdapter extends AbstractLegacyAdapter implements Finis
         parent::__construct($component);
     }
 
-    public function finish(ResultInterface $result): void
+    public function finish(TaskContext $context): void
     {
         $records = [];
+        $result = $context->result;
         $this->component->process($this->component->getConfiguration(), $records, $result);
     }
 }
