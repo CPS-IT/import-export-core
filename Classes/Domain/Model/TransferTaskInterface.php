@@ -21,10 +21,12 @@ use CPSIT\ImportExportCore\Component\PreProcessor\PreProcessorInterface as Legac
 use CPSIT\ImportExportCore\Persistence\DataSourceInterface;
 use CPSIT\ImportExportCore\Persistence\DataTargetInterface;
 use CPSIT\ImportExportCore\Pipeline\ConverterInterface;
+use CPSIT\ImportExportCore\Pipeline\FilterInterface;
 use CPSIT\ImportExportCore\Pipeline\FinisherInterface;
 use CPSIT\ImportExportCore\Pipeline\InitializerInterface;
 use CPSIT\ImportExportCore\Pipeline\PostProcessorInterface;
 use CPSIT\ImportExportCore\Pipeline\PreProcessorInterface;
+use CPSIT\ImportExportCore\State\IdMapSettings;
 
 /**
  * Class TransferTask
@@ -71,6 +73,27 @@ interface TransferTaskInterface
      * Sets the target of import
      */
     public function setTarget(DataTargetInterface $target): void;
+
+    /**
+     * Gets the filters
+     *
+     * @return array<int|string, FilterInterface>
+     */
+    public function getFilters(): array;
+
+    /**
+     * Sets the filters
+     *
+     * @param array<int|string, FilterInterface> $filters
+     */
+    public function setFilters(array $filters): void;
+
+    /**
+     * Gets the ID map settings; disabled unless set.
+     */
+    public function getIdMapSettings(): IdMapSettings;
+
+    public function setIdMapSettings(IdMapSettings $settings): void;
 
     /**
      * Gets the pre-processors

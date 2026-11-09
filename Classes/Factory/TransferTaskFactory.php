@@ -21,10 +21,12 @@ use CPSIT\ImportExportCore\Exception\InvalidConfigurationException;
 use CPSIT\ImportExportCore\Persistence\DataSourceInterface;
 use CPSIT\ImportExportCore\Persistence\DataTargetInterface;
 use CPSIT\ImportExportCore\Pipeline\ConverterInterface;
+use CPSIT\ImportExportCore\Pipeline\FilterInterface;
 use CPSIT\ImportExportCore\Pipeline\FinisherInterface;
 use CPSIT\ImportExportCore\Pipeline\InitializerInterface;
 use CPSIT\ImportExportCore\Pipeline\PostProcessorInterface;
 use CPSIT\ImportExportCore\Pipeline\PreProcessorInterface;
+use CPSIT\ImportExportCore\State\IdMapSettings;
 
 /**
  * Builds a transfer task from the configuration of a task.
@@ -72,6 +74,25 @@ class TransferTaskFactory
             $task->setDescription($settings['description']);
         }
 
+        if (isset($settings['idMap'])) {
+            if (!\is_array($settings['idMap'])) {
+                throw new InvalidConfigurationException(
+                    \sprintf('Invalid configuration for task "%s": idMap must be an array.', $identifier),
+                    1794600021
+                );
+            }
+            try {
+                $task->setIdMapSettings(IdMapSettings::fromArray($settings['idMap']));
+            } catch (InvalidConfigurationException $exception) {
+                throw new InvalidConfigurationException(
+                    \sprintf('Invalid configuration for task "%s": %s', $identifier, $exception->getMessage()),
+                    $exception->getCode(),
+                    $exception
+                );
+            }
+        }
+
+        $task->setFilters($this->createComponents(FilterInterface::class, $settings, 'filters', $identifier));
         $task->setInitializers($this->createComponents(InitializerInterface::class, $settings, 'initializers', $identifier));
         $task->setPreProcessors($this->createComponents(PreProcessorInterface::class, $settings, 'preProcessors', $identifier));
         $task->setConverters($this->createComponents(ConverterInterface::class, $settings, 'converters', $identifier));

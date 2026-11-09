@@ -30,6 +30,7 @@ use CPSIT\ImportExportCore\Messaging\Message;
 use CPSIT\ImportExportCore\Persistence\BatchAwareInterface;
 use CPSIT\ImportExportCore\Persistence\DataSourceInterface;
 use CPSIT\ImportExportCore\Persistence\DataTargetInterface;
+use CPSIT\ImportExportCore\Persistence\IdentifyingTargetInterface;
 use CPSIT\ImportExportCore\Persistence\ResumableSourceInterface;
 use CPSIT\ImportExportCore\Pipeline;
 use Psr\EventDispatcher\EventDispatcherInterface;
@@ -478,5 +479,64 @@ final class FailingBatchTarget implements DataTargetInterface, BatchAwareInterfa
 
     public function flushBatch(ResultInterface $result): void
     {
+    }
+}
+
+/**
+ * Target that assigns IDs starting at 100 and keeps the written records.
+ */
+final class IdentifyingTarget implements DataTargetInterface, IdentifyingTargetInterface
+{
+    /**
+     * @var array<string, array<mixed>|object> target ID => record
+     */
+    public array $records = [];
+
+    private int $lastId = 99;
+
+    public function persist(array|object $object, ?array $configuration = null): bool
+    {
+        $this->records[(string)++$this->lastId] = $object;
+
+        return true;
+    }
+
+    public function persistAll(mixed $result = null, ?array $configuration = null): bool
+    {
+        return true;
+    }
+
+    public function getLastTargetId(): string
+    {
+        return (string)$this->lastId;
+    }
+}
+
+/**
+ * Accepts records whose field "id" is not in the list of rejected IDs.
+ */
+final class RejectingFilter extends AbstractPipelineComponent implements Pipeline\FilterInterface, DisableableInterface, LoggingInterface
+{
+    use LoggingTrait;
+
+    /**
+     * @var list<mixed>
+     */
+    public array $rejectedIds = [];
+
+    public bool $disabled = false;
+
+    public function accepts(array $record): bool
+    {
+        ++$this->calls;
+        $this->log[] = 'filter:' . $record['id'];
+        $this->logMessage('Filter', 'checked ' . $record['id']);
+
+        return !\in_array($record['id'], $this->rejectedIds, true);
+    }
+
+    public function isDisabled(array $configuration, array $record = [], ?ResultInterface $result = null): bool
+    {
+        return $this->disabled;
     }
 }

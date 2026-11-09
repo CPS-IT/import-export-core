@@ -32,12 +32,15 @@ use CPSIT\ImportExportCore\Persistence\BatchAwareInterface;
 use CPSIT\ImportExportCore\Persistence\CompletableSourceInterface;
 use CPSIT\ImportExportCore\Persistence\DataSourceInterface;
 use CPSIT\ImportExportCore\Persistence\DataTargetInterface;
+use CPSIT\ImportExportCore\Persistence\IdentifyingTargetInterface;
 use CPSIT\ImportExportCore\Persistence\ResumableSourceInterface;
 use CPSIT\ImportExportCore\Pipeline\Legacy\LegacyAdapterInterface;
 use CPSIT\ImportExportCore\Pipeline\TaskContext;
 use CPSIT\ImportExportCore\State\Checkpoint;
 use CPSIT\ImportExportCore\State\CheckpointStoreInterface;
 use CPSIT\ImportExportCore\State\IdMapInterface;
+use CPSIT\ImportExportCore\State\IdMapping;
+use CPSIT\ImportExportCore\State\IdMapSettings;
 use CPSIT\ImportExportCore\State\NullCheckpointStore;
 use CPSIT\ImportExportCore\State\NullIdMap;
 use Psr\EventDispatcher\EventDispatcherInterface;
@@ -67,6 +70,11 @@ use Psr\EventDispatcher\EventDispatcherInterface;
  * cursor, other sources are read from the beginning and the records already
  * processed are skipped. Without a checkpoint store, every run starts from the
  * beginning.
+ *
+ * Filters run first, on the record as read from the source; records they do
+ * not accept are skipped. If the task has ID map settings, the target must
+ * implement `IdentifyingTargetInterface`: after each write, the mapping from
+ * source ID to target ID is recorded with the checksum of the source record.
  */
 class DataTransferProcessor implements TransferProcessorInterface
 {
@@ -125,6 +133,17 @@ class DataTransferProcessor implements TransferProcessorInterface
     {
         $result ??= new TaskResult();
         $target = $this->getTarget($task);
+        $idMapSettings = $task->getIdMapSettings();
+        if ($idMapSettings->isEnabled() && !$target instanceof IdentifyingTargetInterface) {
+            throw new InvalidConfigurationException(
+                \sprintf(
+                    'Task "%s" has ID map settings, but its target does not implement %s.',
+                    $this->getTaskKey($task),
+                    IdentifyingTargetInterface::class
+                ),
+                1794600031
+            );
+        }
 
         $key = $this->getTaskKey($task);
         $checkpoint = $this->checkpointStore->get($key);
@@ -199,11 +218,18 @@ class DataTransferProcessor implements TransferProcessorInterface
     ): void {
         $statistics = $result->getStatistics();
         $targetConfiguration = $this->getTargetConfiguration($target);
-        $needsArray = $task->getPreProcessors() !== [] || $task->getConverters() !== [] || $task->getPostProcessors() !== [];
+        $idMapSettings = $task->getIdMapSettings();
+        $needsArray = $task->getFilters() !== [] || $idMapSettings->isEnabled() || $task->getPreProcessors() !== []
+            || $task->getConverters() !== [] || $task->getPostProcessors() !== [];
 
         foreach ($batch as $record) {
             $statistics->countRead();
+            $sourceRecord = $record;
             if (\is_array($record)) {
+                if (!$this->accepts($record, $task, $result)) {
+                    $statistics->countSkipped();
+                    continue;
+                }
                 $record = $this->preProcessSingle($record, $task, $result);
                 $convertedRecord = $this->convertSingle($record, $task, $result);
                 $convertedRecord = $this->postProcessSingle($convertedRecord, $record, $task, $result);
@@ -226,6 +252,9 @@ class DataTransferProcessor implements TransferProcessorInterface
 
             $target->persist($convertedRecord, $targetConfiguration);
             $statistics->countPersisted();
+            if (\is_array($sourceRecord) && $target instanceof IdentifyingTargetInterface) {
+                $this->recordMapping($sourceRecord, $target, $idMapSettings, $key);
+            }
             if ($this->collectRecords) {
                 $result->add($convertedRecord);
             }
@@ -326,6 +355,55 @@ class DataTransferProcessor implements TransferProcessorInterface
             }
             $this->gatherMessages($initializer, $context->result);
         }
+    }
+
+    /**
+     * Whether all filters accept the record.
+     *
+     * @param array<mixed> $record
+     */
+    protected function accepts(array $record, TransferTaskInterface $task, ResultInterface $result): bool
+    {
+        foreach ($task->getFilters() as $filter) {
+            if ($this->isDisabled($filter, $record, $result)) {
+                continue;
+            }
+            $accepted = $filter->accepts($record);
+            $this->gatherMessages($filter, $result);
+            if (!$accepted) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @param array<mixed> $sourceRecord
+     */
+    protected function recordMapping(
+        array $sourceRecord,
+        IdentifyingTargetInterface $target,
+        IdMapSettings $settings,
+        string $key
+    ): void {
+        if (!$settings->isEnabled()) {
+            return;
+        }
+        $sourceId = $sourceRecord[$settings->sourceIdField] ?? null;
+        if (!\is_scalar($sourceId) || (string)$sourceId === '') {
+            throw new \UnexpectedValueException(
+                \sprintf('Task "%s": the source record has no ID in field "%s".', $key, $settings->sourceIdField),
+                1794600032
+            );
+        }
+
+        $this->idMap->set(new IdMapping(
+            $settings->namespace,
+            (string)$sourceId,
+            $target->getLastTargetId(),
+            IdMapping::checksum($sourceRecord)
+        ));
     }
 
     /**

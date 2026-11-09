@@ -35,6 +35,7 @@ use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\MarkingPostProcessor;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\MarkPostProcessor;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\ObjectConverter;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\RecordingFinisher;
+use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\RejectingFilter;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\ResultFinisher;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\SetFieldPreProcessor;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\ToObjectConverter;
@@ -72,6 +73,8 @@ class TransferTaskFactoryTest extends TestCase
             'converters' => [['class' => ToObjectConverter::class]],
             'postProcessors' => [['class' => MarkPostProcessor::class]],
             'finishers' => [['class' => ResultFinisher::class]],
+            'filters' => [['class' => RejectingFilter::class]],
+            'idMap' => ['namespace' => 'tx_news', 'sourceIdField' => 'uid'],
         ]);
 
         self::assertSame('import-news', $task->getIdentifier());
@@ -96,6 +99,9 @@ class TransferTaskFactoryTest extends TestCase
         self::assertInstanceOf(ToObjectConverter::class, $task->getConverters()[0]);
         self::assertInstanceOf(MarkPostProcessor::class, $task->getPostProcessors()[0]);
         self::assertInstanceOf(ResultFinisher::class, $task->getFinishers()[0]);
+        self::assertInstanceOf(RejectingFilter::class, $task->getFilters()[0]);
+        self::assertSame('tx_news', $task->getIdMapSettings()->namespace);
+        self::assertSame('uid', $task->getIdMapSettings()->sourceIdField);
     }
 
     public function testWrapsDeprecatedComponents(): void
@@ -129,6 +135,8 @@ class TransferTaskFactoryTest extends TestCase
         self::assertSame([], $task->getConverters());
         self::assertSame([], $task->getPostProcessors());
         self::assertSame([], $task->getFinishers());
+        self::assertSame([], $task->getFilters());
+        self::assertFalse($task->getIdMapSettings()->isEnabled());
     }
 
     /**
@@ -142,6 +150,8 @@ class TransferTaskFactoryTest extends TestCase
             'target missing' => [['source' => ['class' => 'test']], TransferTaskFactory::MISSING_TARGET_EXCEPTION_CODE],
             'list not an array' => [['source' => ['class' => 'test'], 'target' => [], 'finishers' => 'foo'], 1794230021],
             'list entry not an array' => [['source' => ['class' => 'test'], 'target' => [], 'finishers' => ['foo']], 1794230022],
+            'idMap not an array' => [['source' => ['class' => 'test'], 'target' => [], 'idMap' => 'pages'], 1794600021],
+            'idMap incomplete' => [['source' => ['class' => 'test'], 'target' => [], 'idMap' => ['namespace' => 'pages']], 1794600002],
         ];
     }
 

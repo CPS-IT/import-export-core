@@ -6,7 +6,3 @@ parameters:
     analyse:
       - .build/*
       - Tests/*
-  ignoreErrors:
-    # The traits are used by consumers of the library (and in Tests/), not in Classes/.
-    -
-      identifier: trait.unused

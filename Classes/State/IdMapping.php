@@ -37,4 +37,15 @@ readonly class IdMapping
     {
         return true;
     }
+
+    /**
+     * Checksum of a source record, as stored by the processor.
+     *
+     * @param array<mixed> $record
+     * @throws \JsonException if the record cannot be encoded
+     */
+    public static function checksum(array $record): string
+    {
+        return sha1(json_encode($record, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    }
 }

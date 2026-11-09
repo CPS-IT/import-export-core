@@ -36,7 +36,7 @@ trait LoggingTrait
      */
     public function getErrorCodes(): array
     {
-        return \defined(static::class . '::ERROR_CODES') ? static::ERROR_CODES : [];
+        return $this->getCodes('ERROR_CODES');
     }
 
     /**
@@ -50,15 +50,28 @@ trait LoggingTrait
      */
     public function getNoticeCodes(): array
     {
-        return \defined(static::class . '::NOTICE_CODES') ? static::NOTICE_CODES : [];
+        return $this->getCodes('NOTICE_CODES');
+    }
+
+    /**
+     * Returns the value of an optional class constant holding message codes.
+     *
+     * @return array<mixed>
+     */
+    private function getCodes(string $constantName): array
+    {
+        $constant = static::class . '::' . $constantName;
+        $codes = \defined($constant) ? \constant($constant) : [];
+
+        return \is_array($codes) ? $codes : [];
     }
 
     /**
      * Creates an error message and adds it to the message container
      *
      * @param int $id Error id
-     * @param array|null $arguments Optional arguments. Will be used as arguments for formatted message.
-     * @param array|null $additionalInformation Optional array with additional information
+     * @param array<mixed>|null $arguments Optional arguments. Will be used as arguments for formatted message.
+     * @param array<mixed>|null $additionalInformation Optional array with additional information
      */
     public function logError($id, ?array $arguments = null, ?array $additionalInformation = null): void
     {
@@ -73,8 +86,8 @@ trait LoggingTrait
      * Creates a notice and adds it to the message container
      *
      * @param int $id Error id
-     * @param array|null $arguments Optional arguments. Will be used as arguments for formatted message.
-     * @param array|null $additionalInformation Optional array with additional information
+     * @param array<mixed>|null $arguments Optional arguments. Will be used as arguments for formatted message.
+     * @param array<mixed>|null $additionalInformation Optional array with additional information
      */
     public function logNotice($id, ?array $arguments = null, ?array $additionalInformation = null): void
     {
@@ -92,7 +105,7 @@ trait LoggingTrait
      * @param string $description Message content
      * @param int $severity Message severity
      * @param int|null $id Optional message ID
-     * @param array|null $additionalInformation Optional additional information
+     * @param array<mixed>|null $additionalInformation Optional additional information
      */
     public function logMessage($title, $description, $severity = Message::SEVERITY_OK, $id = null, ?array $additionalInformation = null): void
     {
@@ -110,8 +123,8 @@ trait LoggingTrait
      * Renders a description
      *
      * @param int $id
-     * @param array $codes An array of codes.
-     * @param array|null $arguments Optional arguments
+     * @param array<mixed> $codes An array of codes.
+     * @param array<mixed>|null $arguments Optional arguments
      * @param string $default Default description
      */
     protected function renderDescription($id, $codes, ?array $arguments, $default = LoggingInterface::DEFAULT_UNKNOWN_MESSAGE): string
@@ -134,7 +147,7 @@ trait LoggingTrait
      * Renders a title
      *
      * @param int $id Message ID
-     * @param array $codes An array of codes.
+     * @param array<mixed> $codes An array of codes.
      * @param string $default Default title
      * @return string
      */
