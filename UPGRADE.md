@@ -181,7 +181,12 @@ pass the configuration with each call and delegate `isDisabled()`, as before.
 Differences:
 
 * Initializers receive an empty list of records; records they add are not
-  processed. They do not receive the `TaskContext`.
+  processed. They do not receive the `TaskContext`, so they cannot tell
+  whether a run resumes an interrupted one. Initializers that reset the
+  target (e.g. truncate or delete from tables) would remove the records the
+  interrupted run already wrote. Before using a checkpoint store, migrate
+  them to `Pipeline\InitializerInterface` and skip the reset if
+  `$context->isResumed()`.
 * Finishers receive an empty list of records and the result of the
   `TaskContext`.
 * Changes of post-processors to `$record` are discarded; changes to
@@ -218,6 +223,23 @@ final class SetTitle implements \CPSIT\ImportExportCore\Pipeline\PreProcessorInt
     public function isConfigurationValid(array $configuration): bool
     {
         return isset($configuration['value']);
+    }
+}
+```
+
+An initializer that resets the target skips the reset when the run resumes:
+
+```php
+final class TruncateTables implements \CPSIT\ImportExportCore\Pipeline\InitializerInterface, ConfigurableInterface
+{
+    use ConfigurableTrait;
+
+    public function initialize(TaskContext $context): void
+    {
+        if ($context->isResumed()) {
+            return;
+        }
+        // truncate the configured tables
     }
 }
 ```
