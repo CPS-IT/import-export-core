@@ -73,8 +73,10 @@ use Psr\EventDispatcher\EventDispatcherInterface;
  *
  * Filters run first, on the record as read from the source; records they do
  * not accept are skipped. If the task has ID map settings, the target must
- * implement `IdentifyingTargetInterface`: after each write, the mapping from
- * source ID to target ID is recorded with the checksum of the source record.
+ * implement `IdentifyingTargetInterface`: after the records were written (after
+ * `flushBatch()` for batch aware targets, after `persist()` for others), the
+ * mapping from source ID to target ID is recorded with the checksum of the
+ * source record.
  */
 class DataTransferProcessor implements TransferProcessorInterface
 {
@@ -222,6 +224,11 @@ class DataTransferProcessor implements TransferProcessorInterface
         $needsArray = $task->getFilters() !== [] || $idMapSettings->isEnabled() || $task->getPreProcessors() !== []
             || $task->getConverters() !== [] || $task->getPostProcessors() !== [];
 
+        $recordsToMap = $idMapSettings->isEnabled() && $target instanceof IdentifyingTargetInterface;
+        $batchAware = $target instanceof BatchAwareInterface;
+        /** @var list<array{array<mixed>, array<mixed>|object}> $written source record and persisted record */
+        $written = [];
+
         foreach ($batch as $record) {
             $statistics->countRead();
             $sourceRecord = $record;
@@ -252,8 +259,12 @@ class DataTransferProcessor implements TransferProcessorInterface
 
             $target->persist($convertedRecord, $targetConfiguration);
             $statistics->countPersisted();
-            if (\is_array($sourceRecord) && $target instanceof IdentifyingTargetInterface) {
-                $this->recordMapping($sourceRecord, $target, $idMapSettings, $key);
+            if ($recordsToMap && \is_array($sourceRecord) && (\is_array($convertedRecord) || \is_object($convertedRecord))) {
+                if ($batchAware) {
+                    $written[] = [$sourceRecord, $convertedRecord];
+                } else {
+                    $this->recordMapping($sourceRecord, $convertedRecord, $target, $idMapSettings, $key);
+                }
             }
             if ($this->collectRecords) {
                 $result->add($convertedRecord);
@@ -262,6 +273,11 @@ class DataTransferProcessor implements TransferProcessorInterface
 
         if ($target instanceof BatchAwareInterface) {
             $target->flushBatch($result);
+            if ($target instanceof IdentifyingTargetInterface) {
+                foreach ($written as [$sourceRecord, $persistedRecord]) {
+                    $this->recordMapping($sourceRecord, $persistedRecord, $target, $idMapSettings, $key);
+                }
+            }
         }
         $statistics->countBatch();
         $this->eventDispatcher->dispatch(new BatchProcessed($task, $key, $batchNumber, \count($batch), $result));
@@ -380,9 +396,11 @@ class DataTransferProcessor implements TransferProcessorInterface
 
     /**
      * @param array<mixed> $sourceRecord
+     * @param array<mixed>|object $persistedRecord
      */
     protected function recordMapping(
         array $sourceRecord,
+        array|object $persistedRecord,
         IdentifyingTargetInterface $target,
         IdMapSettings $settings,
         string $key
@@ -401,7 +419,7 @@ class DataTransferProcessor implements TransferProcessorInterface
         $this->idMap->set(new IdMapping(
             $settings->namespace,
             (string)$sourceId,
-            $target->getLastTargetId(),
+            $target->getTargetId($persistedRecord),
             IdMapping::checksum($sourceRecord)
         ));
     }

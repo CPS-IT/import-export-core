@@ -81,8 +81,9 @@ a new minor version may contain breaking changes.
 * Recording target IDs: with ID map settings on the task (`idMap: {namespace,
   sourceIdField}`, `State\IdMapSettings`), the processor records source ID,
   target ID and the checksum of the source record (`IdMapping::checksum()`)
-  after each write. The target must implement the new
-  `Persistence\IdentifyingTargetInterface`
+  once the records are written: after `flushBatch()` for batch aware targets,
+  after `persist()` for others. The target must implement the new
+  `Persistence\IdentifyingTargetInterface` (`getTargetId($record)`)
   ([#41](https://github.com/CPS-IT/import-export-core/issues/41))
 * `State\Component\ResolveReferencePreProcessor`: replaces source IDs in a
   field with target IDs from the ID map (single IDs, lists, separated

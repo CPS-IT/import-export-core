@@ -28,6 +28,7 @@ use CPSIT\ImportExportCore\State\IdMapSettings;
 use CPSIT\ImportExportCore\State\InMemoryIdMap;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\ArraySource;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\FieldPreProcessor;
+use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\FlushingIdentifyingTarget;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\IdentifyingTarget;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\InMemoryTarget;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\RejectingFilter;
@@ -177,6 +178,46 @@ class DataTransferProcessorIdMapTest extends TestCase
         $this->subject->process($task);
 
         self::assertSame(['uid' => 2, 'pid' => '100'], $target->records['101']);
+    }
+
+    public function testRecordsMappingsOfBatchAwareTargetAfterFlush(): void
+    {
+        $subject = new DataTransferProcessor(2, false, new NullEventDispatcher(), $this->idMap);
+        $target = new FlushingIdentifyingTarget();
+
+        $subject->process($this->createTask([['uid' => 7], ['uid' => 8], ['uid' => 9]], $target));
+
+        self::assertSame('100', $this->idMap->get('pages', '7')->targetId);
+        self::assertSame('101', $this->idMap->get('pages', '8')->targetId);
+        self::assertSame('102', $this->idMap->get('pages', '9')->targetId);
+    }
+
+    public function testBatchAwareTargetResolvesReferencesToEarlierBatches(): void
+    {
+        $subject = new DataTransferProcessor(1, false, new NullEventDispatcher(), $this->idMap);
+        $target = new FlushingIdentifyingTarget();
+        $task = $this->createTask([['uid' => 1, 'pid' => 0], ['uid' => 2, 'pid' => 1]], $target);
+        $resolver = new ResolveReferencePreProcessor($this->idMap);
+        $resolver->setConfiguration(['field' => 'pid', 'namespace' => 'pages']);
+        $task->setPreProcessors([$resolver]);
+
+        $subject->process($task);
+
+        self::assertSame(['uid' => 2, 'pid' => '100'], $target->records['101']);
+    }
+
+    public function testBatchAwareTargetCannotResolveReferencesWithinTheSameBatch(): void
+    {
+        $subject = new DataTransferProcessor(2, false, new NullEventDispatcher(), $this->idMap);
+        $task = $this->createTask([['uid' => 1, 'pid' => 0], ['uid' => 2, 'pid' => 1]], new FlushingIdentifyingTarget());
+        $resolver = new ResolveReferencePreProcessor($this->idMap);
+        $resolver->setConfiguration(['field' => 'pid', 'namespace' => 'pages']);
+        $task->setPreProcessors([$resolver]);
+
+        $this->expectException(\UnexpectedValueException::class);
+        $this->expectExceptionCode(1794600012);
+
+        $subject->process($task);
     }
 
     public function testIncrementalRunSkipsUnchangedRecords(): void

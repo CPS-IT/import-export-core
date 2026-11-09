@@ -506,9 +506,63 @@ final class IdentifyingTarget implements DataTargetInterface, IdentifyingTargetI
         return true;
     }
 
-    public function getLastTargetId(): string
+    public function getTargetId(array|object $record): string
     {
-        return (string)$this->lastId;
+        $id = array_search($record, $this->records, true);
+        if ($id === false) {
+            throw new \OutOfBoundsException('Record was not persisted', 1794600101);
+        }
+
+        return (string)$id;
+    }
+}
+
+/**
+ * Batch aware target that assigns IDs (starting at 100) only when the batch is
+ * flushed, like an ORM that writes on flush.
+ */
+final class FlushingIdentifyingTarget implements DataTargetInterface, BatchAwareInterface, IdentifyingTargetInterface
+{
+    /**
+     * @var list<array<mixed>|object>
+     */
+    private array $pending = [];
+
+    /**
+     * @var array<string, array<mixed>|object> target ID => record
+     */
+    public array $records = [];
+
+    private int $lastId = 99;
+
+    public function persist(array|object $object, ?array $configuration = null): bool
+    {
+        $this->pending[] = $object;
+
+        return true;
+    }
+
+    public function persistAll(mixed $result = null, ?array $configuration = null): bool
+    {
+        return true;
+    }
+
+    public function flushBatch(ResultInterface $result): void
+    {
+        foreach ($this->pending as $record) {
+            $this->records[(string)++$this->lastId] = $record;
+        }
+        $this->pending = [];
+    }
+
+    public function getTargetId(array|object $record): string
+    {
+        $id = array_search($record, $this->records, true);
+        if ($id === false) {
+            throw new \OutOfBoundsException('Record was not flushed yet', 1794600102);
+        }
+
+        return (string)$id;
     }
 }
 
