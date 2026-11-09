@@ -15,17 +15,43 @@ declare(strict_types=1);
 
 namespace CPSIT\ImportExportCore\Domain\Model;
 
+use CPSIT\ImportExportCore\Stream\TemporaryStream;
+use Psr\Http\Message\StreamInterface;
+
 class DataStream implements DataStreamInterface
 {
-    protected ?string $buffer = null;
+    protected StreamInterface $stream;
 
-    public function setStreamBuffer(?string $buffer): void
+    public function __construct(?StreamInterface $stream = null)
     {
-        $this->buffer = $buffer;
+        $this->stream = $stream ?? new TemporaryStream();
     }
 
+    public function getStream(): StreamInterface
+    {
+        return $this->stream;
+    }
+
+    public function setStream(StreamInterface $stream): void
+    {
+        $this->stream = $stream;
+    }
+
+    /**
+     * @deprecated since 0.2.0, use setStream() instead
+     */
+    public function setStreamBuffer(?string $buffer): void
+    {
+        $this->stream = new TemporaryStream($buffer ?? '');
+    }
+
+    /**
+     * @deprecated since 0.2.0, use getStream() instead
+     */
     public function getStreamBuffer(): ?string
     {
-        return $this->buffer;
+        $buffer = (string)$this->stream;
+
+        return $buffer === '' ? null : $buffer;
     }
 }
