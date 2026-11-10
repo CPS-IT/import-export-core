@@ -114,6 +114,22 @@ class DataTargetDBALTest extends TestCase
         );
     }
 
+    public function testInsertsRecordsWithoutKeyFields(): void
+    {
+        $this->connection->insert('pages', ['title' => 'Home']);
+        $this->subject->setConfiguration(['table' => 'pages', 'key' => ['uid'], 'idField' => 'uid']);
+        $updated = ['uid' => '1', 'title' => 'Start'];
+        $inserted = ['title' => 'News'];
+
+        self::assertFalse($this->subject->persist($updated));
+        self::assertTrue($this->subject->persist($inserted));
+        $this->subject->persistAll();
+
+        self::assertSame('1', $this->subject->getTargetId($updated));
+        self::assertSame('2', $this->subject->getTargetId($inserted));
+        self::assertSame(['Start', 'News'], $this->connection->fetchFirstColumn('SELECT title FROM pages ORDER BY uid'));
+    }
+
     public function testMatchesNullKeyValues(): void
     {
         $this->connection->insert('pages', ['import_source' => null, 'import_id' => '7', 'title' => 'Old']);
@@ -196,7 +212,7 @@ class DataTargetDBALTest extends TestCase
             'invalid configuration' => [['title' => 'Home'], ['table' => ''], 1794700022],
             'invalid column' => [['title = 1; --' => 'Home'], ['table' => 'pages'], 1794700023],
             'list' => [['Home'], ['table' => 'pages'], 1794700023],
-            'missing key field' => [['title' => 'Home'], ['table' => 'pages', 'key' => ['import_id']], 1794700025],
+            'some key fields missing' => [['import_id' => '7', 'title' => 'Home'], ['table' => 'pages', 'key' => ['import_source', 'import_id']], 1794700025],
             'empty record' => [[], ['table' => 'pages'], 1794700026],
             'array value' => [['title' => ['Home']], ['table' => 'pages'], 1794700027],
         ];

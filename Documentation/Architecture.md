@@ -70,6 +70,12 @@ They describe their tables via `Dbal\Schema\TableProviderInterface`;
 `Dbal\Schema\SchemaInstaller` creates missing tables and columns in an
 explicit setup step, and other schema tools can use the same definitions.
 
+For an upsert by ID map, `State\Component\TargetIdPreProcessor` sets the
+target ID of a record written in an earlier run, and removes the ID field of
+new records; `DataTargetDBAL` with that field as `key` then updates or
+inserts. The target table needs no columns for the source ID
+([#56](https://github.com/CPS-IT/import-export-core/issues/56)).
+
 `Factory\TransferSetFactory` and `Factory\TransferTaskFactory` build sets and
 tasks from configuration. Components are built by one
 `Factory\ComponentFactory` for all roles. It resolves the class with a

@@ -26,6 +26,7 @@ use CPSIT\ImportExportCore\Domain\Model\TransferTask;
 use CPSIT\ImportExportCore\Event\NullEventDispatcher;
 use CPSIT\ImportExportCore\Pipeline\PreProcessorInterface;
 use CPSIT\ImportExportCore\Service\DataTransferProcessor;
+use CPSIT\ImportExportCore\State\Component\TargetIdPreProcessor;
 use CPSIT\ImportExportCore\State\IdMapSettings;
 use CPSIT\ImportExportCore\State\InMemoryCheckpointStore;
 use CPSIT\ImportExportCore\State\InMemoryIdMap;
@@ -181,5 +182,38 @@ class DbalTransferTest extends TestCase
         self::assertSame(['11', '13', '14', '15'], $this->target->fetchFirstColumn('SELECT import_id FROM tx_news ORDER BY uid'));
         self::assertSame('4', (new DbalIdMap($state))->get('news', '15')->targetId);
         self::assertTrue((new DbalCheckpointStore($state))->get('news')->isInitial());
+    }
+
+    public function testUpsertsByIdMapWithoutImportColumns(): void
+    {
+        $this->target->executeStatement('CREATE TABLE plain_news (uid INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL)');
+        $this->target->insert('plain_news', ['title' => 'Existing']);
+        $createTask = function (): TransferTask {
+            $task = $this->createTask();
+            $target = new DataTargetDBAL($this->connections);
+            $target->setConfiguration(['table' => 'plain_news', 'key' => ['uid'], 'idField' => 'uid']);
+            $task->setTarget($target);
+            $targetId = new TargetIdPreProcessor($this->idMap);
+            $targetId->setConfiguration(['namespace' => 'news', 'sourceIdField' => 'id', 'targetIdField' => 'uid']);
+            $task->setPreProcessors([$targetId, new class implements PreProcessorInterface {
+                public function process(array $record): array
+                {
+                    return array_intersect_key($record, ['uid' => true]) + ['title' => $record['headline']];
+                }
+            }]);
+
+            return $task;
+        };
+
+        $this->createProcessor()->process($createTask(), new TaskResult());
+        $this->legacy->update('news', ['headline' => 'One, changed'], ['id' => 11]);
+        $this->createProcessor()->process($createTask(), new TaskResult());
+
+        self::assertSame(
+            [[1, 'Existing'], [2, 'One, changed'], [3, 'Three'], [4, 'Four'], [5, 'Five']],
+            array_map(array_values(...), $this->target->fetchAllAssociative('SELECT uid, title FROM plain_news ORDER BY uid'))
+        );
+        self::assertSame('2', $this->idMap->get('news', '11')->targetId);
+        self::assertSame('5', $this->idMap->get('news', '15')->targetId);
     }
 }

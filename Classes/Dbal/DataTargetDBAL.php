@@ -29,7 +29,8 @@ use Doctrine\DBAL\Connection;
  *
  * Records must be arrays of column => scalar or null. With `key`, a record
  * updates the existing row with the same values in the key fields, if there
- * is one; otherwise it is inserted.
+ * is one; otherwise it is inserted. A record without any of the key fields
+ * is inserted, e.g. a new record after `TargetIdPreProcessor`.
  *
  * Each batch is written in one transaction, committed in `flushBatch()`. If a
  * task fails, the rows of the current batch are not committed, and a resumed
@@ -137,8 +138,8 @@ class DataTargetDBAL implements DataTargetInterface, ConfigurableInterface, Batc
             $this->transactions[$connectionName] = $connection;
         }
 
-        if ($key !== []) {
-            $conditions = $this->keyConditions($key, $object);
+        $conditions = $this->keyConditions($key, $object);
+        if ($conditions !== []) {
             $existingId = $this->findExisting($connection, $table, $idField, $conditions);
             if ($existingId !== null) {
                 $update = $connection->createQueryBuilder()->update(Identifier::quote($connection, $table));
@@ -222,12 +223,19 @@ class DataTargetDBAL implements DataTargetInterface, ConfigurableInterface, Batc
     }
 
     /**
+     * Returns no conditions if the record has none of the key fields: it is
+     * inserted then.
+     *
      * @param list<string> $key
      * @param array<mixed> $record
      * @return array<string, mixed>
      */
     protected function keyConditions(array $key, array $record): array
     {
+        $present = array_filter($key, static fn (string $field): bool => \array_key_exists($field, $record));
+        if ($present === []) {
+            return [];
+        }
         $conditions = [];
         foreach ($key as $field) {
             if (!\array_key_exists($field, $record)) {
