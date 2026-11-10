@@ -63,6 +63,13 @@ source supports resuming with a cursor field; the target commits each batch
 in one transaction and reports target IDs for the ID map. `doctrine/dbal` is
 an optional dependency ([#42](https://github.com/CPS-IT/import-export-core/issues/42)).
 
+The ID map, the checkpoint store and the queue repository also have DBAL
+implementations (`Dbal\State\DbalIdMap`, `Dbal\State\DbalCheckpointStore`,
+`Dbal\Queue\DbalQueueRepository`), e.g. with SQLite for a standalone runner.
+They describe their tables via `Dbal\Schema\TableProviderInterface`;
+`Dbal\Schema\SchemaInstaller` creates missing tables and columns in an
+explicit setup step, and other schema tools can use the same definitions.
+
 `Factory\TransferSetFactory` and `Factory\TransferTaskFactory` build sets and
 tasks from configuration. Components are built by one
 `Factory\ComponentFactory` for all roles. It resolves the class with a

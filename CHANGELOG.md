@@ -101,6 +101,13 @@ a new minor version may contain breaking changes.
   Connections come from a `ConnectionProviderInterface` by name
   (`ConnectionRegistry`). `doctrine/dbal` (^4.3) is a suggested dependency
   ([#42](https://github.com/CPS-IT/import-export-core/issues/42))
+* DBAL implementations of the state stores and the queue repository:
+  `Dbal\State\DbalIdMap`, `Dbal\State\DbalCheckpointStore` and
+  `Dbal\Queue\DbalQueueRepository` (table names configurable; concurrent
+  runners claim each queue item once). `Dbal\Schema\SchemaInstaller`
+  creates their tables and adds missing columns; it never changes or drops
+  anything. Table definitions are available via `TableProviderInterface`
+  ([#42](https://github.com/CPS-IT/import-export-core/issues/42))
 
 ### Deprecated
 
