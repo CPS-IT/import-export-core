@@ -108,6 +108,12 @@ a new minor version may contain breaking changes.
   creates their tables and adds missing columns; it never changes or drops
   anything. Table definitions are available via `TableProviderInterface`
   ([#42](https://github.com/CPS-IT/import-export-core/issues/42))
+* Upsert by ID map: `State\Component\TargetIdPreProcessor` sets the target
+  ID from the ID map, or removes the ID field if the record has no mapping
+  yet. `DataTargetDBAL` inserts records that have none of the `key` fields.
+  A second run then updates the rows of the first run without extra columns
+  such as `import_id` in the target table
+  ([#56](https://github.com/CPS-IT/import-export-core/issues/56))
 
 ### Deprecated
 
