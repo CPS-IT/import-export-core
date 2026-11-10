@@ -18,6 +18,9 @@ namespace CPSIT\ImportExportCore\Tests\Unit\Dbal;
 use CPSIT\ImportExportCore\Dbal\ConnectionRegistry;
 use CPSIT\ImportExportCore\Dbal\DataSourceDBAL;
 use CPSIT\ImportExportCore\Dbal\DataTargetDBAL;
+use CPSIT\ImportExportCore\Dbal\Schema\SchemaInstaller;
+use CPSIT\ImportExportCore\Dbal\State\DbalCheckpointStore;
+use CPSIT\ImportExportCore\Dbal\State\DbalIdMap;
 use CPSIT\ImportExportCore\Domain\Model\TaskResult;
 use CPSIT\ImportExportCore\Domain\Model\TransferTask;
 use CPSIT\ImportExportCore\Event\NullEventDispatcher;
@@ -149,5 +152,34 @@ class DbalTransferTest extends TestCase
             $this->target->fetchFirstColumn('SELECT title FROM tx_news ORDER BY uid')
         );
         self::assertTrue($this->checkpoints->get('news')->isInitial());
+    }
+
+    public function testKeepsStateInDatabaseAcrossProcesses(): void
+    {
+        $state = DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' => true]);
+        (new SchemaInstaller($state))->install(new DbalIdMap($state), new DbalCheckpointStore($state));
+        $createProcessor = static fn (): DataTransferProcessor => new DataTransferProcessor(
+            batchSize: 2,
+            eventDispatcher: new NullEventDispatcher(),
+            idMap: new DbalIdMap($state),
+            checkpointStore: new DbalCheckpointStore($state)
+        );
+        $this->legacy->update('news', ['headline' => null], ['id' => 14]);
+        try {
+            $createProcessor()->process($this->createTask(), new TaskResult());
+            self::fail('The NOT NULL constraint should have stopped the task.');
+        } catch (\Doctrine\DBAL\Exception\NotNullConstraintViolationException) {
+            $this->target->rollBack();
+        }
+
+        self::assertSame('13', (new DbalCheckpointStore($state))->get('news')->cursor);
+        self::assertSame('2', (new DbalIdMap($state))->get('news', '13')->targetId);
+
+        $this->legacy->update('news', ['headline' => 'Four'], ['id' => 14]);
+        $createProcessor()->process($this->createTask(), new TaskResult());
+
+        self::assertSame(['11', '13', '14', '15'], $this->target->fetchFirstColumn('SELECT import_id FROM tx_news ORDER BY uid'));
+        self::assertSame('4', (new DbalIdMap($state))->get('news', '15')->targetId);
+        self::assertTrue((new DbalCheckpointStore($state))->get('news')->isInitial());
     }
 }
