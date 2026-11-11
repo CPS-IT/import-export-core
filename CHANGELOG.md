@@ -114,6 +114,10 @@ a new minor version may contain breaking changes.
   A second run then updates the rows of the first run without extra columns
   such as `import_id` in the target table
   ([#56](https://github.com/CPS-IT/import-export-core/issues/56))
+* `Processor\SetValuesPreProcessor` sets fields to constant values, and
+  `Dbal\RelationListPreProcessor` sets the IDs related to a record from a
+  relation (MM) table, e.g. to map them with `ResolveReferencePreProcessor`
+  ([#58](https://github.com/CPS-IT/import-export-core/issues/58))
 
 ### Deprecated
 
