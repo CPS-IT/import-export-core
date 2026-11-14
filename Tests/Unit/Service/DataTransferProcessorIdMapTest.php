@@ -22,6 +22,7 @@ use CPSIT\ImportExportCore\Exception\InvalidConfigurationException;
 use CPSIT\ImportExportCore\Persistence\DataTargetInterface;
 use CPSIT\ImportExportCore\Service\DataTransferProcessor;
 use CPSIT\ImportExportCore\State\Component\ResolveReferencePreProcessor;
+use CPSIT\ImportExportCore\State\Component\TargetIdPreProcessor;
 use CPSIT\ImportExportCore\State\Component\UnchangedRecordFilter;
 use CPSIT\ImportExportCore\State\IdMapping;
 use CPSIT\ImportExportCore\State\IdMapSettings;
@@ -31,6 +32,7 @@ use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\FieldPreProcessor;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\FlushingIdentifyingTarget;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\IdentifyingTarget;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\InMemoryTarget;
+use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\ProcessedRecordFilter;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\RejectingFilter;
 use PHPUnit\Framework\TestCase;
 
@@ -114,7 +116,7 @@ class DataTransferProcessorIdMapTest extends TestCase
         $this->subject->process($task);
     }
 
-    public function testRecordsTargetIdAndChecksumOfSourceRecord(): void
+    public function testRecordsTargetIdAndChecksumOfPreProcessedRecord(): void
     {
         $log = [];
         $task = $this->createTask([['uid' => 7, 'title' => 'Home'], ['uid' => 8, 'title' => 'News']], new IdentifyingTarget());
@@ -125,7 +127,7 @@ class DataTransferProcessorIdMapTest extends TestCase
         $this->subject->process($task);
 
         self::assertEquals(
-            new IdMapping('pages', '7', '100', IdMapping::checksum(['uid' => 7, 'title' => 'Home'])),
+            new IdMapping('pages', '7', '100', IdMapping::recordChecksum(['uid' => 7, 'title' => 'changed'], 'uid')),
             $this->idMap->get('pages', '7')
         );
         self::assertSame('101', $this->idMap->get('pages', '8')->targetId);
@@ -240,6 +242,67 @@ class DataTransferProcessorIdMapTest extends TestCase
             array_values($target->records)
         );
         self::assertSame(1, $result->getStatistics()->getSkipped());
-        self::assertSame(IdMapping::checksum(['uid' => 2, 'title' => 'Latest news']), $this->idMap->get('pages', '2')->checksum);
+        self::assertSame(IdMapping::recordChecksum(['uid' => 2, 'title' => 'Latest news'], 'uid'), $this->idMap->get('pages', '2')->checksum);
+    }
+
+    public function testIncrementalRunDetectsChangesMadeByPreProcessors(): void
+    {
+        // The pre-processor stands for values from other tables, e.g. a relation list.
+        $run = function (string $categories) {
+            $filter = new UnchangedRecordFilter($this->idMap);
+            $filter->setConfiguration(['namespace' => 'pages', 'sourceIdField' => 'uid']);
+            $log = [];
+            $relations = new FieldPreProcessor($log);
+            $relations->setConfiguration(['field' => 'categories', 'value' => $categories]);
+            $target = new IdentifyingTarget();
+            $task = $this->createTask([['uid' => 1, 'title' => 'Home']], $target);
+            $task->setPreProcessors([$relations]);
+            $task->setFilters([$filter]);
+            $result = new TaskResult();
+            $this->subject->process($task, $result);
+
+            return [$result->getStatistics()->getPersisted(), $result->getStatistics()->getSkipped()];
+        };
+
+        self::assertSame([1, 0], $run('3,5'));
+        self::assertSame([0, 1], $run('3,5'));
+        self::assertSame([1, 0], $run('3,6'));
+    }
+
+    public function testIncrementalRunWithUpsertSkipsRecordsFromTheSecondRunOn(): void
+    {
+        // The target ID replaces the source ID in `uid` once a mapping exists.
+        $run = function () {
+            $filter = new UnchangedRecordFilter($this->idMap);
+            $filter->setConfiguration(['namespace' => 'pages', 'sourceIdField' => 'uid']);
+            $upsert = new TargetIdPreProcessor($this->idMap);
+            $upsert->setConfiguration(['namespace' => 'pages', 'sourceIdField' => 'uid']);
+            $task = $this->createTask([['uid' => 1, 'title' => 'Home']], new IdentifyingTarget());
+            $task->setPreProcessors([$upsert]);
+            $task->setFilters([$filter]);
+            $result = new TaskResult();
+            $this->subject->process($task, $result);
+
+            return $result->getStatistics()->getSkipped();
+        };
+
+        self::assertSame(0, $run());
+        self::assertSame(1, $run());
+    }
+
+    public function testProcessedRecordFiltersRunAfterThePreProcessors(): void
+    {
+        $log = [];
+        $filter = new ProcessedRecordFilter($log);
+        $preProcessor = new FieldPreProcessor($log);
+        $preProcessor->setConfiguration(['field' => 'title', 'value' => 'changed']);
+        $task = $this->createTask([['id' => 1, 'uid' => 1, 'title' => 'Home']], new IdentifyingTarget());
+        $task->setPreProcessors([$preProcessor]);
+        $task->setFilters([$filter]);
+
+        $this->subject->process($task);
+
+        self::assertSame(['preProcessor:1', 'processedFilter:1'], $log);
+        self::assertSame([[['id' => 1, 'uid' => 1, 'title' => 'changed'], ['id' => 1, 'uid' => 1, 'title' => 'Home']]], $filter->received);
     }
 }

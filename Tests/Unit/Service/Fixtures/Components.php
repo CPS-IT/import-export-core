@@ -594,3 +594,28 @@ final class RejectingFilter extends AbstractPipelineComponent implements Pipelin
         return $this->disabled;
     }
 }
+
+/**
+ * Accepts all records and remembers the pre-processed and the source record.
+ */
+final class ProcessedRecordFilter extends AbstractPipelineComponent implements Pipeline\ProcessedRecordFilterInterface
+{
+    /**
+     * @var list<array{array<mixed>, array<mixed>}>
+     */
+    public array $received = [];
+
+    public function accepts(array $record): bool
+    {
+        throw new \LogicException('The processor calls acceptsProcessed().', 1794700101);
+    }
+
+    public function acceptsProcessed(array $record, array $sourceRecord): bool
+    {
+        ++$this->calls;
+        $this->log[] = 'processedFilter:' . $sourceRecord['id'];
+        $this->received[] = [$record, $sourceRecord];
+
+        return true;
+    }
+}

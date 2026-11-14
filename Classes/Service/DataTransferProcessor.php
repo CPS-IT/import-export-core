@@ -35,6 +35,7 @@ use CPSIT\ImportExportCore\Persistence\DataTargetInterface;
 use CPSIT\ImportExportCore\Persistence\IdentifyingTargetInterface;
 use CPSIT\ImportExportCore\Persistence\ResumableSourceInterface;
 use CPSIT\ImportExportCore\Pipeline\Legacy\LegacyAdapterInterface;
+use CPSIT\ImportExportCore\Pipeline\ProcessedRecordFilterInterface;
 use CPSIT\ImportExportCore\Pipeline\TaskContext;
 use CPSIT\ImportExportCore\State\Checkpoint;
 use CPSIT\ImportExportCore\State\CheckpointStoreInterface;
@@ -72,11 +73,12 @@ use Psr\EventDispatcher\EventDispatcherInterface;
  * beginning.
  *
  * Filters run first, on the record as read from the source; records they do
- * not accept are skipped. If the task has ID map settings, the target must
- * implement `IdentifyingTargetInterface`: after the records were written (after
- * `flushBatch()` for batch aware targets, after `persist()` for others), the
- * mapping from source ID to target ID is recorded with the checksum of the
- * source record.
+ * not accept are skipped. Filters implementing `ProcessedRecordFilterInterface`
+ * run after the pre-processors instead. If the task has ID map settings, the
+ * target must implement `IdentifyingTargetInterface`: after the records were
+ * written (after `flushBatch()` for batch aware targets, after `persist()` for
+ * others), the mapping from source ID to target ID is recorded with the
+ * checksum of the pre-processed record (`IdMapping::recordChecksum()`).
  */
 class DataTransferProcessor implements TransferProcessorInterface
 {
@@ -226,7 +228,7 @@ class DataTransferProcessor implements TransferProcessorInterface
 
         $recordsToMap = $idMapSettings->isEnabled() && $target instanceof IdentifyingTargetInterface;
         $batchAware = $target instanceof BatchAwareInterface;
-        /** @var list<array{array<mixed>, array<mixed>|object}> $written source record and persisted record */
+        /** @var list<array{array<mixed>, array<mixed>, array<mixed>|object}> $written source, pre-processed and persisted record */
         $written = [];
 
         foreach ($batch as $record) {
@@ -238,6 +240,10 @@ class DataTransferProcessor implements TransferProcessorInterface
                     continue;
                 }
                 $record = $this->preProcessSingle($record, $task, $result);
+                if (!$this->acceptsProcessed($record, $sourceRecord, $task, $result)) {
+                    $statistics->countSkipped();
+                    continue;
+                }
                 $convertedRecord = $this->convertSingle($record, $task, $result);
                 $convertedRecord = $this->postProcessSingle($convertedRecord, $record, $task, $result);
             } elseif ($needsArray) {
@@ -260,10 +266,11 @@ class DataTransferProcessor implements TransferProcessorInterface
             $target->persist($convertedRecord, $targetConfiguration);
             $statistics->countPersisted();
             if ($recordsToMap && \is_array($sourceRecord) && (\is_array($convertedRecord) || \is_object($convertedRecord))) {
+                $processedRecord = \is_array($record) ? $record : $sourceRecord;
                 if ($batchAware) {
-                    $written[] = [$sourceRecord, $convertedRecord];
+                    $written[] = [$sourceRecord, $processedRecord, $convertedRecord];
                 } else {
-                    $this->recordMapping($sourceRecord, $convertedRecord, $target, $idMapSettings, $key);
+                    $this->recordMapping($sourceRecord, $processedRecord, $convertedRecord, $target, $idMapSettings, $key);
                 }
             }
             if ($this->collectRecords) {
@@ -274,8 +281,8 @@ class DataTransferProcessor implements TransferProcessorInterface
         if ($target instanceof BatchAwareInterface) {
             $target->flushBatch($result);
             if ($target instanceof IdentifyingTargetInterface) {
-                foreach ($written as [$sourceRecord, $persistedRecord]) {
-                    $this->recordMapping($sourceRecord, $persistedRecord, $target, $idMapSettings, $key);
+                foreach ($written as [$sourceRecord, $processedRecord, $persistedRecord]) {
+                    $this->recordMapping($sourceRecord, $processedRecord, $persistedRecord, $target, $idMapSettings, $key);
                 }
             }
         }
@@ -381,7 +388,7 @@ class DataTransferProcessor implements TransferProcessorInterface
     protected function accepts(array $record, TransferTaskInterface $task, ResultInterface $result): bool
     {
         foreach ($task->getFilters() as $filter) {
-            if ($this->isDisabled($filter, $record, $result)) {
+            if ($filter instanceof ProcessedRecordFilterInterface || $this->isDisabled($filter, $record, $result)) {
                 continue;
             }
             $accepted = $filter->accepts($record);
@@ -395,11 +402,35 @@ class DataTransferProcessor implements TransferProcessorInterface
     }
 
     /**
+     * Filters that run after the pre-processors (`ProcessedRecordFilterInterface`).
+     *
+     * @param array<mixed> $record the record after the pre-processors
+     * @param array<mixed> $sourceRecord the record as read from the source
+     */
+    protected function acceptsProcessed(array $record, array $sourceRecord, TransferTaskInterface $task, ResultInterface $result): bool
+    {
+        foreach ($task->getFilters() as $filter) {
+            if (!$filter instanceof ProcessedRecordFilterInterface || $this->isDisabled($filter, $record, $result)) {
+                continue;
+            }
+            $accepted = $filter->acceptsProcessed($record, $sourceRecord);
+            $this->gatherMessages($filter, $result);
+            if (!$accepted) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * @param array<mixed> $sourceRecord
+     * @param array<mixed> $processedRecord the record after the pre-processors
      * @param array<mixed>|object $persistedRecord
      */
     protected function recordMapping(
         array $sourceRecord,
+        array $processedRecord,
         array|object $persistedRecord,
         IdentifyingTargetInterface $target,
         IdMapSettings $settings,
@@ -420,7 +451,7 @@ class DataTransferProcessor implements TransferProcessorInterface
             $settings->namespace,
             (string)$sourceId,
             $target->getTargetId($persistedRecord),
-            IdMapping::checksum($sourceRecord)
+            IdMapping::recordChecksum($processedRecord, $settings->sourceIdField)
         ));
     }
 

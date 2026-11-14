@@ -17,22 +17,25 @@ namespace CPSIT\ImportExportCore\State\Component;
 
 use CPSIT\ImportExportCore\ConfigurableInterface;
 use CPSIT\ImportExportCore\ConfigurableTrait;
-use CPSIT\ImportExportCore\Pipeline\FilterInterface;
+use CPSIT\ImportExportCore\Pipeline\ProcessedRecordFilterInterface;
 use CPSIT\ImportExportCore\State\IdMapInterface;
 use CPSIT\ImportExportCore\State\IdMapping;
 
 /**
  * Incremental mode: skips records that were written before and did not change
  * since. A record is unchanged if the ID map holds a mapping for its source ID
- * with the checksum of the record.
+ * with the checksum of the record (IdMapping::recordChecksum()).
  *
  * Configuration: `namespace` and `sourceIdField`, as in the `idMap` settings of
  * the task. Records without a source ID are accepted.
  *
- * The checksum covers the record as read from the source. After a change of
- * the pipeline configuration, run the task without this filter once.
+ * The filter runs after the pre-processors: the checksum covers the
+ * pre-processed record, so changes in values that pre-processors add, e.g.
+ * relation lists or resolved references, are detected. The source ID is taken
+ * from the record as read from the source. Converters and post-processors are
+ * not covered: after changing them, run the task without this filter once.
  */
-final class UnchangedRecordFilter implements FilterInterface, ConfigurableInterface
+final class UnchangedRecordFilter implements ProcessedRecordFilterInterface, ConfigurableInterface
 {
     use ConfigurableTrait;
 
@@ -49,15 +52,24 @@ final class UnchangedRecordFilter implements FilterInterface, ConfigurableInterf
             && $configuration['sourceIdField'] !== '';
     }
 
+    /**
+     * For a record that no pre-processor changed.
+     */
     public function accepts(array $record): bool
     {
-        $sourceId = $record[(string)$this->configuration['sourceIdField']] ?? null;
+        return $this->acceptsProcessed($record, $record);
+    }
+
+    public function acceptsProcessed(array $record, array $sourceRecord): bool
+    {
+        $sourceIdField = (string)$this->configuration['sourceIdField'];
+        $sourceId = $sourceRecord[$sourceIdField] ?? null;
         if (!\is_scalar($sourceId) || (string)$sourceId === '') {
             return true;
         }
 
         $mapping = $this->idMap->get((string)$this->configuration['namespace'], (string)$sourceId);
 
-        return !$mapping->exists() || $mapping->checksum !== IdMapping::checksum($record);
+        return !$mapping->exists() || $mapping->checksum !== IdMapping::recordChecksum($record, $sourceIdField);
     }
 }
