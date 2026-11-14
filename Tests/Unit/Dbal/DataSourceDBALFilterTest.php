@@ -152,6 +152,8 @@ final class DataSourceDBALFilterTest extends TestCase
 
         self::assertSame([2], $uids(['timezone' => 'Europe/Berlin']));
         self::assertSame([1, 2], $uids(['timezone' => 'UTC']));
+        // alias names such as Etc/UTC (common in container images) are accepted
+        self::assertSame([1, 2], $uids(['timezone' => 'Etc/UTC']));
     }
 
     public function testRejectsUnknownTimeZones(): void

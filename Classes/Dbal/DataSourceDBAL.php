@@ -266,7 +266,7 @@ class DataSourceDBAL implements DataSourceInterface, ConfigurableInterface, Resu
 
     private static function isTimezone(mixed $timezone): bool
     {
-        return \is_string($timezone) && \in_array($timezone, \DateTimeZone::listIdentifiers(), true);
+        return \is_string($timezone) && \in_array($timezone, \DateTimeZone::listIdentifiers(\DateTimeZone::ALL_WITH_BC), true);
     }
 
     private function isValidOrderBy(mixed $orderBy): bool
