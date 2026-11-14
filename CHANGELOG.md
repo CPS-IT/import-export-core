@@ -122,6 +122,10 @@ a new minor version may contain breaking changes.
   pre-processors and receive the pre-processed and the source record.
   `IdMapping::recordChecksum()`
   ([#62](https://github.com/CPS-IT/import-export-core/issues/62))
+* `Processor\ValueRulesPreProcessor` applies declarative rules in order:
+  fallback, default, copy, rename, map, remove, trim and join, each with an
+  optional condition (`equals`, `in`, `empty`). No expressions are evaluated
+  ([#64](https://github.com/CPS-IT/import-export-core/issues/64))
 
 ### Deprecated
 
