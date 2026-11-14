@@ -35,6 +35,11 @@ use Doctrine\DBAL\Query\QueryBuilder;
  * * `fields` (list of strings, default all fields)
  * * `where` (map of field => value): equality conditions combined with AND;
  *   null means IS NULL, a list of integers or strings means IN (...)
+ * * `filter` (condition): further conditions, combined with `where` by AND:
+ *   comparisons, NULL checks, `all`/`any`/`not` groups, relative dates and
+ *   `exists`/`notExists` on a related table; see {@see Filter}
+ * * `timezone` (string, IANA name, default: PHP's default time zone): time
+ *   zone of the relative dates in `filter`
  * * `orderBy` (map of field => `ASC`|`DESC`); not together with `cursorField`
  * * `limit` (int): maximum number of records
  * * `cursorField` (string): a unique, sortable field, e.g. `uid`. Records are
@@ -51,6 +56,8 @@ class DataSourceDBAL implements DataSourceInterface, ConfigurableInterface, Resu
     public const string KEY_TABLE = 'table';
     public const string KEY_FIELDS = 'fields';
     public const string KEY_WHERE = 'where';
+    public const string KEY_FILTER = 'filter';
+    public const string KEY_TIMEZONE = 'timezone';
     public const string KEY_ORDER_BY = 'orderBy';
     public const string KEY_LIMIT = 'limit';
     public const string KEY_CURSOR_FIELD = 'cursorField';
@@ -61,8 +68,20 @@ class DataSourceDBAL implements DataSourceInterface, ConfigurableInterface, Resu
 
     protected string $resumeCursor = '';
 
-    public function __construct(protected readonly ConnectionProviderInterface $connectionProvider)
-    {
+    /**
+     * Start of the current read, for the relative dates of `filter`: the same
+     * for all pages of a read.
+     */
+    protected \DateTimeImmutable $now;
+
+    /**
+     * @param (\Closure(): \DateTimeImmutable)|null $clock current time; default: the system clock
+     */
+    public function __construct(
+        protected readonly ConnectionProviderInterface $connectionProvider,
+        private readonly ?\Closure $clock = null,
+    ) {
+        $this->now = new \DateTimeImmutable();
     }
 
     public function isConfigurationValid(array $configuration): bool
@@ -81,6 +100,12 @@ class DataSourceDBAL implements DataSourceInterface, ConfigurableInterface, Resu
         }
         $where = $configuration[self::KEY_WHERE] ?? [];
         if (!\is_array($where) || !Conditions::isValid($where)) {
+            return false;
+        }
+        if (\array_key_exists(self::KEY_FILTER, $configuration) && !Filter::isValid($configuration[self::KEY_FILTER])) {
+            return false;
+        }
+        if (\array_key_exists(self::KEY_TIMEZONE, $configuration) && !self::isTimezone($configuration[self::KEY_TIMEZONE])) {
             return false;
         }
         if (!$this->isValidOrderBy($configuration[self::KEY_ORDER_BY] ?? [])) {
@@ -113,6 +138,7 @@ class DataSourceDBAL implements DataSourceInterface, ConfigurableInterface, Resu
         $connectionName = $configuration[self::KEY_CONNECTION] ?? ConnectionProviderInterface::DEFAULT_CONNECTION;
         $connection = $this->connectionProvider->getConnection($connectionName);
         $this->cursor = $this->resumeCursor;
+        $this->now = $this->currentTime($configuration);
 
         $cursorField = $configuration[self::KEY_CURSOR_FIELD] ?? null;
         if (\is_string($cursorField)) {
@@ -219,8 +245,28 @@ class DataSourceDBAL implements DataSourceInterface, ConfigurableInterface, Resu
         /** @var array<string, mixed> $where */
         $where = $configuration[self::KEY_WHERE] ?? [];
         Conditions::apply($query, $connection, $where);
+        $filter = $configuration[self::KEY_FILTER] ?? null;
+        if (\is_array($filter)) {
+            Filter::apply($query, $connection, $table, $filter, $this->now);
+        }
 
         return $query;
+    }
+
+    /**
+     * @param array<string, mixed> $configuration
+     */
+    protected function currentTime(array $configuration): \DateTimeImmutable
+    {
+        $timezone = $configuration[self::KEY_TIMEZONE] ?? null;
+        $now = $this->clock !== null ? ($this->clock)() : new \DateTimeImmutable();
+
+        return $now->setTimezone(new \DateTimeZone(\is_string($timezone) ? $timezone : date_default_timezone_get()));
+    }
+
+    private static function isTimezone(mixed $timezone): bool
+    {
+        return \is_string($timezone) && \in_array($timezone, \DateTimeZone::listIdentifiers(), true);
     }
 
     private function isValidOrderBy(mixed $orderBy): bool
