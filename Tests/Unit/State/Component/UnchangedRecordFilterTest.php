@@ -49,14 +49,23 @@ class UnchangedRecordFilterTest extends TestCase
     public function testRejectsRecordWithSameChecksum(): void
     {
         $record = ['uid' => 1, 'title' => 'Home'];
-        $this->idMap->set(new IdMapping('pages', '1', '100', IdMapping::checksum($record)));
+        $this->idMap->set(new IdMapping('pages', '1', '100', IdMapping::recordChecksum($record, 'uid')));
 
         self::assertFalse($this->subject->accepts($record));
     }
 
+    public function testIdentifiesProcessedRecordBySourceIdAndIgnoresItsIdField(): void
+    {
+        // A pre-processor replaced the source ID with the target ID.
+        $this->idMap->set(new IdMapping('pages', '1', '100', IdMapping::recordChecksum(['title' => 'Home'], 'uid')));
+
+        self::assertFalse($this->subject->acceptsProcessed(['uid' => '100', 'title' => 'Home'], ['uid' => 1, 'title' => 'Home']));
+        self::assertTrue($this->subject->acceptsProcessed(['uid' => '100', 'title' => 'Start'], ['uid' => 1, 'title' => 'Home']));
+    }
+
     public function testAcceptsChangedRecord(): void
     {
-        $this->idMap->set(new IdMapping('pages', '1', '100', IdMapping::checksum(['uid' => 1, 'title' => 'Home'])));
+        $this->idMap->set(new IdMapping('pages', '1', '100', IdMapping::recordChecksum(['uid' => 1, 'title' => 'Home'], 'uid')));
 
         self::assertTrue($this->subject->accepts(['uid' => 1, 'title' => 'Start']));
     }
@@ -69,7 +78,7 @@ class UnchangedRecordFilterTest extends TestCase
     public function testComparesWithinConfiguredNamespace(): void
     {
         $record = ['uid' => 1, 'title' => 'Home'];
-        $this->idMap->set(new IdMapping('tt_content', '1', '100', IdMapping::checksum($record)));
+        $this->idMap->set(new IdMapping('tt_content', '1', '100', IdMapping::recordChecksum($record, 'uid')));
 
         self::assertTrue($this->subject->accepts($record));
     }

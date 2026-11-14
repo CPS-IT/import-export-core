@@ -23,7 +23,7 @@ readonly class IdMapping
 {
     /**
      * @param string $namespace e.g. a table or entity type
-     * @param string $checksum of the source record when it was written, '' if unknown
+     * @param string $checksum of the record when it was written (see recordChecksum()), '' if unknown
      */
     public function __construct(
         public string $namespace,
@@ -39,7 +39,24 @@ readonly class IdMapping
     }
 
     /**
-     * Checksum of a source record, as stored by the processor.
+     * Checksum of a record as the processor stores it: of the record after the
+     * pre-processors, without its ID field. The ID is the key of the mapping;
+     * leaving it out keeps the checksum stable when a pre-processor sets the
+     * target ID in that field (`TargetIdPreProcessor`), which it does only
+     * once a mapping exists.
+     *
+     * @param array<mixed> $record
+     * @throws \JsonException if the record cannot be encoded
+     */
+    public static function recordChecksum(array $record, string $idField): string
+    {
+        unset($record[$idField]);
+
+        return self::checksum($record);
+    }
+
+    /**
+     * Checksum of a record.
      *
      * @param array<mixed> $record
      * @throws \JsonException if the record cannot be encoded

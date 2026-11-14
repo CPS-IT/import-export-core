@@ -118,6 +118,10 @@ a new minor version may contain breaking changes.
   `Dbal\RelationListPreProcessor` sets the IDs related to a record from a
   relation (MM) table, e.g. to map them with `ResolveReferencePreProcessor`
   ([#58](https://github.com/CPS-IT/import-export-core/issues/58))
+* `Pipeline\ProcessedRecordFilterInterface`: filters that run after the
+  pre-processors and receive the pre-processed and the source record.
+  `IdMapping::recordChecksum()`
+  ([#62](https://github.com/CPS-IT/import-export-core/issues/62))
 
 ### Deprecated
 
@@ -191,6 +195,13 @@ Migration of breaking changes is described in [UPGRADE.md](UPGRADE.md).
   `DataStream` keeps its content in a stream; `getStreamBuffer()` returns
   null for an empty stream, also after `setStreamBuffer('')`
   ([#40](https://github.com/CPS-IT/import-export-core/issues/40))
+* Breaking: `UnchangedRecordFilter` runs after the pre-processors, so changes
+  in values they add (relation lists, resolved references) are detected. The
+  ID map stores the checksum of the pre-processed record without its ID
+  field instead of the checksum of the source record; the first run after the
+  upgrade writes all records once. `DataTransferProcessor::recordMapping()`
+  has a new parameter `$processedRecord`
+  ([#62](https://github.com/CPS-IT/import-export-core/issues/62))
 
 ## 0.1.0 - 2026-11-08
 

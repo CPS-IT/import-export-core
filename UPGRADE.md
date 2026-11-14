@@ -335,3 +335,34 @@ while (!$stream->eof()) {
 }
 fclose($file);
 ```
+
+### `UnchangedRecordFilter` compares the pre-processed record
+
+Issue: [#62](https://github.com/CPS-IT/import-export-core/issues/62)
+
+**Affects:** tasks with `UnchangedRecordFilter` and ID map settings,
+subclasses of `DataTransferProcessor` that override or call
+`recordMapping()`, code that compares ID map checksums with
+`IdMapping::checksum()`.
+
+**Change:** filters implementing the new `ProcessedRecordFilterInterface` run
+after the pre-processors; `UnchangedRecordFilter` is one of them. The
+processor stores the checksum of the pre-processed record without its ID
+field (`IdMapping::recordChecksum($record, $sourceIdField)`) instead of
+`IdMapping::checksum($sourceRecord)`. `recordMapping()` receives the
+pre-processed record as second parameter.
+
+**Migration:** nothing to configure. Checksums stored before the upgrade do
+not match, so the first run writes all records once and stores the new
+checksums. Subclasses pass the pre-processed record:
+
+```php
+// before
+$this->recordMapping($sourceRecord, $persistedRecord, $target, $settings, $key);
+
+// after
+$this->recordMapping($sourceRecord, $processedRecord, $persistedRecord, $target, $settings, $key);
+```
+
+Code that compares checksums uses `IdMapping::recordChecksum()` with the
+pre-processed record and the source ID field.
