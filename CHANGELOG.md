@@ -126,6 +126,12 @@ a new minor version may contain breaking changes.
   fallback, default, copy, rename, map, remove, trim and join, each with an
   optional condition (`equals`, `in`, `empty`). No expressions are evaluated
   ([#64](https://github.com/CPS-IT/import-export-core/issues/64))
+* `DataSourceDBAL` option `filter`: comparisons, NULL checks, `all`/`any`/`not`
+  groups, relative dates (`{date: "-P2Y", from: "today"}`) and
+  `exists`/`notExists` on a related table, as parameterized SQL
+  (`Dbal\Filter`). Option `timezone` for the relative dates (default: PHP's
+  default time zone); optional clock as second constructor argument
+  ([#66](https://github.com/CPS-IT/import-export-core/issues/66))
 
 ### Deprecated
 
