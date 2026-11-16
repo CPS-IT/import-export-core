@@ -132,6 +132,15 @@ a new minor version may contain breaking changes.
   (`Dbal\Filter`). Option `timezone` for the relative dates (default: PHP's
   default time zone); optional clock as second constructor argument
   ([#66](https://github.com/CPS-IT/import-export-core/issues/66))
+* Pre-processors moved from t3import_export, with the same configuration and
+  the test cases of the extension: `Processor\AddArraysPreProcessor`,
+  `CleanPreProcessor`, `ImplodeArrayPreProcessor`, `StringToTimePreProcessor`
+  and `UnsetEmptyFieldsPreProcessor`. Field lists may be a list or a
+  comma-separated string. Differences to the extension: unknown options and
+  incomplete `str_replace` options of `Clean` are rejected, `false` disables a
+  `Clean` option, and a target value of `AddArrays` that is no array becomes the
+  first element instead of causing an error
+  ([#68](https://github.com/CPS-IT/import-export-core/issues/68))
 
 ### Deprecated
 
