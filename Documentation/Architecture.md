@@ -103,7 +103,7 @@ and component definitions are planned as a follow-up.
 
 | Namespace (`CPSIT\ImportExportCore\`) | Content |
 |---------------------------------------|---------|
-| (root)              | `ConfigurableInterface`, `IdentifiableInterface`, `LoggingInterface`, `RenderContentInterface` and traits |
+| (root)              | `ConfigurableInterface`, `IdentifiableInterface`, `LoggingInterface`, `RenderContentInterface` (removed in 0.2.0) and traits |
 | `Component\`        | `ComponentInterface` and the interfaces for initializers, pre-processors, converters, post-processors, finishers |
 | `Persistence\`      | `DataSourceInterface`, `DataTargetInterface` |
 | `Domain\Model\`     | `TaskResult`, transfer task and set interfaces |
