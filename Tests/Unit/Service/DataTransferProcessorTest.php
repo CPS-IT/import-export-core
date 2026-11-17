@@ -15,12 +15,15 @@ declare(strict_types=1);
 
 namespace CPSIT\ImportExportCore\Tests\Unit\Service;
 
+use CPSIT\ImportExportCore\Condition\ConditionEvaluatorInterface;
 use CPSIT\ImportExportCore\Domain\Model\Dto\TaskDemand;
 use CPSIT\ImportExportCore\Domain\Model\ResultInterface;
 use CPSIT\ImportExportCore\Domain\Model\TaskResult;
 use CPSIT\ImportExportCore\Domain\Model\TransferTask;
 use CPSIT\ImportExportCore\Exception\InvalidConfigurationException;
+use CPSIT\ImportExportCore\Messaging\Message;
 use CPSIT\ImportExportCore\Messaging\MessageInterface;
+use CPSIT\ImportExportCore\Processor\SetValuesPreProcessor;
 use CPSIT\ImportExportCore\Service\DataTransferProcessor;
 use CPSIT\ImportExportCore\Service\TransferProcessorInterface;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\AppendingInitializer;
@@ -297,6 +300,68 @@ class DataTransferProcessorTest extends TestCase
             self::assertSame(0, $component->calls, $component::class);
         }
         self::assertSame([['id' => 1]], $result->toArray());
+    }
+
+    public function testEvaluatesDisableOptionOfConfigurableComponents(): void
+    {
+        $preProcessor = new SetValuesPreProcessor();
+        $preProcessor->setConfiguration([
+            'values' => ['type' => 'event'],
+            'disable' => ['expression' => "record['type'] == 'news'"],
+        ]);
+        $task = $this->createTask([['id' => 1, 'type' => 'news'], ['id' => 2, 'type' => 'page']]);
+        $task->setPreProcessors([$preProcessor]);
+
+        $result = $this->subject->process($task);
+
+        self::assertSame([['id' => 1, 'type' => 'news'], ['id' => 2, 'type' => 'event']], $result->toArray());
+    }
+
+    public function testSkipsConfigurableComponentsDisabledByMessage(): void
+    {
+        $preProcessor = new SetValuesPreProcessor();
+        $preProcessor->setConfiguration([
+            'values' => ['type' => 'event'],
+            'disable' => ['if' => ['result' => ['hasMessage' => '1794000001']]],
+        ]);
+        $task = $this->createTask([['id' => 1]]);
+        $task->setPreProcessors([$preProcessor]);
+        $result = new TaskResult();
+        $result->addMessages([new Message('message', 'title', Message::SEVERITY_OK, 1794000001)]);
+
+        $this->subject->process($task, $result);
+
+        self::assertSame([['id' => 1]], $result->toArray());
+    }
+
+    public function testUsesGivenConditionEvaluator(): void
+    {
+        $preProcessor = new SetValuesPreProcessor();
+        $preProcessor->setConfiguration(['values' => ['type' => 'event'], 'disable' => 'custom']);
+        $task = $this->createTask([['id' => 1]]);
+        $task->setPreProcessors([$preProcessor]);
+        $conditionEvaluator = $this->createMock(ConditionEvaluatorInterface::class);
+        $conditionEvaluator->expects(self::once())->method('isMet')
+            ->with('custom', ['id' => 1], self::isInstanceOf(ResultInterface::class))
+            ->willReturn(true);
+
+        $result = (new DataTransferProcessor(conditionEvaluator: $conditionEvaluator))->process($task);
+
+        self::assertSame([['id' => 1]], $result->toArray());
+    }
+
+    public function testDoesNotEvaluateConditionWithoutDisableOption(): void
+    {
+        $preProcessor = new SetValuesPreProcessor();
+        $preProcessor->setConfiguration(['values' => ['type' => 'event']]);
+        $task = $this->createTask([['id' => 1]]);
+        $task->setPreProcessors([$preProcessor]);
+        $conditionEvaluator = $this->createMock(ConditionEvaluatorInterface::class);
+        $conditionEvaluator->expects(self::never())->method('isMet');
+
+        $result = (new DataTransferProcessor(conditionEvaluator: $conditionEvaluator))->process($task);
+
+        self::assertSame([['id' => 1, 'type' => 'event']], $result->toArray());
     }
 
     public function testSkipsRecordsForWhichTargetIsDisabled(): void

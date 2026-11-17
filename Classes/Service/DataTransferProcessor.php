@@ -16,6 +16,8 @@ declare(strict_types=1);
 namespace CPSIT\ImportExportCore\Service;
 
 use CPSIT\ImportExportCore\Component\DisableableInterface;
+use CPSIT\ImportExportCore\Condition\ConditionEvaluator;
+use CPSIT\ImportExportCore\Condition\ConditionEvaluatorInterface;
 use CPSIT\ImportExportCore\ConfigurableInterface;
 use CPSIT\ImportExportCore\Domain\Model\Dto\DemandInterface;
 use CPSIT\ImportExportCore\Domain\Model\ResultInterface;
@@ -97,6 +99,7 @@ class DataTransferProcessor implements TransferProcessorInterface
         protected readonly EventDispatcherInterface $eventDispatcher = new NullEventDispatcher(),
         protected readonly IdMapInterface $idMap = new NullIdMap(),
         protected readonly CheckpointStoreInterface $checkpointStore = new NullCheckpointStore(),
+        protected readonly ConditionEvaluatorInterface $conditionEvaluator = new ConditionEvaluator(),
     ) {
         if ($batchSize < 1) {
             throw new \InvalidArgumentException('The batch size must be at least 1.', 1794400001);
@@ -525,19 +528,24 @@ class DataTransferProcessor implements TransferProcessorInterface
     }
 
     /**
-     * Components can be disabled only if they implement
-     * `DisableableInterface`. Adapters of deprecated components do.
+     * Components implementing `DisableableInterface` decide themselves, e.g.
+     * the adapters of deprecated components. For other configurable components
+     * the option `disable` of their configuration is evaluated with the
+     * condition evaluator.
      *
      * @param array<mixed> $record
      */
     protected function isDisabled(object $component, array $record, ResultInterface $result): bool
     {
-        if (!$component instanceof DisableableInterface) {
+        $configuration = $component instanceof ConfigurableInterface ? $component->getConfiguration() : [];
+        if ($component instanceof DisableableInterface) {
+            return $component->isDisabled($configuration, $record, $result);
+        }
+        if (!isset($configuration['disable'])) {
             return false;
         }
-        $configuration = $component instanceof ConfigurableInterface ? $component->getConfiguration() : [];
 
-        return $component->isDisabled($configuration, $record, $result);
+        return $this->conditionEvaluator->isMet($configuration['disable'], $record, $result);
     }
 
     protected function gatherMessages(object $component, ResultInterface $result): void
