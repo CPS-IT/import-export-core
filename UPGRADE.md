@@ -366,3 +366,16 @@ $this->recordMapping($sourceRecord, $processedRecord, $persistedRecord, $target,
 
 Code that compares checksums uses `IdMapping::recordChecksum()` with the
 pre-processed record and the source ID field.
+
+### `RenderContentInterface` removed
+
+Issue: [#70](https://github.com/CPS-IT/import-export-core/issues/70)
+
+**Affects:** classes implementing `CPSIT\ImportExportCore\RenderContentInterface`.
+
+**Change:** the interface is removed. The core does not render content;
+t3import_export removes TypoScript content rendering in its next major version
+(dwenzel/t3import_export#75).
+
+**Migration:** remove the interface from the class, or declare an own interface
+in the package that renders content.

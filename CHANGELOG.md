@@ -222,6 +222,12 @@ Migration of breaking changes is described in [UPGRADE.md](UPGRADE.md).
   has a new parameter `$processedRecord`
   ([#62](https://github.com/CPS-IT/import-export-core/issues/62))
 
+### Removed
+
+* `RenderContentInterface`: rendering of TypoScript content objects belongs to
+  TYPO3, and the core does not use it
+  ([#70](https://github.com/CPS-IT/import-export-core/issues/70))
+
 ## 0.1.0 - 2026-11-08
 
 First release. The library contains the parts of the TYPO3 extension
