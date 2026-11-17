@@ -83,8 +83,16 @@ The generic pre-processors of the extension (`AddArrays`, `Clean`,
 `ImplodeArray`, `StringToTime`, `UnsetEmptyFields`) moved there with their
 test cases ([#68](https://github.com/CPS-IT/import-export-core/issues/68));
 `XMLMapper` follows with the XML components
-([#25](https://github.com/CPS-IT/import-export-core/issues/25)), `EvaluateExpressions`
-with the condition evaluator ([#24](https://github.com/CPS-IT/import-export-core/issues/24)).
+([#25](https://github.com/CPS-IT/import-export-core/issues/25)).
+`EvaluateExpressionsPreProcessor` sets fields from expressions
+(`Expression\ExpressionEvaluator`, Symfony ExpressionLanguage).
+
+The option `disable` in the configuration of a component is evaluated by the
+processor with a `Condition\ConditionEvaluatorInterface`: `true`/`1`,
+`if.result.hasMessage` or an `expression` with the variables `record` and
+`result`. Components implementing `DisableableInterface`, e.g. the adapters
+of deprecated components, decide themselves
+([#24](https://github.com/CPS-IT/import-export-core/issues/24)).
 
 `Factory\TransferSetFactory` and `Factory\TransferTaskFactory` build sets and
 tasks from configuration. Components are built by one
@@ -145,7 +153,9 @@ design issues are addressed in 0.2.0 (milestone
   `GeneralUtility::makeInstance()`; third parties cannot register component
   types. Done in 0.2.0 ([#23](https://github.com/CPS-IT/import-export-core/issues/23))
 * Every component inherits a TYPO3 frontend dependency: the extension's
-  `AbstractComponent` evaluates `disabled` conditions with TypoScript. ([#24](https://github.com/CPS-IT/import-export-core/issues/24))
+  `AbstractComponent` evaluates `disabled` conditions with TypoScript. Done in
+  0.2.0: the processor evaluates conditions with a `ConditionEvaluatorInterface`
+  ([#24](https://github.com/CPS-IT/import-export-core/issues/24))
 * There is no abstraction for paths and resources, so file-based sources and
   targets cannot move into the core. ([#25](https://github.com/CPS-IT/import-export-core/issues/25))
 * Components modify arrays by reference and receive their configuration twice

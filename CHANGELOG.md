@@ -147,6 +147,18 @@ a new minor version may contain breaking changes.
   t3import_export. Unlike `ConcatenateFields`, `'0'` is not empty and is
   wrapped
   ([#69](https://github.com/CPS-IT/import-export-core/issues/69))
+* Conditions: `Condition\ConditionEvaluator` evaluates the option `disable`
+  of components (`true`/`1`, `if.result.hasMessage` with message IDs, or
+  `expression`). `DataTransferProcessor` applies it to configurable components
+  that do not implement `DisableableInterface`, so the core components can be
+  disabled like the components of t3import_export. A custom evaluator can be
+  passed to the processor (`$conditionEvaluator`)
+  ([#24](https://github.com/CPS-IT/import-export-core/issues/24))
+* `Expression\ExpressionEvaluator` (Symfony ExpressionLanguage with the
+  functions `upper`, `lower`, `trim`, `date` and `strtotime`) and
+  `Processor\EvaluateExpressionsPreProcessor`, moved from t3import_export.
+  New dependency `symfony/expression-language`
+  ([#24](https://github.com/CPS-IT/import-export-core/issues/24))
 
 ### Deprecated
 
