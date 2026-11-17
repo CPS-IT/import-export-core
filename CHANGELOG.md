@@ -141,6 +141,12 @@ a new minor version may contain breaking changes.
   `Clean` option, and a target value of `AddArrays` that is no array becomes the
   first element instead of causing an error
   ([#68](https://github.com/CPS-IT/import-export-core/issues/68))
+* `ValueRulesPreProcessor`: rule `wrap` (`prefix`/`suffix` around a non-empty
+  value) and paths for `remove` (`address.street`, `children.*.hidden`). They
+  replace `ConcatenateFields.wrap`/`noTrimWrap` and `RemoveFields.children` of
+  t3import_export. Unlike `ConcatenateFields`, `'0'` is not empty and is
+  wrapped
+  ([#69](https://github.com/CPS-IT/import-export-core/issues/69))
 
 ### Deprecated
 
