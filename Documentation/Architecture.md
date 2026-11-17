@@ -76,11 +76,15 @@ new records; `DataTargetDBAL` with that field as `key` then updates or
 inserts. The target table needs no columns for the source ID
 ([#56](https://github.com/CPS-IT/import-export-core/issues/56)).
 
-Generic pre-processors without TYPO3 start in `Processor\`
-(`SetValuesPreProcessor`); `Dbal\RelationListPreProcessor` reads related IDs
-from a relation table. The pre-processors of the extension follow with
-[#24](https://github.com/CPS-IT/import-export-core/issues/24)
-([#58](https://github.com/CPS-IT/import-export-core/issues/58)).
+Generic pre-processors without TYPO3 are in `Processor\`
+(`SetValuesPreProcessor`, `ValueRulesPreProcessor`); `Dbal\RelationListPreProcessor` reads related IDs
+from a relation table ([#58](https://github.com/CPS-IT/import-export-core/issues/58)).
+The generic pre-processors of the extension (`AddArrays`, `Clean`,
+`ImplodeArray`, `StringToTime`, `UnsetEmptyFields`) moved there with their
+test cases ([#68](https://github.com/CPS-IT/import-export-core/issues/68));
+`XMLMapper` follows with the XML components
+([#25](https://github.com/CPS-IT/import-export-core/issues/25)), `EvaluateExpressions`
+with the condition evaluator ([#24](https://github.com/CPS-IT/import-export-core/issues/24)).
 
 `Factory\TransferSetFactory` and `Factory\TransferTaskFactory` build sets and
 tasks from configuration. Components are built by one
