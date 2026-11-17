@@ -103,6 +103,67 @@ final class ValueRulesPreProcessorTest extends TestCase
         );
     }
 
+    public function testRemovesNestedFields(): void
+    {
+        $rules = [['rule' => 'remove', 'fields' => ['address.street', 'children.*.hidden', 'tags.*', 'missing.a', 'title.x', 'a.b']]];
+        $record = [
+            'title' => 'Title',
+            'address' => ['street' => 'Main St', 'city' => 'Town'],
+            'children' => [['uid' => 1, 'hidden' => 0], ['uid' => 2], 'text', ['uid' => 3, 'hidden' => 1]],
+            'tags' => ['a', 'b'],
+            'a.b' => 'literal',
+            'a' => ['b' => 'kept'],
+        ];
+
+        self::assertSame(
+            [
+                'title' => 'Title',
+                'address' => ['city' => 'Town'],
+                'children' => [['uid' => 1], ['uid' => 2], 'text', ['uid' => 3]],
+                'tags' => [],
+                'a' => ['b' => 'kept'],
+            ],
+            self::process($rules, $record)
+        );
+    }
+
+    public function testWrapsNonEmptyValues(): void
+    {
+        $rules = [
+            ['rule' => 'wrap', 'field' => 'title', 'prefix' => '<h1>', 'suffix' => '</h1>'],
+            ['rule' => 'wrap', 'field' => 'count', 'suffix' => ' items'],
+            ['rule' => 'wrap', 'field' => 'zero', 'prefix' => '#'],
+            ['rule' => 'wrap', 'field' => 'empty', 'prefix' => '#'],
+            ['rule' => 'wrap', 'field' => 'null', 'prefix' => '#'],
+            ['rule' => 'wrap', 'field' => 'list', 'prefix' => '#'],
+            ['rule' => 'wrap', 'field' => 'missing', 'prefix' => '#'],
+            ['rule' => 'wrap', 'field' => 'plain'],
+        ];
+        $record = ['title' => 'Title', 'count' => 5, 'zero' => '0', 'empty' => '', 'null' => null, 'list' => ['a'], 'plain' => 'x'];
+
+        self::assertSame(
+            ['title' => '<h1>Title</h1>', 'count' => '5 items', 'zero' => '#0', 'empty' => '', 'null' => null, 'list' => ['a'], 'plain' => 'x'],
+            self::process($rules, $record)
+        );
+    }
+
+    /**
+     * ConcatenateFields of t3import_export: wrap each field, then append them to the target field
+     */
+    public function testWrapAndJoinReplaceConcatenateFields(): void
+    {
+        $rules = [
+            ['rule' => 'wrap', 'field' => 'street', 'suffix' => '<br>'],
+            ['rule' => 'wrap', 'field' => 'city', 'prefix' => ' '],
+            ['rule' => 'join', 'field' => 'address', 'from' => ['address', 'street', 'zip', 'city'], 'separator' => ''],
+        ];
+
+        self::assertSame(
+            ['address' => 'c/o A<br>Main St<br>12345 Town', 'street' => 'Main St<br>', 'zip' => '12345', 'city' => ' Town'],
+            self::process($rules, ['address' => 'c/o A<br>', 'street' => 'Main St', 'zip' => '12345', 'city' => 'Town'])
+        );
+    }
+
     public function testAppliesRulesInOrderAndOnlyIfTheConditionHolds(): void
     {
         $rules = [
@@ -132,6 +193,8 @@ final class ValueRulesPreProcessorTest extends TestCase
         yield 'from not a list' => [[['rule' => 'fallback', 'field' => 'a', 'from' => 'b']]];
         yield 'array value' => [[['rule' => 'default', 'field' => 'a', 'value' => []]]];
         yield 'condition with two tests' => [[['rule' => 'trim', 'field' => 'a', 'when' => ['field' => 'b', 'empty' => true, 'equals' => 1]]]];
+        yield 'wrap prefix not a string' => [[['rule' => 'wrap', 'field' => 'a', 'prefix' => 1]]];
+        yield 'wrap without field' => [[['rule' => 'wrap', 'prefix' => '<']]];
         yield 'condition without test' => [[['rule' => 'trim', 'field' => 'a', 'when' => ['field' => 'b']]]];
     }
 

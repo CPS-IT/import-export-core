@@ -23,7 +23,7 @@ use CPSIT\ImportExportCore\Pipeline\PreProcessorInterface;
  * Applies declarative rules to the field values of a record, in order.
  * Covers the TypoScript rules of t3import_export used in imports: fallback (`teaser // abstract`), default value, copy and
  * rename (MapFields), value mapping (MapFieldValues), remove (RemoveFields),
- * trim and join. No expressions, so no code from a pipeline is executed.
+ * trim, wrap and join (ConcatenateFields). No expressions, so no code from a pipeline is executed.
  *
  * A value is empty if the field is missing, null or ''. Every rule may have a
  * condition `when`: `{field, equals}`, `{field, in}` or `{field, empty}`.
@@ -37,13 +37,17 @@ use CPSIT\ImportExportCore\Pipeline\PreProcessorInterface;
  *   - `rename`: `field` = value of `from`, `from` removed
  *   - `map`: `field` = `values[current]`; unmapped values are kept, or
  *     replaced by `otherwise` if given
- *   - `remove`: the fields `fields` are removed
+ *   - `remove`: the fields `fields` are removed. A name with dots is a path
+ *     into nested arrays, `*` stands for every element of a list:
+ *     `address.street`, `children.*.hidden`. A field whose name is the
+ *     whole path is removed instead
  *   - `trim`: whitespace around the string in `field` is removed
+ *   - `wrap`: `field` not empty -> `prefix` . value . `suffix` (both default '')
  *   - `join`: `field` = non-empty values of the fields `from`, joined by
  *     `separator` (default ' ')
  *
  * @phpstan-type Condition array{field: string, equals?: scalar|null, in?: list<scalar|null>, empty?: bool}
- * @phpstan-type Rule array{rule: string, field?: string, from?: string|list<string>, value?: scalar|null, values?: array<scalar|null>, otherwise?: scalar|null, fields?: list<string>, separator?: string, when?: Condition}
+ * @phpstan-type Rule array{rule: string, field?: string, from?: string|list<string>, value?: scalar|null, values?: array<scalar|null>, otherwise?: scalar|null, fields?: list<string>, separator?: string, prefix?: string, suffix?: string, when?: Condition}
  */
 final class ValueRulesPreProcessor implements PreProcessorInterface, ConfigurableInterface
 {
@@ -57,6 +61,7 @@ final class ValueRulesPreProcessor implements PreProcessorInterface, Configurabl
         'map' => ['field' => 'string', 'values' => 'map', '?otherwise' => 'value'],
         'remove' => ['fields' => 'list'],
         'trim' => ['field' => 'string'],
+        'wrap' => ['field' => 'string', '?prefix' => 'any-string', '?suffix' => 'any-string'],
         'join' => ['field' => 'string', 'from' => 'list', '?separator' => 'any-string'],
     ];
 
@@ -244,12 +249,20 @@ final class ValueRulesPreProcessor implements PreProcessorInterface, Configurabl
                 break;
             case 'remove':
                 foreach ($rule['fields'] ?? [] as $name) {
-                    unset($record[$name]);
+                    $record = \array_key_exists($name, $record) || !str_contains($name, '.')
+                        ? array_diff_key($record, [$name => null])
+                        : self::removePath($record, explode('.', $name));
                 }
                 break;
             case 'trim':
                 if (\is_string($record[$field] ?? null)) {
                     $record[$field] = trim($record[$field]);
+                }
+                break;
+            case 'wrap':
+                $value = $record[$field] ?? null;
+                if (\is_scalar($value) && '' !== $value) {
+                    $record[$field] = ($rule['prefix'] ?? '') . self::key($value) . ($rule['suffix'] ?? '');
                 }
                 break;
             case 'join':
@@ -265,5 +278,26 @@ final class ValueRulesPreProcessor implements PreProcessorInterface, Configurabl
         }
 
         return $record;
+    }
+
+    /**
+     * @param array<mixed> $data
+     * @param non-empty-list<string> $segments
+     *
+     * @return array<mixed>
+     */
+    private static function removePath(array $data, array $segments): array
+    {
+        $segment = array_shift($segments);
+        $keys = '*' === $segment ? array_keys($data) : (\array_key_exists($segment, $data) ? [$segment] : []);
+        foreach ($keys as $key) {
+            if ([] === $segments) {
+                unset($data[$key]);
+            } elseif (\is_array($data[$key])) {
+                $data[$key] = self::removePath($data[$key], $segments);
+            }
+        }
+
+        return $data;
     }
 }
