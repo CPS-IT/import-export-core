@@ -193,9 +193,11 @@ final class ConfigurationReferenceGenerator
             '        pid: 12',
             '```',
             '',
-            'Configurable components also accept the option `disable`: `true`, or a',
-            'condition with `expression` and `if.result.hasMessage`. A component that',
-            'implements `DisableableInterface` evaluates `disable` itself.',
+            'Initializers, filters, processors, converters and finishers also accept the',
+            'option `disable`: `true`, or a condition with `expression` or',
+            '`if.result.hasMessage`. Data sources are never disabled, data targets only if',
+            'they implement `DisableableInterface`. See',
+            '[Configuration of tasks and sets](README.md#disabling-components).',
         ];
         foreach (self::TYPES as $interface => [$title, $key]) {
             if (!isset($sections[$interface])) {
