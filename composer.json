@@ -50,6 +50,7 @@
             "org\\bovigo\\vfs\\": ".build/vendor/mikey179/vfsstream/src/main/php"
         },
         "psr-4": {
+            "CPSIT\\ImportExportCore\\Build\\": "Build/",
             "CPSIT\\ImportExportCore\\Tests\\": "Tests/"
         }
     },
@@ -71,6 +72,7 @@
             "mkdir -p .build/log/coverage/php/",
             "mkdir -p .build/log/coverage/html/"
         ],
+        "docs:reference": "@php Build/Scripts/configuration-reference.php",
         "fix": [
             "@fix:composer",
             "@fix:editorconfig",
@@ -82,9 +84,11 @@
         "lint": [
             "@lint:composer",
             "@lint:editorconfig",
-            "@lint:php"
+            "@lint:php",
+            "@lint:docs"
         ],
         "lint:composer": "@composer normalize --dry-run",
+        "lint:docs": "@php Build/Scripts/configuration-reference.php --check",
         "lint:editorconfig": "ec",
         "lint:php": "php-cs-fixer fix --dry-run --diff",
         "sca": [
@@ -103,12 +107,14 @@
         "test:unit": "@test:coverage:unit --no-coverage"
     },
     "scripts-descriptions": {
+        "docs:reference": "Generate the configuration reference of the components from their docblocks",
         "fix": "Fix all code quality issues reported by the registered linters",
         "fix:composer": "Fix all issues in `composer.json`",
         "fix:editorconfig": "Fix all styling issues violating the `.editorconfig` rules",
         "fix:php": "Fix all styling issues violating the configured PHP-CS-Fixer rules",
         "lint": "Run all registered linters to detect code quality issues",
         "lint:composer": "Lint `composer.json` to detect unnormalized styles",
+        "lint:docs": "Check that the generated configuration reference is current",
         "lint:editorconfig": "Lint all project files to detect violations of the `.editorconfig` rules",
         "lint:php": "Lint all PHP files to detect coding style violations",
         "sca": "Run all registered static code analyzers to detect issues in the codebase",

@@ -26,14 +26,20 @@ use CPSIT\ImportExportCore\State\IdMapping;
  * since. A record is unchanged if the ID map holds a mapping for its source ID
  * with the checksum of the record (IdMapping::recordChecksum()).
  *
- * Configuration: `namespace` and `sourceIdField`, as in the `idMap` settings of
- * the task. Records without a source ID are accepted.
+ * Records without a source ID are accepted.
  *
  * The filter runs after the pre-processors: the checksum covers the
  * pre-processed record, so changes in values that pre-processors add, e.g.
  * relation lists or resolved references, are detected. The source ID is taken
  * from the record as read from the source. Converters and post-processors are
  * not covered: after changing them, run the task without this filter once.
+ *
+ * Configuration:
+ *
+ * - `namespace` (string, required): namespace of the records in the ID map,
+ *   as in the `idMap` settings of the task
+ * - `sourceIdField` (string, required): field holding the source ID, as in
+ *   the `idMap` settings of the task
  */
 final class UnchangedRecordFilter implements ProcessedRecordFilterInterface, ConfigurableInterface
 {

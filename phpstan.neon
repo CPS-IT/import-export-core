@@ -2,6 +2,7 @@ parameters:
   level: 6
   paths:
     - Classes
+    - Build
   excludePaths:
     analyse:
       - .build/*

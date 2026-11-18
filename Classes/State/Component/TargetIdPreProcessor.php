@@ -31,14 +31,14 @@ use CPSIT\ImportExportCore\State\IdMapInterface;
  * that updates by `targetIdField`, e.g. `DataTargetDBAL` with that field as
  * `key` and `idField`.
  *
- * Configuration:
- *
- * - `namespace`: namespace of the records in the ID map (required)
- * - `sourceIdField`: field holding the source ID (required)
- * - `targetIdField`: field for the target ID (default: `sourceIdField`)
- *
  * The source ID is read before `targetIdField` is changed, so both may be the
  * same field.
+ *
+ * Configuration:
+ *
+ * - `namespace` (string, required): namespace of the records in the ID map
+ * - `sourceIdField` (string, required): field holding the source ID
+ * - `targetIdField` (string, default: `sourceIdField`): field for the target ID
  */
 final class TargetIdPreProcessor implements PreProcessorInterface, ConfigurableInterface
 {

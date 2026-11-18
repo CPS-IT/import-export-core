@@ -27,17 +27,18 @@ use CPSIT\ImportExportCore\State\IdMapInterface;
  * Replaces source IDs in a field with the target IDs from the ID map, e.g. the
  * parent page of a page or the category of an event.
  *
- * Configuration:
- *
- * - `field`: field holding the reference (required)
- * - `namespace`: namespace of the referenced records in the ID map (required)
- * - `separator`: for fields holding several IDs as a string, e.g. `,`
- * - `onMissing`: what happens if a referenced ID has no mapping:
- *   `fail` (default) throws an exception, `keep` keeps the source ID, `empty`
- *   removes it. `keep` and `empty` log a warning.
- *
  * The field may also hold a list of IDs. Empty values (`null`, `''`, `0`) are
  * left unchanged.
+ *
+ * Configuration:
+ *
+ * - `field` (string, required): field holding the reference
+ * - `namespace` (string, required): namespace of the referenced records in
+ *   the ID map
+ * - `separator` (string): for fields holding several IDs as a string, e.g. `,`
+ * - `onMissing` (string, default `fail`): what happens if a referenced ID has
+ *   no mapping: `fail` throws an exception, `keep` keeps the source ID,
+ *   `empty` removes it. `keep` and `empty` log a warning.
  */
 final class ResolveReferencePreProcessor implements PreProcessorInterface, ConfigurableInterface, LoggingInterface
 {

@@ -78,7 +78,10 @@ under `archive/` (for example `archive/develop`).
 2. Create a feature branch from the target branch.
 3. Make the change, including tests. Add an entry to `CHANGELOG.md`. For a
    breaking change or a deprecation, also add an entry to `UPGRADE.md`
-   describing who is affected and how to migrate.
+   describing who is affected and how to migrate. A new or changed component
+   documents its options in the class docblock (see
+   [decision 1](Documentation/Decisions/0001-documentation.md)); run
+   `composer docs:reference` afterwards.
 4. Run tests and linters locally.
 5. Open a pull request into the target branch and reference the issue
    (`Closes #12`).

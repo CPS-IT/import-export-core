@@ -27,8 +27,8 @@ use CPSIT\ImportExportCore\Queue\QueueRepositoryInterface;
  *
  * Configuration:
  *
- * * `identifier` (string, required): the queue
- * * `limit` (int, default 10): items per run
+ * - `identifier` (string, required): the queue
+ * - `limit` (int, default 10): items per run
  */
 class DataSourceQueue implements DataSourceInterface, ConfigurableInterface, CompletableSourceInterface
 {
