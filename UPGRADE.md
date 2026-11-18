@@ -13,7 +13,7 @@ Each entry contains:
 
 [CHANGELOG.md](CHANGELOG.md) lists all changes, including non-breaking ones.
 
-## 0.2.0 (unreleased)
+## 0.2.0
 
 ### Component interfaces: `isDisabled()` accepts `ResultInterface`
 
@@ -156,8 +156,8 @@ read records, post-processors that change the record before conversion.
 **Change:** new interfaces in `CPSIT\ImportExportCore\Pipeline\`. Components
 return values instead of changing arguments by reference. They receive their
 configuration once, when they are created (`setConfiguration()`), not with
-each call. The interfaces do not contain `isDisabled()`; conditions will be
-handled by the processor
+each call. The interfaces do not contain `isDisabled()`; the processor
+evaluates the option `disable` of the configuration
 ([#24](https://github.com/CPS-IT/import-export-core/issues/24)).
 
 | Deprecated (`Component\`) | Pipeline (`Pipeline\`) |
@@ -244,9 +244,12 @@ final class TruncateTables implements \CPSIT\ImportExportCore\Pipeline\Initializ
 }
 ```
 
-To keep the per-record `disabled` check until
-[#24](https://github.com/CPS-IT/import-export-core/issues/24) is done,
-implement `Component\DisableableInterface`.
+Components using the pipeline interfaces are disabled with the option
+`disable` in their configuration (`true`, `expression` or
+`if.result.hasMessage`), evaluated by the processor's
+`ConditionEvaluatorInterface`. A component that has to decide itself, e.g.
+with the deprecated option `disabled`, implements
+`Component\DisableableInterface`.
 
 ### Queue moved into the core
 
