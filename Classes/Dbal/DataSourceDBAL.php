@@ -29,24 +29,25 @@ use Doctrine\DBAL\Query\QueryBuilder;
  *
  * Configuration:
  *
- * * `table` (string, required): table name, optionally `schema.table`
- * * `connection` (string, default `default`): name of the connection in the
+ * - `table` (string, required): table name, optionally `schema.table`
+ * - `connection` (string, default `default`): name of the connection in the
  *   connection provider
- * * `fields` (list of strings, default all fields)
- * * `where` (map of field => value): equality conditions combined with AND;
+ * - `fields` (list of strings, default all fields): fields to read
+ * - `where` (map of field => value): equality conditions combined with AND;
  *   null means IS NULL, a list of integers or strings means IN (...)
- * * `filter` (condition): further conditions, combined with `where` by AND:
+ * - `filter` (condition): further conditions, combined with `where` by AND:
  *   comparisons, NULL checks, `all`/`any`/`not` groups, relative dates and
  *   `exists`/`notExists` on a related table; see {@see Filter}
- * * `timezone` (string, IANA name, default: PHP's default time zone): time
+ * - `timezone` (string, IANA name, default: PHP's default time zone): time
  *   zone of the relative dates in `filter`
- * * `orderBy` (map of field => `ASC`|`DESC`); not together with `cursorField`
- * * `limit` (int): maximum number of records
- * * `cursorField` (string): a unique, sortable field, e.g. `uid`. Records are
+ * - `orderBy` (map of field => `ASC`|`DESC`): sort order; not together with
+ *   `cursorField`
+ * - `limit` (int): maximum number of records
+ * - `cursorField` (string): a unique, sortable field, e.g. `uid`. Records are
  *   read in ascending order of this field, in pages of `pageSize` records,
  *   and an interrupted task continues after the last processed record. Must
  *   be one of `fields`, if fields are given.
- * * `pageSize` (int, default 1000): records per query with `cursorField`
+ * - `pageSize` (int, default 1000): records per query with `cursorField`
  */
 class DataSourceDBAL implements DataSourceInterface, ConfigurableInterface, ResumableSourceInterface
 {

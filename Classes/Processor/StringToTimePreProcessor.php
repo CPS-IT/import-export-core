@@ -28,9 +28,9 @@ use CPSIT\ImportExportCore\Pipeline\PreProcessorInterface;
  *
  * Configuration:
  *
- * - `fields`: fields to convert, list or comma-separated string (required)
- * - `multipleRowFields`: fields holding a list of child rows; the fields
- *   in `fields` are converted in each child row (optional)
+ * - `fields` (list or comma-separated string, required): fields to convert
+ * - `multipleRowFields` (list or comma-separated string): fields holding a
+ *   list of child rows; the fields in `fields` are converted in each child row
  */
 final class StringToTimePreProcessor implements PreProcessorInterface, ConfigurableInterface
 {

@@ -25,7 +25,7 @@ use CPSIT\ImportExportCore\Pipeline\PreProcessorInterface;
  *
  * Configuration:
  *
- * - `values`: map of field => scalar or null (required, not empty)
+ * - `values` (map of field => scalar or null, required, not empty): the values
  */
 final class SetValuesPreProcessor implements PreProcessorInterface, ConfigurableInterface
 {

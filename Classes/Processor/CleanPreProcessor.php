@@ -28,7 +28,7 @@ use CPSIT\ImportExportCore\Pipeline\PreProcessorInterface;
  *
  * Configuration:
  *
- * - `fields`: map of field => options (required, not empty). Options:
+ * - `fields` (map of field => options, required, not empty). Options:
  *   - `str_replace`: `{search: string, replace: string}`
  *   - `stripslashes`, `strip_emptytags` (removes empty HTML elements),
  *     `strip_tags`, `htmlspecialchars`, `strip_spaces` (removes all

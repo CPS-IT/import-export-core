@@ -25,8 +25,9 @@ use CPSIT\ImportExportCore\Queue\QueueRepositoryInterface;
  *
  * Configuration:
  *
- * * `identifier` (string, required): the queue
- * * `allowUpdate` (bool, default false)
+ * - `identifier` (string, required): the queue
+ * - `allowUpdate` (bool, default false): records already in the queue are set
+ *   back to new
  */
 class DataTargetQueue implements DataTargetInterface, ConfigurableInterface
 {

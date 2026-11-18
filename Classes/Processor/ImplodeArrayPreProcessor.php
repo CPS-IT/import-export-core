@@ -29,9 +29,9 @@ use CPSIT\ImportExportCore\Pipeline\PreProcessorInterface;
  *
  * Configuration:
  *
- * - `fields`: map of field => options (required, not empty). Options:
- *   - `child`: key of the array inside the field (optional)
- *   - `wrap`: separator (optional, default ',')
+ * - `fields` (map of field => options, required, not empty). Options:
+ *   - `child` (string): key of the array inside the field
+ *   - `wrap` (string, default ','): separator
  */
 final class ImplodeArrayPreProcessor implements PreProcessorInterface, ConfigurableInterface
 {

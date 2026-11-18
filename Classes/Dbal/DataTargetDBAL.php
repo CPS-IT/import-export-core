@@ -38,12 +38,12 @@ use Doctrine\DBAL\Connection;
  *
  * Configuration:
  *
- * * `table` (string, required): table name, optionally `schema.table`
- * * `connection` (string, default `default`): name of the connection in the
+ * - `table` (string, required): table name, optionally `schema.table`
+ * - `connection` (string, default `default`): name of the connection in the
  *   connection provider
- * * `key` (list of strings): fields identifying an existing row, e.g.
+ * - `key` (list of strings): fields identifying an existing row, e.g.
  *   `['import_source', 'import_id']`. Without key, all records are inserted.
- * * `idField` (string, default `id`): primary key column. Its value is
+ * - `idField` (string, default `id`): primary key column. Its value is
  *   reported as target ID for the ID map: taken from the record, from the
  *   existing row on update, or from the generated ID after an insert. Set it
  *   to '' for tables without such a column; the target reports no IDs then.

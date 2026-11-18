@@ -29,7 +29,7 @@ use CPSIT\ImportExportCore\Pipeline\PreProcessorInterface;
  *
  * Configuration:
  *
- * - `fields`: map of field => expression (required, not empty)
+ * - `fields` (map of field => expression, required, not empty): the expressions
  */
 final class EvaluateExpressionsPreProcessor implements PreProcessorInterface, ConfigurableInterface
 {

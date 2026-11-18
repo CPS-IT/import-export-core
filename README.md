@@ -124,8 +124,10 @@ composer install
 composer test:unit    # unit tests
 composer lint         # composer normalize, editorconfig, PHP-CS-Fixer
 composer sca          # PHPStan
+composer docs:reference  # generate the configuration reference
 ```
 
+The documentation is listed in [Documentation/README.md](Documentation/README.md).
 See [Documentation/Architecture.md](Documentation/Architecture.md) for the
 structure of the library and the planned changes, and
 [CONTRIBUTING.md](CONTRIBUTING.md) for the branching model, the workflow and

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<phpdocumentor
+    configVersion="3"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="https://www.phpdoc.org"
+    xsi:noNamespaceSchemaLocation="https://docs.phpdoc.org/latest/phpdoc.xsd"
+>
+    <title>Import &amp; Export core library</title>
+    <paths>
+        <output>.build/api</output>
+        <cache>.build/cache/phpdoc</cache>
+    </paths>
+    <version number="latest">
+        <api>
+            <source dsn=".">
+                <path>Classes</path>
+            </source>
+            <visibility>public</visibility>
+            <visibility>protected</visibility>
+            <default-package-name>ImportExportCore</default-package-name>
+        </api>
+    </version>
+</phpdocumentor>

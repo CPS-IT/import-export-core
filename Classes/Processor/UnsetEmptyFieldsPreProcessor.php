@@ -28,7 +28,7 @@ use CPSIT\ImportExportCore\Pipeline\PreProcessorInterface;
  *
  * Configuration:
  *
- * - `fields`: fields to check, list or comma-separated string (required)
+ * - `fields` (list or comma-separated string, required): fields to check
  */
 final class UnsetEmptyFieldsPreProcessor implements PreProcessorInterface, ConfigurableInterface
 {

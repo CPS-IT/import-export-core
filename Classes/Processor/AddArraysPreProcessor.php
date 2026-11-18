@@ -29,8 +29,8 @@ use CPSIT\ImportExportCore\Pipeline\PreProcessorInterface;
  *
  * Configuration:
  *
- * - `targetField`: name of the target field (required)
- * - `fields`: source fields, list or comma-separated string (required)
+ * - `targetField` (string, required): name of the target field
+ * - `fields` (list or comma-separated string, required): source fields
  */
 final class AddArraysPreProcessor implements PreProcessorInterface, ConfigurableInterface
 {

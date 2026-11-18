@@ -9,13 +9,17 @@ This file lives in `.github/workflows/`, not in `.github/`: GitHub shows a
 | Workflow | File | Jobs |
 |----------|------|------|
 | Tests | `tests.yml` | Unit tests with PHP 8.3 and 8.4, coverage report (uploaded to Codecov) |
-| Code Quality | `code-quality.yml` | PHP-CS-Fixer, PHPStan, EditorConfig |
+| Code Quality | `code-quality.yml` | PHP-CS-Fixer, PHPStan, EditorConfig, configuration reference (`composer lint:docs`) |
 | Composer Validation | `composer-validate.yml` | `composer validate`, normalized `composer.json` |
+| API reference | `api-reference.yml` | Builds the API reference with phpDocumentor (`phpdoc.dist.xml`); on `main` it is published with GitHub Pages |
 
 ## Triggers
 
 * pushes to `main`, `feature/**` and `support/**`
 * all pull requests
+
+The API reference is built for pull requests and deployed on pushes to `main`
+only. GitHub Pages must be enabled with the source "GitHub Actions".
 
 ## Required checks
 

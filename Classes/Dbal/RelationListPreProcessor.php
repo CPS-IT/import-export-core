@@ -24,22 +24,21 @@ use CPSIT\ImportExportCore\Pipeline\PreProcessorInterface;
  * categories of an event. Combine with `ResolveReferencePreProcessor` to map
  * them to target IDs. Requires the package doctrine/dbal.
  *
- * Runs one query per record.
+ * Runs one query per record. A record without ID gets an empty list (or '').
  *
  * Configuration:
  *
- * * `table` (string, required): relation table, optionally `schema.table`
- * * `targetField` (string, required): field that receives the IDs
- * * `connection` (string, default `default`)
- * * `idField` (string, default `uid`): field of the record holding its ID
- * * `localField` (string, default `uid_local`): column referring to the record
- * * `foreignField` (string, default `uid_foreign`): column with the related ID
- * * `sortField` (string, default `sorting`): order of the IDs; '' for none
- * * `where` (map of field => value): further conditions, e.g. `fieldname`
- * * `separator` (string): if set, the IDs are joined to a string; otherwise
+ * - `table` (string, required): relation table, optionally `schema.table`
+ * - `targetField` (string, required): field that receives the IDs
+ * - `connection` (string, default `default`): name of the connection in the
+ *   connection provider
+ * - `idField` (string, default `uid`): field of the record holding its ID
+ * - `localField` (string, default `uid_local`): column referring to the record
+ * - `foreignField` (string, default `uid_foreign`): column with the related ID
+ * - `sortField` (string, default `sorting`): order of the IDs; '' for none
+ * - `where` (map of field => value): further conditions, e.g. `fieldname`
+ * - `separator` (string): if set, the IDs are joined to a string; otherwise
  *   the field receives a list
- *
- * A record without ID gets an empty list (or '').
  */
 final class RelationListPreProcessor implements PreProcessorInterface, ConfigurableInterface
 {

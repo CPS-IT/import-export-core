@@ -30,7 +30,7 @@ use CPSIT\ImportExportCore\Pipeline\PreProcessorInterface;
  *
  * Configuration:
  *
- * - `rules`: list of rules (required, not empty), each with `rule`:
+ * - `rules` (list of rules, required, not empty), each with `rule`:
  *   - `fallback`: `field` empty -> first non-empty value of the fields `from`
  *   - `default`: `field` empty -> `value`
  *   - `copy`: `field` = value of `from`
