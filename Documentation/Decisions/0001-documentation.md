@@ -58,7 +58,7 @@ Documentation/
     Conditions.md            disable, conditions, expressions
     Persistence.md           sources, targets, queue, DBAL
     State.md                 ID map, checkpoints, incremental mode
-    Events.md
+    Processing.md            processor, order of processing, result, events
     Legacy.md                legacy contracts, adapters, deprecations
 ```
 

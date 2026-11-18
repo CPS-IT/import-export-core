@@ -4,9 +4,10 @@
 
 People who configure tasks and sets.
 
+* [Configuration of tasks and sets](Configuration/README.md): file
+  structure, tasks, sets, components, `disable`
 * [Configuration of components](Configuration/Components.md): options of
   every component (generated)
-* Configuration schema of tasks and sets: not written yet
 
 ## Developers
 
@@ -15,9 +16,14 @@ People who write components or use the library in an application.
 * [README](../README.md): installation and usage
 * [Architecture](Architecture.md): processing model and namespaces
 * [UPGRADE](../UPGRADE.md): migration for breaking changes
-* Not written yet: writing components, registry and factories; conditions
-  and expressions; sources, targets and queue; ID map and checkpoints;
-  events; legacy adapters and deprecations
+* [Processing tasks](Developer/Processing.md): factories, processor, order
+  of processing, result, events
+* [Writing components](Developer/Components.md): interfaces, configuration,
+  documenting options, dependencies, short names, messages, tests
+* [Conditions and expressions](Developer/Conditions.md)
+* [Sources, targets and queue](Developer/Persistence.md), including DBAL
+* [ID map, checkpoints and incremental mode](Developer/State.md)
+* [Legacy components and deprecations](Developer/Legacy.md)
 * [API reference](https://cps-it.github.io/import-export-core/), generated with
   phpDocumentor from `main` (`phpdoc.dist.xml`)
 
