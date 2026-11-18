@@ -18,7 +18,8 @@ People who write components or use the library in an application.
 * Not written yet: writing components, registry and factories; conditions
   and expressions; sources, targets and queue; ID map and checkpoints;
   events; legacy adapters and deprecations
-* API reference: not published yet
+* [API reference](https://cps-it.github.io/import-export-core/), generated with
+  phpDocumentor from `main` (`phpdoc.dist.xml`)
 
 ## Contributors
 

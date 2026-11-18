@@ -12,6 +12,8 @@ a new minor version may contain breaking changes.
   configuration reference of the components is generated from their
   docblocks (`composer docs:reference`) and checked by `composer lint`
   ([#76](https://github.com/CPS-IT/import-export-core/issues/76))
+* API reference generated with phpDocumentor and published with GitHub Pages
+  ([#76](https://github.com/CPS-IT/import-export-core/issues/76))
 * `ResultInterface`, implemented by `TaskResult`
   ([#22](https://github.com/CPS-IT/import-export-core/issues/22))
 * `TransferProcessorInterface` and `DataTransferProcessor`: the processor
