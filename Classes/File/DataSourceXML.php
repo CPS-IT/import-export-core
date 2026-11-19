@@ -227,7 +227,7 @@ class DataSourceXML implements DataSourceInterface, ConfigurableInterface, Resum
                 if ($reader->nodeType === \XMLReader::ELEMENT && $reader->localName === $localName
                     && ($namespace === null || $reader->namespaceURI === $namespace)
                 ) {
-                    $node = $reader->expand($document);
+                    $node = @$reader->expand($document);
                     if (!$node instanceof \DOMElement) {
                         throw $this->parseError($location);
                     }
