@@ -157,7 +157,8 @@ design issues are addressed in 0.2.0 (milestone
   0.2.0: the processor evaluates conditions with a `ConditionEvaluatorInterface`
   ([#24](https://github.com/CPS-IT/import-export-core/issues/24))
 * There is no abstraction for paths and resources, so file-based sources and
-  targets cannot move into the core. ([#25](https://github.com/CPS-IT/import-export-core/issues/25))
+  targets cannot move into the core. Done in 0.3.0 for the CSV and XML
+  sources and the CSV target ([#25](https://github.com/CPS-IT/import-export-core/issues/25))
 * Components modify arrays by reference and receive their configuration twice
   (per call and via setter). Done in 0.2.0 ([#26](https://github.com/CPS-IT/import-export-core/issues/26))
 * Messages are collected through traits instead of injected collaborators.

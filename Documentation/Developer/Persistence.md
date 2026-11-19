@@ -35,6 +35,77 @@ Optional interfaces:
 | `IdentifyingTargetInterface` | `getTargetId($record)` returns the ID of a written record. Required for tasks with `idMap`, see [State](State.md#id-map). The processor asks after `flushBatch()` for batch aware targets, after `persist()` for others. |
 | `Component\DisableableInterface` | `isDisabled($configuration, $record, $result)`: the target skips the record. |
 
+## Files
+
+The sources and targets in `File\` read and write CSV and XML files:
+
+| Class | Purpose |
+|---|---|
+| `File\DataSourceCSV` | reads one record per row; resumable |
+| `File\DataSourceXML` | reads one record per element, with `XMLReader` (`element`) or XPath (`expression`); resumable |
+| `File\DataTargetCSV` | writes one row per record |
+| `Persistence\NullDataSource`, `Persistence\NullDataTarget` | no records, nothing written |
+
+Options: [Configuration/Components.md](../Configuration/Components.md).
+
+### Resource loaders
+
+Sources do not open files themselves. They pass the value of `file` or `url`
+to a `Resource\ResourceLoaderInterface`, which returns a PSR-7 stream:
+
+| Loader | Locations |
+|---|---|
+| `FileResourceLoader` (default) | paths, resolved by a `PathResolverInterface` |
+| `HttpResourceLoader` | `http` and `https` URLs, with a PSR-18 client and a PSR-17 request factory (packages psr/http-client and psr/http-factory) |
+| `DelegatingResourceLoader` | the first of its loaders that supports the location |
+
+`Resource\PathResolver` resolves paths relative to a base directory, by
+default the working directory. It rejects absolute paths, stream wrappers
+(`scheme://`), `..` segments and symbolic links that lead out of the base
+directory, so a configuration cannot read or write other files of the
+system. `DataTargetCSV` uses a path resolver as well.
+
+Loading URLs is not enabled by default. A configuration with `url` could
+make the application request any address its HTTP client reaches, so an
+application adds `HttpResourceLoader` only if it needs it, and restricts the
+client to the hosts it expects.
+
+The loader and the path resolver are constructor arguments. Without them,
+`FileResourceLoader` and `PathResolver` with the working directory are used.
+Applications pass their own, e.g. through the container and a
+`ContainerInstantiator` (see [Components](Components.md#dependencies)):
+
+```php
+use CPSIT\ImportExportCore\File\DataSourceCSV;
+use CPSIT\ImportExportCore\Resource\DelegatingResourceLoader;
+use CPSIT\ImportExportCore\Resource\FileResourceLoader;
+use CPSIT\ImportExportCore\Resource\HttpResourceLoader;
+use CPSIT\ImportExportCore\Resource\PathResolver;
+
+$loader = new DelegatingResourceLoader(
+    new FileResourceLoader(new PathResolver('/var/import')),
+    new HttpResourceLoader($httpClient, $requestFactory),
+);
+$source = new DataSourceCSV($loader);
+```
+
+The extension t3import_export resolves `EXT:` paths with its own path
+resolver.
+
+### Large files and resuming
+
+Both sources return generators and read the file while the processor
+processes the records, so only one batch is held in memory (`DataSourceXML`
+with `expression` loads the whole document). Both implement
+`ResumableSourceInterface`: `DataSourceCSV` continues at the stored position
+in the file, `DataSourceXML` reads the file again and skips the records up
+to the stored record number.
+
+Records of files have no ID of their own. Use a field of the file as source
+ID for the ID map, or `recordNumberField`, which adds the number of the
+record. The record number only identifies a record as long as records are
+not inserted or removed in the file.
+
 ## Queue
 
 A queue stages records between two tasks: one task writes records into a

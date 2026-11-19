@@ -4,6 +4,25 @@ All notable changes to this project are documented in this file. The project
 follows [Semantic Versioning](https://semver.org/). While the version is `0.x`,
 a new minor version may contain breaking changes.
 
+## Unreleased
+
+### Added
+
+* `ResourceLoaderInterface` with `FileResourceLoader`, `HttpResourceLoader`
+  and `DelegatingResourceLoader`, and `PathResolverInterface` with
+  `PathResolver`, which does not allow paths outside of its base directory
+  ([#25](https://github.com/CPS-IT/import-export-core/issues/25))
+* `DataSourceCSV` and `DataSourceXML`: read files row by row or element by
+  element and can resume; `DataTargetCSV`. They replace the components of the
+  same name in the extension
+  ([#25](https://github.com/CPS-IT/import-export-core/issues/25))
+* `NullDataSource` and `NullDataTarget`
+  ([#25](https://github.com/CPS-IT/import-export-core/issues/25))
+* `ResourceStream`: PSR-7 stream around a PHP stream resource;
+  `TemporaryStream` extends it
+* The processor moves messages of sources and targets into the result, after
+  each batch and at the end of a task
+
 ## 0.2.0 - 2026-11-18
 
 ### Added
