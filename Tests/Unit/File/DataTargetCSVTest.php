@@ -15,10 +15,12 @@ declare(strict_types=1);
 
 namespace CPSIT\ImportExportCore\Tests\Unit\File;
 
+use CPSIT\ImportExportCore\Exception\InvalidConfigurationException;
 use CPSIT\ImportExportCore\Exception\PersistenceException;
 use CPSIT\ImportExportCore\File\DataSourceCSV;
 use CPSIT\ImportExportCore\File\DataTargetCSV;
 use CPSIT\ImportExportCore\Resource\FileResourceLoader;
+use CPSIT\ImportExportCore\Resource\FileTypePolicy;
 use CPSIT\ImportExportCore\Resource\PathResolver;
 use CPSIT\ImportExportCore\Tests\Unit\Resource\TemporaryDirectoryTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -51,6 +53,31 @@ class DataTargetCSVTest extends TestCase
         ]);
 
         self::assertSame("uid,title\n1,\"One, \"\"quoted\"\"\"\n2,\"Two\nlines\"\n", $this->content('out/a.csv'));
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function notAllowedFileProvider(): array
+    {
+        return [
+            'other type' => ['out/a.xml'],
+            'php' => ['out/a.php'],
+            'php with csv extension' => ['out/a.php.csv'],
+        ];
+    }
+
+    #[DataProvider('notAllowedFileProvider')]
+    public function testDoesNotWriteFileWithTypeThatIsNotAllowed(string $file): void
+    {
+        try {
+            $this->write(['file' => $file], [['uid' => 1]]);
+            self::fail('The file was written.');
+        } catch (InvalidConfigurationException $exception) {
+            self::assertSame(FileTypePolicy::ERROR_NOT_ALLOWED, $exception->getCode());
+        }
+
+        self::assertFileDoesNotExist($this->directory . '/' . $file);
     }
 
     public function testWritesConfiguredFieldsAndFormat(): void

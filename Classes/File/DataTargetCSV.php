@@ -20,6 +20,7 @@ use CPSIT\ImportExportCore\ConfigurableTrait;
 use CPSIT\ImportExportCore\Exception\InvalidArgumentException;
 use CPSIT\ImportExportCore\Exception\PersistenceException;
 use CPSIT\ImportExportCore\Persistence\DataTargetInterface;
+use CPSIT\ImportExportCore\Resource\FileTypePolicy;
 use CPSIT\ImportExportCore\Resource\PathResolver;
 use CPSIT\ImportExportCore\Resource\PathResolverInterface;
 
@@ -30,6 +31,10 @@ use CPSIT\ImportExportCore\Resource\PathResolverInterface;
  * closed in `persistAll()`. Records must be arrays. Values that are not
  * scalar are written as JSON; `Stringable` objects as string. Fields missing
  * in a record are written as empty values.
+ *
+ * `file` must have one of the allowed file types (`FileTypePolicy`), by
+ * default `csv`, `tsv` or `txt`. The application can pass other types as
+ * constructor argument. Executable files are never allowed.
  *
  * Configuration:
  *
@@ -47,6 +52,11 @@ use CPSIT\ImportExportCore\Resource\PathResolverInterface;
  */
 class DataTargetCSV implements DataTargetInterface, ConfigurableInterface
 {
+    /**
+     * @var list<string>
+     */
+    public const array DEFAULT_FILE_EXTENSIONS = ['csv', 'tsv', 'txt'];
+
     use ConfigurableTrait;
 
     public const string KEY_FILE = 'file';
@@ -56,6 +66,8 @@ class DataTargetCSV implements DataTargetInterface, ConfigurableInterface
     public const int ERROR_WRITE_FAILED = 1795200702;
 
     protected readonly PathResolverInterface $pathResolver;
+
+    protected readonly FileTypePolicy $fileTypes;
 
     /**
      * @var resource|null
@@ -67,9 +79,13 @@ class DataTargetCSV implements DataTargetInterface, ConfigurableInterface
      */
     protected array $fields = [];
 
-    public function __construct(?PathResolverInterface $pathResolver = null)
+    /**
+     * @param FileTypePolicy|null $fileTypes allowed types of `file`; default: `DEFAULT_FILE_EXTENSIONS`
+     */
+    public function __construct(?PathResolverInterface $pathResolver = null, ?FileTypePolicy $fileTypes = null)
     {
         $this->pathResolver = $pathResolver ?? new PathResolver();
+        $this->fileTypes = $fileTypes ?? new FileTypePolicy(self::DEFAULT_FILE_EXTENSIONS);
     }
 
     public function __destruct()
@@ -142,6 +158,7 @@ class DataTargetCSV implements DataTargetInterface, ConfigurableInterface
         }
         /** @var string $file */
         $file = $configuration[self::KEY_FILE];
+        $this->fileTypes->assertAllowed($file);
         try {
             $path = $this->pathResolver->resolve($file);
         } catch (InvalidArgumentException $exception) {

@@ -61,14 +61,48 @@ to a `Resource\ResourceLoaderInterface`, which returns a PSR-7 stream:
 
 `Resource\PathResolver` resolves paths relative to a base directory, by
 default the working directory. It rejects absolute paths, stream wrappers
-(`scheme://`), `..` segments and symbolic links that lead out of the base
-directory, so a configuration cannot read or write other files of the
-system. `DataTargetCSV` uses a path resolver as well.
+(`scheme://`), `..` segments, symbolic links that lead out of the base
+directory, and executable file names (see below), so a configuration cannot
+read or write other files of the system. `DataTargetCSV` uses a path resolver
+as well.
 
 Loading URLs is not enabled by default. A configuration with `url` could
 make the application request any address its HTTP client reaches, so an
-application adds `HttpResourceLoader` only if it needs it, and restricts the
-client to the hosts it expects.
+application adds `HttpResourceLoader` only if it needs it, with the hosts it
+expects:
+
+```php
+new HttpResourceLoader($httpClient, $requestFactory, ['data.example.org', '*.example.com']);
+```
+
+A URL with another host throws a `MissingResourceException`
+(`HttpResourceLoader::ERROR_HOST_NOT_ALLOWED`) before a request is sent.
+Without the list, all hosts are allowed.
+
+### File types
+
+Each file component accepts only its own file types in `file`:
+
+| Component | Default (`DEFAULT_FILE_EXTENSIONS`) |
+|---|---|
+| `DataSourceCSV`, `DataTargetCSV` | `csv`, `tsv`, `txt` |
+| `DataSourceXML` | `xml` |
+
+Another type throws an `InvalidConfigurationException`
+(`FileTypePolicy::ERROR_NOT_ALLOWED`) before the file is opened or created.
+The application sets other types as constructor argument; a task
+configuration cannot change them:
+
+```php
+new DataSourceCSV($loader, new FileTypePolicy(['csv', 'dat']));
+```
+
+Executable files are never allowed, by `FileTypePolicy` and by
+`PathResolver`: names ending in `.php`, `.php3` to `.php8`, `.phpsh`,
+`.phtml`, `.pht`, `.phar`, `.shtml`, `.cgi` or `.pl`, also with a further
+extension (`a.php.csv`), and `.htaccess`. The pattern is the default
+`fileDenyPattern` of TYPO3. URLs (`url`) are not checked, since their path
+often has no file extension.
 
 The loader and the path resolver are constructor arguments. Without them,
 `FileResourceLoader` and `PathResolver` with the working directory are used.

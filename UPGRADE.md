@@ -13,6 +13,21 @@ Each entry contains:
 
 [CHANGELOG.md](CHANGELOG.md) lists all changes, including non-breaking ones.
 
+## 0.5.0 (unreleased)
+
+### File components accept only their file types
+
+**Affects**: tasks whose `file` of `DataSourceCSV`, `DataTargetCSV` or
+`DataSourceXML` has another extension than `csv`, `tsv`, `txt` (CSV) or
+`xml` (XML); configurations with executable file names in `file`.
+
+**Change**: such files throw an `InvalidConfigurationException`
+(`FileTypePolicy::ERROR_NOT_ALLOWED`). `PathResolver` rejects executable file
+names, e.g. `a.php` or `a.php.csv`.
+
+**Migration**: rename the files, or pass the types as constructor argument:
+`new DataSourceCSV($loader, new FileTypePolicy(['csv', 'dat']))`.
+
 ## 0.4.0
 
 ### Expressions: read-only `result`, errors and ranges
