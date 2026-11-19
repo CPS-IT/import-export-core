@@ -13,7 +13,7 @@ Each entry contains:
 
 [CHANGELOG.md](CHANGELOG.md) lists all changes, including non-breaking ones.
 
-## 0.4.0 (unreleased)
+## 0.4.0
 
 ### Expressions: read-only `result`, errors and ranges
 
