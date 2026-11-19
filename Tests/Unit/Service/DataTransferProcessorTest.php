@@ -20,9 +20,14 @@ use CPSIT\ImportExportCore\Domain\Model\Dto\TaskDemand;
 use CPSIT\ImportExportCore\Domain\Model\ResultInterface;
 use CPSIT\ImportExportCore\Domain\Model\TaskResult;
 use CPSIT\ImportExportCore\Domain\Model\TransferTask;
+use CPSIT\ImportExportCore\Event\BatchProcessed;
 use CPSIT\ImportExportCore\Exception\InvalidConfigurationException;
+use CPSIT\ImportExportCore\LoggingInterface;
+use CPSIT\ImportExportCore\LoggingTrait;
 use CPSIT\ImportExportCore\Messaging\Message;
 use CPSIT\ImportExportCore\Messaging\MessageInterface;
+use CPSIT\ImportExportCore\Persistence\DataSourceInterface;
+use CPSIT\ImportExportCore\Persistence\DataTargetInterface;
 use CPSIT\ImportExportCore\Processor\SetValuesPreProcessor;
 use CPSIT\ImportExportCore\Service\DataTransferProcessor;
 use CPSIT\ImportExportCore\Service\TransferProcessorInterface;
@@ -41,6 +46,7 @@ use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\ResultFinisher;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\SetFieldPreProcessor;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\ToObjectConverter;
 use PHPUnit\Framework\TestCase;
+use Psr\EventDispatcher\EventDispatcherInterface;
 
 require_once __DIR__ . '/Fixtures/Components.php';
 
@@ -387,6 +393,66 @@ class DataTransferProcessorTest extends TestCase
             $result->getMessages()
         );
         self::assertSame(['Record 1', 'Record 2'], $descriptions);
+    }
+
+    public function testGathersMessagesOfSourceAndTarget(): void
+    {
+        $source = new class() implements DataSourceInterface, LoggingInterface {
+            use LoggingTrait;
+
+            public function getRecords(array $configuration): iterable
+            {
+                yield ['id' => 1];
+                $this->logMessage('Source', 'Skipped row');
+                yield ['id' => 2];
+                $this->logMessage('Source', 'At the end');
+            }
+        };
+        $target = new class() implements DataTargetInterface, LoggingInterface {
+            use LoggingTrait;
+
+            public function persist(array|object $object, ?array $configuration = null): bool
+            {
+                $this->logMessage('Target', 'Written');
+
+                return true;
+            }
+
+            public function persistAll(mixed $result = null, ?array $configuration = null): void
+            {
+            }
+        };
+        $task = new TransferTask();
+        $task->setIdentifier('task');
+        $task->setSource($source);
+        $task->setTarget($target);
+        $batches = [];
+        $dispatcher = new class($batches) implements EventDispatcherInterface {
+            /**
+             * @param list<int> $batches
+             */
+            public function __construct(private array &$batches)
+            {
+            }
+
+            public function dispatch(object $event): object
+            {
+                if ($event instanceof BatchProcessed) {
+                    $this->batches[] = \count($event->result->getMessages());
+                }
+
+                return $event;
+            }
+        };
+
+        $result = (new DataTransferProcessor(eventDispatcher: $dispatcher, batchSize: 1))->process($task);
+
+        $descriptions = array_map(
+            static fn (MessageInterface $message): string => $message->getMessage(),
+            $result->getMessages()
+        );
+        self::assertSame(['Written', 'Skipped row', 'Written', 'At the end'], $descriptions);
+        self::assertSame([1, 3], $batches);
     }
 
     public function testAcceptsRecordsFromGenerator(): void
