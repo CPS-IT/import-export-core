@@ -290,6 +290,36 @@ class DataTransferProcessorIdMapTest extends TestCase
         self::assertSame(1, $run());
     }
 
+    public function testIncrementalRunWithSeparateTargetIdFieldWritesOnlyChangedRecords(): void
+    {
+        // Source ID `email`, target ID `uid`: `uid` is missing in the first run
+        // and set from the second run on, so it must not be part of the checksum.
+        $run = function (array $records) {
+            $filter = new UnchangedRecordFilter($this->idMap);
+            $filter->setConfiguration(['namespace' => 'users', 'sourceIdField' => 'email', 'targetIdField' => 'uid']);
+            $upsert = new TargetIdPreProcessor($this->idMap);
+            $upsert->setConfiguration(['namespace' => 'users', 'sourceIdField' => 'email', 'targetIdField' => 'uid']);
+            $task = $this->createTask($records, new IdentifyingTarget());
+            $task->setIdMapSettings(new IdMapSettings('users', 'email', 'uid'));
+            $task->setPreProcessors([$upsert]);
+            $task->setFilters([$filter]);
+            $result = new TaskResult();
+            $this->subject->process($task, $result);
+
+            return $result->getStatistics()->getSkipped();
+        };
+        $records = [
+            ['email' => 'a@example.org', 'name' => 'A'],
+            ['email' => 'b@example.org', 'name' => 'B'],
+            ['email' => 'c@example.org', 'name' => 'C'],
+        ];
+
+        self::assertSame(0, $run($records));
+        $records[1]['name'] = 'Bea';
+        self::assertSame(2, $run($records));
+        self::assertSame(3, $run($records));
+    }
+
     public function testProcessedRecordFiltersRunAfterThePreProcessors(): void
     {
         $log = [];

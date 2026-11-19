@@ -396,6 +396,10 @@ Configuration:
   as in the `idMap` settings of the task
 - `sourceIdField` (string, required): field holding the source ID, as in
   the `idMap` settings of the task
+- `targetIdField` (string): field in which `TargetIdPreProcessor` sets the
+  target ID, as in the `idMap` settings of the task; required if it differs
+  from `sourceIdField`, otherwise records are written once more after their
+  first run
 
 ## Data targets
 

@@ -22,14 +22,16 @@ written record:
 idMap:
   namespace: pages        # e.g. a table or entity type
   sourceIdField: uid      # field of the source record holding its ID
+  targetIdField: uid      # optional: field for the target ID, if it differs
 ```
 
 * `namespace` and `sourceId` identify the mapping.
 * `targetId` comes from `IdentifyingTargetInterface::getTargetId()`; a task
   with `idMap` and a target without this interface raises an
   `InvalidConfigurationException`.
-* `checksum` is `IdMapping::recordChecksum($record, $sourceIdField)` of the
-  record after the pre-processors, without its ID field.
+* `checksum` is `IdMapping::recordChecksum($record, $sourceIdField,
+  $targetIdField)` of the record after the pre-processors, without its ID
+  fields.
 
 A source record without a value in `sourceIdField` raises an
 `UnexpectedValueException`. With a batch aware target, the mappings of a
@@ -78,6 +80,13 @@ target:
     key: [uid]
     idField: uid
 ```
+
+If the target ID is set in another field than the source ID, e.g. records
+of a file identified by `email` and written to a table with `uid`, set
+`targetIdField` in `idMap`, `TargetIdPreProcessor` and `UnchangedRecordFilter`.
+The field is missing in the first run and set from the second run on, so it
+is left out of the checksum; without the option, each record is written once
+more in the second run.
 
 `UnchangedRecordFilter` runs after the pre-processors, so values that
 pre-processors add (relations, resolved references) are part of the checksum.

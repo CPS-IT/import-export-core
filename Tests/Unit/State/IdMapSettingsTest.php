@@ -36,6 +36,31 @@ class IdMapSettingsTest extends TestCase
         self::assertSame('uid', $subject->sourceIdField);
     }
 
+    public function testCreatesFromArrayWithTargetIdField(): void
+    {
+        $subject = IdMapSettings::fromArray(['namespace' => 'users', 'sourceIdField' => 'email', 'targetIdField' => 'uid']);
+
+        self::assertSame('uid', $subject->targetIdField);
+        self::assertSame(['uid'], $subject->excludedFields());
+        self::assertSame([], IdMapSettings::fromArray(['namespace' => 'pages', 'sourceIdField' => 'uid'])->excludedFields());
+    }
+
+    public function testFromArrayRejectsTargetIdFieldThatIsNoString(): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionCode(1794600003);
+
+        IdMapSettings::fromArray(['namespace' => 'users', 'sourceIdField' => 'email', 'targetIdField' => ['uid']]);
+    }
+
+    public function testRecordChecksumLeavesOutTheIdFields(): void
+    {
+        self::assertSame(
+            IdMapping::checksum(['name' => 'A']),
+            IdMapping::recordChecksum(['email' => 'a@example.org', 'name' => 'A', 'uid' => 100], 'email', 'uid')
+        );
+    }
+
     public function testFromArrayRequiresBothValues(): void
     {
         $this->expectException(InvalidConfigurationException::class);

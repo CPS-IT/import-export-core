@@ -31,7 +31,11 @@ The values of `disable` are described in
   integer) is met if the result has a message with one of the IDs. Without a
   result it is not met.
 * An array with `expression` is met if the expression is true. The
-  expression gets the variables `record` and `result`.
+  expression gets the variables `record` and `result`. `result` is a
+  read-only `Condition\ResultView` of the result (null without a result), so
+  an expression cannot change the result. It provides `hasMessageWithId($id)`,
+  `getMessageIds()`, `getInfo()` (scalar values only), `getRead()`,
+  `getPersisted()` and `getSkipped()`.
 * Everything else is not met.
 
 If an array has both keys, the condition is met if one of them is met.
@@ -55,8 +59,17 @@ $evaluator->evaluate("upper(record['title'])", ['record' => ['title' => 'news']]
 $evaluator->isTrue("record['type'] in ['news', 'event']", ['record' => $record]);
 ```
 
-A syntax error raises an `InvalidConfigurationException` with the code
-`ExpressionEvaluator::ERROR_INVALID_EXPRESSION` (1794172347).
+Errors raise an `InvalidConfigurationException`:
+
+| Code | Cause |
+|---|---|
+| `ERROR_INVALID_EXPRESSION` (1794172347) | syntax error, unknown variable or function |
+| `ERROR_EVALUATION_FAILED` (1795400001) | error while evaluating, e.g. a property of an array (`record.title` instead of `record['title']`), a method of null, or an argument of the wrong type |
+| `ERROR_RANGE_TOO_LARGE` (1795400002) | a range (`a..b`) with more elements than the maximum (constructor argument `maximumRangeSize`, default 10000) |
+
+A missing array key (`record['missing']`) evaluates to null without a PHP
+warning; `record['missing'] ?? 'default'` gives a default value. `upper`,
+`lower` and `trim` return `''` for null, `strtotime` returns false.
 
 To add functions, pass a configured `ExpressionLanguage` to the constructor.
 Components that evaluate expressions depend on

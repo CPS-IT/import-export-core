@@ -63,6 +63,22 @@ class UnchangedRecordFilterTest extends TestCase
         self::assertTrue($this->subject->acceptsProcessed(['uid' => '100', 'title' => 'Start'], ['uid' => 1, 'title' => 'Home']));
     }
 
+    public function testIgnoresTheTargetIdField(): void
+    {
+        // Written without `uid`; from the second run on, `uid` holds the target ID.
+        $this->idMap->set(new IdMapping('users', 'a@example.org', '100', IdMapping::recordChecksum(['email' => 'a@example.org', 'name' => 'A'], 'email', 'uid')));
+        $this->subject->setConfiguration(['namespace' => 'users', 'sourceIdField' => 'email', 'targetIdField' => 'uid']);
+
+        self::assertFalse($this->subject->accepts(['email' => 'a@example.org', 'name' => 'A', 'uid' => '100']));
+        self::assertTrue($this->subject->accepts(['email' => 'a@example.org', 'name' => 'Bea', 'uid' => '100']));
+    }
+
+    public function testRejectsInvalidTargetIdField(): void
+    {
+        self::assertFalse($this->subject->isConfigurationValid(['namespace' => 'pages', 'sourceIdField' => 'uid', 'targetIdField' => '']));
+        self::assertFalse($this->subject->isConfigurationValid(['namespace' => 'pages', 'sourceIdField' => 'uid', 'targetIdField' => 1]));
+    }
+
     public function testAcceptsChangedRecord(): void
     {
         $this->idMap->set(new IdMapping('pages', '1', '100', IdMapping::recordChecksum(['uid' => 1, 'title' => 'Home'], 'uid')));
