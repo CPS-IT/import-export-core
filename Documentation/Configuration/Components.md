@@ -53,6 +53,44 @@ Configuration:
   be one of `fields`, if fields are given.
 - `pageSize` (int, default 1000): records per query with `cursorField`
 
+### DataSourceCSV
+
+`CPSIT\ImportExportCore\File\DataSourceCSV`
+
+Reads records from a CSV file, one record per row.
+
+The file is read row by row, so large files are not held in memory. Empty
+rows are skipped. A UTF-8 byte order mark at the start of the file is
+removed. A row with more or fewer values than fields is skipped and
+reported as error 1795200501.
+
+The source is resumable: the cursor holds the number and the position of
+the last record read, so an interrupted task continues after it.
+
+Configuration:
+
+- `file` (string, required unless `url`): location of the file, passed to
+  the resource loader; with the default loader a path relative to the
+  working directory
+- `url` (string, required unless `file`): URL of the file; requires a
+  resource loader that supports URLs, e.g. `HttpResourceLoader`
+- `fields` (list of strings or comma-separated string): field names, in
+  the order of the columns. Without `fields`, the first row holds the
+  field names.
+- `header` (bool, default true without `fields`, false with `fields`):
+  whether the first row holds field names. With `fields` and `header:
+  true`, the first row is skipped.
+- `delimiter` (string, default ','): one character
+- `enclosure` (string, default '"'): one character
+- `escape` (string, default '\'): one character, or '' for none
+- `encoding` (string, default 'UTF-8'): encoding of the file; values are
+  converted to UTF-8. Other encodings than UTF-8 require the PHP extension
+  mbstring and must keep delimiter, enclosure and line breaks as single
+  bytes, e.g. ISO-8859-1 or Windows-1252 (not UTF-16).
+- `recordNumberField` (string): adds the number of the record (1 for the
+  first row after the header) as this field, e.g. as source ID for the ID
+  map
+
 ### DataSourceQueue
 
 `CPSIT\ImportExportCore\Persistence\DataSourceQueue`

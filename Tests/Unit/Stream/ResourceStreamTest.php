@@ -74,6 +74,20 @@ class ResourceStreamTest extends TestCase
         self::assertNull($subject->detach());
     }
 
+    public function testToResourceCopiesResourceThatIsNotSeekable(): void
+    {
+        $pipe = popen('printf abc', 'r');
+        self::assertIsResource($pipe);
+        $subject = new ResourceStream($pipe);
+        self::assertFalse($subject->isSeekable());
+
+        $resource = ResourceStream::toResource($subject, true);
+
+        self::assertTrue(stream_get_meta_data($resource)['seekable']);
+        self::assertSame('abc', stream_get_contents($resource));
+        self::assertNull($subject->detach());
+    }
+
     public function testToResourceCopiesOtherStreams(): void
     {
         $source = new TemporaryStream('abc');

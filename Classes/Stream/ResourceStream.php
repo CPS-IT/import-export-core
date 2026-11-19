@@ -210,24 +210,28 @@ class ResourceStream implements StreamInterface
     /**
      * Returns a PHP stream resource with the content of the given stream, for
      * functions such as `fgetcsv()` or `XMLReader`. A `ResourceStream` is
-     * detached and its resource returned; the content of other streams is
-     * copied into a temporary stream.
+     * detached and its resource returned; the content of other streams, and
+     * of resources that are not seekable if `$seekable` is set, is copied
+     * into a temporary stream. The given stream cannot be used afterwards.
      *
      * @return resource
      */
-    public static function toResource(StreamInterface $stream)
+    public static function toResource(StreamInterface $stream, bool $seekable = false)
     {
-        if ($stream instanceof self) {
-            $resource = $stream->detach();
-            if (\is_resource($resource)) {
-                return $resource;
+        if ($stream instanceof self && $stream->resource !== null) {
+            if (!$seekable || $stream->seekable) {
+                return $stream->detach();
             }
+            $resource = $stream->detach();
+            $copy = self::openTemporary();
+            stream_copy_to_stream($resource, $copy);
+            fclose($resource);
+            rewind($copy);
+
+            return $copy;
         }
 
-        $copy = fopen('php://temp/maxmemory:' . TemporaryStream::DEFAULT_MEMORY_LIMIT, 'r+b');
-        if ($copy === false) {
-            throw new \RuntimeException('Unable to open temporary stream', 1762675200);
-        }
+        $copy = self::openTemporary();
         if ($stream->isSeekable()) {
             $stream->rewind();
         }
@@ -242,6 +246,19 @@ class ResourceStream implements StreamInterface
         rewind($copy);
 
         return $copy;
+    }
+
+    /**
+     * @return resource
+     */
+    private static function openTemporary()
+    {
+        $resource = fopen('php://temp/maxmemory:' . TemporaryStream::DEFAULT_MEMORY_LIMIT, 'r+b');
+        if ($resource === false) {
+            throw new \RuntimeException('Unable to open temporary stream', 1762675200);
+        }
+
+        return $resource;
     }
 
     /**
