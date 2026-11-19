@@ -35,10 +35,14 @@
         "phpstan/phpstan": "^2.1",
         "phpunit/phpcov": "^11.0",
         "phpunit/phpunit": "^11.5 || ^12.1",
+        "psr/http-client": "^1.0",
+        "psr/http-factory": "^1.0",
         "roave/security-advisories": "dev-latest"
     },
     "suggest": {
-        "doctrine/dbal": "Required for the DBAL data source and target (^4.3)"
+        "doctrine/dbal": "Required for the DBAL data source and target (^4.3)",
+        "psr/http-client": "Required for loading resources over HTTP(S) with HttpResourceLoader (^1.0)",
+        "psr/http-factory": "Required for loading resources over HTTP(S) with HttpResourceLoader (^1.0)"
     },
     "autoload": {
         "psr-4": {

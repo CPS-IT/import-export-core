@@ -21,7 +21,8 @@ People who write components or use the library in an application.
 * [Writing components](Developer/Components.md): interfaces, configuration,
   documenting options, dependencies, short names, messages, tests
 * [Conditions and expressions](Developer/Conditions.md)
-* [Sources, targets and queue](Developer/Persistence.md), including DBAL
+* [Sources, targets and queue](Developer/Persistence.md), including files
+  and DBAL
 * [ID map, checkpoints and incremental mode](Developer/State.md)
 * [Legacy components and deprecations](Developer/Legacy.md)
 * [API reference](https://cps-it.github.io/import-export-core/), generated with

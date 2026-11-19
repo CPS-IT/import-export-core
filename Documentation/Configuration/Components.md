@@ -53,6 +53,92 @@ Configuration:
   be one of `fields`, if fields are given.
 - `pageSize` (int, default 1000): records per query with `cursorField`
 
+### DataSourceCSV
+
+`CPSIT\ImportExportCore\File\DataSourceCSV`
+
+Reads records from a CSV file, one record per row.
+
+The file is read row by row, so large files are not held in memory. Empty
+rows are skipped. A UTF-8 byte order mark at the start of the file is
+removed. A row with more or fewer values than fields is skipped and
+reported as error 1795200501 with its row number, or, with `strict`, ends
+the task with a `ParseException`. Rows are counted in the file, including
+the header and empty rows; a value with line breaks is part of one row.
+
+The source is resumable: the cursor holds the number and the position of
+the last record read, so an interrupted task continues after it.
+
+Configuration:
+
+- `file` (string, required unless `url`): location of the file, passed to
+  the resource loader; with the default loader a path relative to the
+  working directory
+- `url` (string, required unless `file`): URL of the file; requires a
+  resource loader that supports URLs, e.g. `HttpResourceLoader`
+- `fields` (list of strings or comma-separated string): field names, in
+  the order of the columns. Without `fields`, the first row holds the
+  field names.
+- `header` (bool, default true without `fields`, false with `fields`):
+  whether the first row holds field names. With `fields` and `header:
+  true`, `fields` name the columns and the first row is skipped. Without
+  `fields` and with `header: false`, the fields are the column numbers,
+  starting at 0.
+- `delimiter` (string, default ','): one character
+- `enclosure` (string, default '"'): one character
+- `escape` (string, default '\'): one character, or '' for none
+- `encoding` (string, default 'UTF-8'): encoding of the file, one of
+  `UTF-8`, `ASCII`, `ISO-8859-1` to `ISO-8859-10`, `ISO-8859-13` to
+  `ISO-8859-16`, `Windows-1251`, `Windows-1252`, `Windows-1254`, `CP850`
+  (case-insensitive); values are converted to UTF-8. Encodings other than
+  UTF-8 and ASCII require the PHP extension mbstring.
+- `strict` (bool, default false): a row with a wrong number of values
+  ends the task with a `ParseException` instead of being skipped
+- `recordNumberField` (string): adds the number of the record (1 for the
+  first row after the header) as this field, e.g. as source ID for the ID
+  map
+
+### DataSourceXML
+
+`CPSIT\ImportExportCore\File\DataSourceXML`
+
+Reads records from an XML file, one record per element.
+
+With `element`, the file is read element by element (`XMLReader`), so large
+files are not held in memory. With `expression`, the whole document is
+loaded and the records are selected with XPath.
+
+Each record element is converted into an array: attributes in
+`@attributes`, child elements as fields named by their local name (lists
+for repeated elements, strings for elements with only text), and text next
+to attributes or child elements in `@value`.
+
+The source is resumable: the cursor is the number of the last record read.
+A resumed task reads the file from the beginning again and skips the
+records up to the cursor.
+
+Configuration:
+
+- `file` (string, required unless `url`): location of the file, passed to
+  the resource loader; with the default loader a path relative to the
+  working directory
+- `url` (string, required unless `file`): URL of the file; requires a
+  resource loader that supports URLs, e.g. `HttpResourceLoader`
+- `element` (string, required unless `expression`): name of the record
+  elements, e.g. `item`, or `prefix:item` with a prefix of `namespaces`.
+  Without prefix, elements of any namespace match. Record elements must
+  not be nested in each other.
+- `expression` (string, required unless `element`): XPath expression
+  selecting the record elements, e.g. `//channel/item`; other nodes it
+  selects are skipped
+- `namespaces` (map of prefix => URI): namespaces for `element` and
+  `expression`
+- `lists` (list of strings): local names of child elements that are always
+  lists, so that a field has the same type in all records: also with one
+  element, and an empty list if the record element has none
+- `recordNumberField` (string): adds the number of the record (1 for the
+  first) as this field, e.g. as source ID for the ID map
+
 ### DataSourceQueue
 
 `CPSIT\ImportExportCore\Persistence\DataSourceQueue`
@@ -64,6 +150,18 @@ Configuration:
 
 - `identifier` (string, required): the queue
 - `limit` (int, default 10): items per run
+
+### NullDataSource
+
+`CPSIT\ImportExportCore\Persistence\NullDataSource`
+
+Data source without records, e.g. for tasks that only run initializers or
+finishers. Note that finishers run, but the target's `persistAll()` is not
+called without records.
+
+Configuration:
+
+none.
 
 ## Pre-processors
 
@@ -331,6 +429,31 @@ Configuration:
   existing row on update, or from the generated ID after an insert. Set it
   to '' for tables without such a column; the target reports no IDs then.
 
+### DataTargetCSV
+
+`CPSIT\ImportExportCore\File\DataTargetCSV`
+
+Writes records into a CSV file, one row per record.
+
+The file is created, or replaced, when the first record is written, and
+closed in `persistAll()`. Records must be arrays. Values that are not
+scalar are written as JSON; `Stringable` objects as string. Fields missing
+in a record are written as empty values.
+
+Configuration:
+
+- `file` (string, required): path of the file, resolved by the path
+  resolver; by default relative to the working directory. Missing
+  directories are created.
+- `fields` (list of strings or comma-separated string): fields to write,
+  in this order; without `fields`, the fields of the first record
+- `header` (bool, default true): writes the field names in the first row
+- `delimiter` (string, default ','): one character
+- `enclosure` (string, default '"'): one character
+- `escape` (string, default '\'): one character, or '' for none
+- `bom` (bool, default false): starts the file with a UTF-8 byte order
+  mark, e.g. for spreadsheet applications
+
 ### DataTargetQueue
 
 `CPSIT\ImportExportCore\Persistence\DataTargetQueue`
@@ -343,3 +466,14 @@ Configuration:
 - `identifier` (string, required): the queue
 - `allowUpdate` (bool, default false): records already in the queue are set
   back to new
+
+### NullDataTarget
+
+`CPSIT\ImportExportCore\Persistence\NullDataTarget`
+
+Data target that does not write anything, e.g. for tasks whose finishers
+use the result, or to try a configuration.
+
+Configuration:
+
+none.

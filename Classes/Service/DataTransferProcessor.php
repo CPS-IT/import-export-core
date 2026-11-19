@@ -200,6 +200,7 @@ class DataTransferProcessor implements TransferProcessorInterface
         if ($recordCount > 0) {
             $target->persistAll($result, $this->getTargetConfiguration($target));
         }
+        $this->gatherSourceAndTargetMessages($task, $result);
 
         if ($source instanceof CompletableSourceInterface) {
             $source->complete($result);
@@ -290,6 +291,7 @@ class DataTransferProcessor implements TransferProcessorInterface
             }
         }
         $statistics->countBatch();
+        $this->gatherSourceAndTargetMessages($task, $result);
         $this->eventDispatcher->dispatch(new BatchProcessed($task, $key, $batchNumber, \count($batch), $result));
     }
 
@@ -546,6 +548,19 @@ class DataTransferProcessor implements TransferProcessorInterface
         }
 
         return $this->conditionEvaluator->isMet($configuration['disable'], $record, $result);
+    }
+
+    /**
+     * Sources and targets may log messages while reading and writing, e.g.
+     * about a record that cannot be read.
+     */
+    protected function gatherSourceAndTargetMessages(TransferTaskInterface $task, ResultInterface $result): void
+    {
+        foreach ([$task->getSource(), $task->getTarget()] as $component) {
+            if (\is_object($component)) {
+                $this->gatherMessages($component, $result);
+            }
+        }
     }
 
     protected function gatherMessages(object $component, ResultInterface $result): void
