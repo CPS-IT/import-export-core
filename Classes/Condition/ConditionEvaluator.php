@@ -27,7 +27,8 @@ use CPSIT\ImportExportCore\Expression\ExpressionEvaluatorInterface;
  * - an array with `if.result.hasMessage`: comma separated message ids; met if
  *   the result has a message with one of them
  * - an array with `expression`: met if the expression is true. The expression
- *   gets the variables `record` and `result`.
+ *   gets the variables `record` and `result`, a read-only `ResultView` of the
+ *   result (null without a result).
  *
  * Any other value is not met.
  */
@@ -60,7 +61,7 @@ final class ConditionEvaluator implements ConditionEvaluatorInterface
         if (isset($condition['expression'])) {
             return $this->expressionEvaluator->isTrue(
                 (string)$condition['expression'],
-                ['record' => $record, 'result' => $result]
+                ['record' => $record, 'result' => $result === null ? null : new ResultView($result)]
             );
         }
 

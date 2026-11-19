@@ -115,15 +115,18 @@ disabled; data targets only if their class implements
 | Value | Effect |
 |---|---|
 | `true`, `1`, `'1'` | always disabled |
-| `{expression: "..."}` | disabled if the expression is true. Variables: `record` (the current record; empty for initializers and finishers) and `result` |
+| `{expression: "..."}` | disabled if the expression is true. Variables: `record` (the current record; empty for initializers and finishers) and `result` (read-only: `hasMessageWithId(id)`, `getMessageIds()`, `getInfo()`, `getRead()`, `getPersisted()`, `getSkipped()`) |
 | `{if: {result: {hasMessage: '1234,5678'}}}` | disabled if the result contains a message with one of the IDs |
 
 If both `if.result.hasMessage` and `expression` are given, the component is
 disabled if one of them applies. Expressions use the
 [Symfony ExpressionLanguage](https://symfony.com/doc/current/reference/formats/expression_language.html)
 with the additional functions `upper`, `lower`, `trim`, `date` and
-`strtotime`. An invalid expression raises an `InvalidConfigurationException`
-when it is evaluated. Details: [Conditions and expressions](../Developer/Conditions.md).
+`strtotime`. A missing key (`record['missing']`) is null; use
+`record['missing'] ?? 'default'` for a default. An invalid expression, or an
+error while evaluating it, raises an `InvalidConfigurationException`. Ranges
+(`1..10`) may have at most 10000 elements. Details:
+[Conditions and expressions](../Developer/Conditions.md).
 
 A disabled component is skipped for this record only; the record continues
 with the next component.

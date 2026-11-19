@@ -142,4 +142,53 @@ class ConditionEvaluatorTest extends TestCase
 
         $this->subject->isMet(['expression' => "record['id'] =="]);
     }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function changingExpressionProvider(): iterable
+    {
+        yield 'setInfo' => ['result.setInfo("changed") || false'];
+        yield 'add' => ['result.add([1]) || false'];
+        yield 'addMessages' => ['result.addMessages([]) || false'];
+        yield 'statistics' => ['result.getStatistics().countSkipped(5) || false'];
+    }
+
+    #[DataProvider('changingExpressionProvider')]
+    public function testExpressionCannotChangeTheResult(string $expression): void
+    {
+        $result = $this->createResultWithMessage(5);
+        $result->setInfo('info');
+
+        try {
+            $this->subject->isMet(['expression' => $expression], [], $result);
+            self::fail('The expression was evaluated.');
+        } catch (InvalidConfigurationException) {
+        }
+
+        self::assertSame('info', $result->getInfo());
+        self::assertSame([], $result->toArray());
+        self::assertCount(1, $result->getMessages());
+        self::assertSame(0, $result->getStatistics()->getSkipped());
+    }
+
+    public function testExpressionReadsTheResult(): void
+    {
+        $result = $this->createResultWithMessage(5);
+        $result->setInfo('info');
+        $result->getStatistics()->countRead(3);
+        $result->getStatistics()->countPersisted(2);
+        $result->getStatistics()->countSkipped();
+
+        self::assertTrue($this->subject->isMet(
+            ['expression' => 'result.getMessageIds() == [5] and result.getInfo() == "info" and result.getRead() == 3 and result.getPersisted() == 2 and result.getSkipped() == 1'],
+            [],
+            $result
+        ));
+    }
+
+    public function testResultIsNullWithoutResult(): void
+    {
+        self::assertTrue($this->subject->isMet(['expression' => 'result === null']));
+    }
 }

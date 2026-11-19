@@ -13,6 +13,40 @@ Each entry contains:
 
 [CHANGELOG.md](CHANGELOG.md) lists all changes, including non-breaking ones.
 
+## 0.4.0 (unreleased)
+
+### Expressions: read-only `result`, errors and ranges
+
+Issue: [#86](https://github.com/CPS-IT/import-export-core/issues/86)
+
+**Affects**: `disable` expressions that use `result`; callers of
+`ExpressionEvaluator` that catch exceptions of the Symfony ExpressionLanguage;
+expressions with ranges of more than 10000 elements.
+
+**Change**:
+
+* `ConditionEvaluator` passes `result` as `Condition\ResultView`, which
+  provides `hasMessageWithId($id)`, `getMessageIds()`, `getInfo()` (scalar
+  values only), `getRead()`, `getPersisted()` and `getSkipped()`. Methods that
+  change the result, and `getStatistics()` and `getMessages()`, are not
+  available.
+* Errors while evaluating an expression raise an
+  `InvalidConfigurationException` with the code
+  `ExpressionEvaluator::ERROR_EVALUATION_FAILED`; the original exception is
+  the previous one.
+* Ranges with more than 10000 elements raise an
+  `InvalidConfigurationException` (`ERROR_RANGE_TOO_LARGE`).
+
+**Migration**:
+
+| Before | After |
+|---|---|
+| `result.getStatistics().getRead()` | `result.getRead()` |
+| `result.getMessages()` | `result.getMessageIds()` |
+
+For larger ranges, create the evaluator with
+`new ExpressionEvaluator(maximumRangeSize: 50000)`.
+
 ## 0.2.0
 
 ### Component interfaces: `isDisabled()` accepts `ResultInterface`

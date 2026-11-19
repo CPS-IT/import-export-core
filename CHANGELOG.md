@@ -13,6 +13,15 @@ a new minor version may contain breaking changes.
   `UnchangedRecordFilter` take the option `targetIdField`, which is left out
   of the checksum like the source ID field
   ([#85](https://github.com/CPS-IT/import-export-core/issues/85))
+* Expressions ([#86](https://github.com/CPS-IT/import-export-core/issues/86)):
+  * in conditions, `result` is a read-only `ResultView`, so an expression
+    cannot change the result of a task
+  * errors during the evaluation raise an `InvalidConfigurationException`
+    (`ERROR_EVALUATION_FAILED`) instead of the exception of the
+    ExpressionLanguage
+  * a missing array key evaluates to null without a PHP warning; `upper`,
+    `lower`, `trim` and `strtotime` accept null without a deprecation
+  * ranges have at most 10000 elements (`ERROR_RANGE_TOO_LARGE`)
 
 ## 0.3.0 - 2026-11-19
 

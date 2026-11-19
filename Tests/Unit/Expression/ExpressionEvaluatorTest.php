@@ -113,4 +113,123 @@ class ExpressionEvaluatorTest extends TestCase
             array_keys(ExpressionEvaluator::getPhpFunctions())
         );
     }
+
+    public function testMissingArrayKeyEvaluatesToNullWithoutWarning(): void
+    {
+        $warnings = [];
+        set_error_handler(static function (int $level, string $message) use (&$warnings): bool {
+            $warnings[] = $message;
+
+            return true;
+        });
+        try {
+            $value = $this->subject->evaluate("record['missing']", ['record' => []]);
+        } finally {
+            restore_error_handler();
+        }
+
+        self::assertNull($value);
+        self::assertSame([], $warnings);
+    }
+
+    public function testOtherWarningsReachThePreviousErrorHandler(): void
+    {
+        $warnings = [];
+        set_error_handler(static function (int $level, string $message) use (&$warnings): bool {
+            $warnings[] = $message;
+
+            return true;
+        });
+        try {
+            $this->subject->evaluate("'x' ~ record['list']", ['record' => ['list' => [1]]]);
+            trigger_error('after the evaluation', E_USER_WARNING);
+        } finally {
+            restore_error_handler();
+        }
+
+        self::assertSame(['Array to string conversion', 'after the evaluation'], $warnings);
+    }
+
+    /**
+     * @return iterable<string, array{string, mixed}>
+     */
+    public static function nullArgumentProvider(): iterable
+    {
+        yield 'upper' => ['upper(null)', ''];
+        yield 'lower' => ['lower(null)', ''];
+        yield 'trim' => ['trim(null)', ''];
+        yield 'strtotime' => ['strtotime(null)', false];
+    }
+
+    #[DataProvider('nullArgumentProvider')]
+    public function testFunctionsAcceptNull(string $expression, mixed $expected): void
+    {
+        $deprecations = [];
+        set_error_handler(static function (int $level, string $message) use (&$deprecations): bool {
+            $deprecations[] = $message;
+
+            return true;
+        });
+        try {
+            $value = $this->subject->evaluate($expression);
+        } finally {
+            restore_error_handler();
+        }
+
+        self::assertSame($expected, $value);
+        self::assertSame([], $deprecations);
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function evaluationErrorProvider(): iterable
+    {
+        yield 'property of an array' => ['record.title'];
+        yield 'method of null' => ['result.getInfo()'];
+        yield 'argument of the wrong type' => ["upper(record['list'])"];
+    }
+
+    #[DataProvider('evaluationErrorProvider')]
+    public function testEvaluationErrorsThrowInvalidConfigurationException(string $expression): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionCode(ExpressionEvaluator::ERROR_EVALUATION_FAILED);
+
+        $this->subject->evaluate($expression, ['record' => ['title' => 'x', 'list' => [1]], 'result' => null]);
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function largeRangeProvider(): iterable
+    {
+        yield 'range' => ['1..2000000'];
+        yield 'range in a comparison' => ['5 in 1..2000000'];
+        yield 'range from a variable' => ["1 in 0..record['n']"];
+        yield 'nested' => ["record['n'] > 0 and (1 in (0..record['n']))"];
+    }
+
+    #[DataProvider('largeRangeProvider')]
+    public function testRangesAreLimited(string $expression): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionCode(ExpressionEvaluator::ERROR_RANGE_TOO_LARGE);
+
+        $this->subject->evaluate($expression, ['record' => ['n' => 2000000]]);
+    }
+
+    public function testSmallRangesAreEvaluated(): void
+    {
+        self::assertSame([1, 2, 3], $this->subject->evaluate('1..3'));
+        self::assertTrue($this->subject->isTrue("record['n'] in 1..10", ['record' => ['n' => 10]]));
+        self::assertCount(5, (new ExpressionEvaluator(maximumRangeSize: 5))->evaluate('1..5'));
+    }
+
+    public function testMaximumRangeSizeIsConfigurable(): void
+    {
+        $this->expectExceptionCode(ExpressionEvaluator::ERROR_RANGE_TOO_LARGE);
+
+        (new ExpressionEvaluator(maximumRangeSize: 5))->evaluate('1..6');
+    }
 }
