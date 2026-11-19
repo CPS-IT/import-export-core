@@ -91,6 +91,44 @@ Configuration:
   first row after the header) as this field, e.g. as source ID for the ID
   map
 
+### DataSourceXML
+
+`CPSIT\ImportExportCore\File\DataSourceXML`
+
+Reads records from an XML file, one record per element.
+
+With `element`, the file is read element by element (`XMLReader`), so large
+files are not held in memory. With `expression`, the whole document is
+loaded and the records are selected with XPath.
+
+Each record element is converted into an array: attributes in
+`@attributes`, child elements as fields named by their local name (lists
+for repeated elements, strings for elements with only text), and text next
+to attributes or child elements in `@value`.
+
+The source is resumable: the cursor is the number of the last record read.
+A resumed task reads the file from the beginning again and skips the
+records up to the cursor.
+
+Configuration:
+
+- `file` (string, required unless `url`): location of the file, passed to
+  the resource loader; with the default loader a path relative to the
+  working directory
+- `url` (string, required unless `file`): URL of the file; requires a
+  resource loader that supports URLs, e.g. `HttpResourceLoader`
+- `element` (string, required unless `expression`): name of the record
+  elements, e.g. `item`, or `prefix:item` with a prefix of `namespaces`.
+  Without prefix, elements of any namespace match. Record elements must
+  not be nested in each other.
+- `expression` (string, required unless `element`): XPath expression
+  selecting the record elements, e.g. `//channel/item`; other nodes it
+  selects are skipped
+- `namespaces` (map of prefix => URI): namespaces for `element` and
+  `expression`
+- `recordNumberField` (string): adds the number of the record (1 for the
+  first) as this field, e.g. as source ID for the ID map
+
 ### DataSourceQueue
 
 `CPSIT\ImportExportCore\Persistence\DataSourceQueue`
