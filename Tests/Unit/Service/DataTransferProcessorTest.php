@@ -33,6 +33,7 @@ use CPSIT\ImportExportCore\Service\DataTransferProcessor;
 use CPSIT\ImportExportCore\Service\TransferProcessorInterface;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\AppendingInitializer;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\ArraySource;
+use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\EmptyRunTarget;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\FieldPreProcessor;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\InMemoryTarget;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\LoggingPreProcessor;
@@ -144,6 +145,35 @@ class DataTransferProcessorTest extends TestCase
         $this->subject->process($this->createTask([], $target));
 
         self::assertSame([], $target->persistAllCalls);
+    }
+
+    public function testCallsPersistEmptyRunOfAwareTargetWithoutRecords(): void
+    {
+        $target = new EmptyRunTarget();
+        $target->setConfiguration(['file' => 'a.csv']);
+        $task = new TransferTask();
+        $task->setIdentifier('task');
+        $task->setSource(new ArraySource([]));
+        $task->setTarget($target);
+
+        $result = $this->subject->process($task);
+
+        self::assertSame(['persistEmptyRun'], $target->calls);
+        self::assertSame($result, $target->emptyRunResult);
+        self::assertSame(['file' => 'a.csv'], $target->emptyRunConfiguration);
+    }
+
+    public function testCallsPersistAllOfAwareTargetWithRecords(): void
+    {
+        $target = new EmptyRunTarget();
+        $task = new TransferTask();
+        $task->setIdentifier('task');
+        $task->setSource(new ArraySource([['id' => 1]]));
+        $task->setTarget($target);
+
+        $this->subject->process($task);
+
+        self::assertSame(['persist', 'persistAll'], $target->calls);
     }
 
     public function testRunsComponentsInOrder(): void

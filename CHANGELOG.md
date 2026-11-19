@@ -13,10 +13,21 @@ a new minor version may contain breaking changes.
   or `xml`); the application can set other types
 * `HttpResourceLoader` takes a list of allowed hosts
 
+* `Persistence\EmptyRunAwareInterface`: targets that have to act when a
+  task reads no records
+
 ### Changed
 
 * `PathResolver` and the file components reject executable file names, e.g.
   `.php`, also as `a.php.csv`
+
+### Fixed
+
+* `DataTargetCSV` kept the file of the previous run if a task read no
+  records, so an export that should be empty showed the old rows. It now
+  writes an empty file (the header row with `fields`), also if all records
+  were filtered
+  ([#93](https://github.com/CPS-IT/import-export-core/issues/93))
 
 ## 0.4.0 - 2026-11-19
 

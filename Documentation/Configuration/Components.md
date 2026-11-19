@@ -448,7 +448,11 @@ Configuration:
 Writes records into a CSV file, one row per record.
 
 The file is created, or replaced, when the first record is written, and
-closed in `persistAll()`. Records must be arrays. Values that are not
+closed in `persistAll()`. If no record was written, e.g. because the source
+returned none or all were filtered, the file is replaced with an empty one:
+only the header row with `fields`, otherwise without content (only the byte
+order mark with `bom`). So an export never keeps the rows of an earlier
+run. Records must be arrays. Values that are not
 scalar are written as JSON; `Stringable` objects as string. Fields missing
 in a record are written as empty values.
 

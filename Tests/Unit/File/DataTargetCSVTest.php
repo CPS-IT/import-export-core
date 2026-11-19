@@ -15,6 +15,8 @@ declare(strict_types=1);
 
 namespace CPSIT\ImportExportCore\Tests\Unit\File;
 
+use CPSIT\ImportExportCore\Domain\Model\TaskResult;
+use CPSIT\ImportExportCore\Domain\Model\TransferTask;
 use CPSIT\ImportExportCore\Exception\InvalidConfigurationException;
 use CPSIT\ImportExportCore\Exception\PersistenceException;
 use CPSIT\ImportExportCore\File\DataSourceCSV;
@@ -22,9 +24,13 @@ use CPSIT\ImportExportCore\File\DataTargetCSV;
 use CPSIT\ImportExportCore\Resource\FileResourceLoader;
 use CPSIT\ImportExportCore\Resource\FileTypePolicy;
 use CPSIT\ImportExportCore\Resource\PathResolver;
+use CPSIT\ImportExportCore\Service\DataTransferProcessor;
 use CPSIT\ImportExportCore\Tests\Unit\Resource\TemporaryDirectoryTrait;
+use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\ArraySource;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+
+require_once __DIR__ . '/../Service/Fixtures/Components.php';
 
 class DataTargetCSVTest extends TestCase
 {
@@ -113,12 +119,36 @@ class DataTargetCSVTest extends TestCase
         self::assertSame("uid,title\n", $this->content('a.csv'));
     }
 
-    public function testWritesNoFileWithoutRecordsAndFields(): void
+    public function testExportWithoutRecordsReplacesTheRowsOfTheEarlierRun(): void
     {
-        $this->subject->setConfiguration(['file' => 'a.csv']);
-        $this->subject->persistAll(null, $this->subject->getConfiguration());
+        $run = function (array $records): void {
+            $target = new DataTargetCSV(new PathResolver($this->directory));
+            $target->setConfiguration(['file' => 'export.csv', 'fields' => 'uid,title']);
+            $task = new TransferTask();
+            $task->setIdentifier('export');
+            $task->setSource(new ArraySource($records));
+            $task->setTarget($target);
+            (new DataTransferProcessor())->process($task);
+        };
 
-        self::assertFileDoesNotExist($this->directory . '/a.csv');
+        $run([['uid' => 1, 'title' => 'One']]);
+        self::assertSame("uid,title\n1,One\n", $this->content('export.csv'));
+        $run([]);
+        self::assertSame("uid,title\n", $this->content('export.csv'));
+    }
+
+    public function testEmptyRunReplacesFileOfEarlierRun(): void
+    {
+        file_put_contents($this->directory . '/a.csv', "uid,title\n1,Old\n");
+
+        $this->subject->persistEmptyRun(new TaskResult(), ['file' => 'a.csv', 'fields' => 'uid,title']);
+        self::assertSame("uid,title\n", $this->content('a.csv'));
+
+        (new DataTargetCSV(new PathResolver($this->directory)))->persistEmptyRun(new TaskResult(), ['file' => 'a.csv']);
+        self::assertSame('', $this->content('a.csv'));
+
+        (new DataTargetCSV(new PathResolver($this->directory)))->persistEmptyRun(new TaskResult(), ['file' => 'a.csv', 'bom' => true]);
+        self::assertSame(DataSourceCSV::BYTE_ORDER_MARK, $this->content('a.csv'));
     }
 
     public function testReplacesFileOnNextRun(): void

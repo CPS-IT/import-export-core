@@ -34,6 +34,7 @@ use CPSIT\ImportExportCore\Persistence\BatchAwareInterface;
 use CPSIT\ImportExportCore\Persistence\CompletableSourceInterface;
 use CPSIT\ImportExportCore\Persistence\DataSourceInterface;
 use CPSIT\ImportExportCore\Persistence\DataTargetInterface;
+use CPSIT\ImportExportCore\Persistence\EmptyRunAwareInterface;
 use CPSIT\ImportExportCore\Persistence\IdentifyingTargetInterface;
 use CPSIT\ImportExportCore\Persistence\ResumableSourceInterface;
 use CPSIT\ImportExportCore\Pipeline\Legacy\LegacyAdapterInterface;
@@ -55,7 +56,10 @@ use Psr\EventDispatcher\EventDispatcherInterface;
  *
  * Records are read lazily and processed in batches of `$batchSize`. After each
  * batch, batch aware targets are flushed and `BatchProcessed` is dispatched.
- * `persistAll()` of the target is called once, after the last batch.
+ * `persistAll()` of the target is called once, after the last batch, if
+ * records were read. If none were read, targets implementing
+ * `EmptyRunAwareInterface` get `persistEmptyRun()` instead, unless the run
+ * resumed from a checkpoint.
  *
  * Converted records are collected in the result unless `$collectRecords` is
  * false; the counters of the result are kept in any case. Memory usage is
@@ -200,6 +204,8 @@ class DataTransferProcessor implements TransferProcessorInterface
 
         if ($recordCount > 0) {
             $target->persistAll($result, $this->getTargetConfiguration($target));
+        } elseif ($target instanceof EmptyRunAwareInterface && !$context->isResumed()) {
+            $target->persistEmptyRun($result, $this->getTargetConfiguration($target));
         }
         $this->gatherSourceAndTargetMessages($task, $result);
 

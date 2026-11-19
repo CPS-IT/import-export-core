@@ -619,3 +619,47 @@ final class ProcessedRecordFilter extends AbstractPipelineComponent implements P
         return true;
     }
 }
+
+/**
+ * Target that records calls of persistAll() and persistEmptyRun()
+ */
+final class EmptyRunTarget implements DataTargetInterface, ConfigurableInterface, \CPSIT\ImportExportCore\Persistence\EmptyRunAwareInterface
+{
+    use ConfigurableTrait;
+
+    /**
+     * @var list<string>
+     */
+    public array $calls = [];
+
+    /**
+     * @var array<string, mixed>|null
+     */
+    public ?array $emptyRunConfiguration = null;
+
+    public ?\CPSIT\ImportExportCore\Domain\Model\ResultInterface $emptyRunResult = null;
+
+    public function isConfigurationValid(array $configuration): bool
+    {
+        return true;
+    }
+
+    public function persist(array|object $object, ?array $configuration = null): bool
+    {
+        $this->calls[] = 'persist';
+
+        return true;
+    }
+
+    public function persistAll(mixed $result = null, ?array $configuration = null): void
+    {
+        $this->calls[] = 'persistAll';
+    }
+
+    public function persistEmptyRun(\CPSIT\ImportExportCore\Domain\Model\ResultInterface $result, ?array $configuration = null): void
+    {
+        $this->calls[] = 'persistEmptyRun';
+        $this->emptyRunResult = $result;
+        $this->emptyRunConfiguration = $configuration;
+    }
+}

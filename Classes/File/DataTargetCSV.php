@@ -17,9 +17,11 @@ namespace CPSIT\ImportExportCore\File;
 
 use CPSIT\ImportExportCore\ConfigurableInterface;
 use CPSIT\ImportExportCore\ConfigurableTrait;
+use CPSIT\ImportExportCore\Domain\Model\ResultInterface;
 use CPSIT\ImportExportCore\Exception\InvalidArgumentException;
 use CPSIT\ImportExportCore\Exception\PersistenceException;
 use CPSIT\ImportExportCore\Persistence\DataTargetInterface;
+use CPSIT\ImportExportCore\Persistence\EmptyRunAwareInterface;
 use CPSIT\ImportExportCore\Resource\FileTypePolicy;
 use CPSIT\ImportExportCore\Resource\PathResolver;
 use CPSIT\ImportExportCore\Resource\PathResolverInterface;
@@ -28,7 +30,11 @@ use CPSIT\ImportExportCore\Resource\PathResolverInterface;
  * Writes records into a CSV file, one row per record.
  *
  * The file is created, or replaced, when the first record is written, and
- * closed in `persistAll()`. Records must be arrays. Values that are not
+ * closed in `persistAll()`. If no record was written, e.g. because the source
+ * returned none or all were filtered, the file is replaced with an empty one:
+ * only the header row with `fields`, otherwise without content (only the byte
+ * order mark with `bom`). So an export never keeps the rows of an earlier
+ * run. Records must be arrays. Values that are not
  * scalar are written as JSON; `Stringable` objects as string. Fields missing
  * in a record are written as empty values.
  *
@@ -50,7 +56,7 @@ use CPSIT\ImportExportCore\Resource\PathResolverInterface;
  * - `bom` (bool, default false): starts the file with a UTF-8 byte order
  *   mark, e.g. for spreadsheet applications
  */
-class DataTargetCSV implements DataTargetInterface, ConfigurableInterface
+class DataTargetCSV implements DataTargetInterface, ConfigurableInterface, EmptyRunAwareInterface
 {
     /**
      * @var list<string>
@@ -141,10 +147,18 @@ class DataTargetCSV implements DataTargetInterface, ConfigurableInterface
     public function persistAll(mixed $result = null, ?array $configuration = null): void
     {
         $configuration ??= $this->configuration;
-        if ($this->handle === null && CsvFormat::fields($configuration) !== null) {
+        if ($this->handle === null) {
             $this->open($configuration, [], CsvFormat::fromConfiguration($configuration));
         }
         $this->close();
+    }
+
+    /**
+     * Replaces the file of an earlier run with an empty one, see `persistAll()`.
+     */
+    public function persistEmptyRun(ResultInterface $result, ?array $configuration = null): void
+    {
+        $this->persistAll($result, $configuration);
     }
 
     /**
@@ -178,7 +192,7 @@ class DataTargetCSV implements DataTargetInterface, ConfigurableInterface
         if (($configuration[self::KEY_BOM] ?? false) === true) {
             fwrite($handle, DataSourceCSV::BYTE_ORDER_MARK);
         }
-        if (($configuration[self::KEY_HEADER] ?? true) === true) {
+        if (($configuration[self::KEY_HEADER] ?? true) === true && $this->fields !== []) {
             $this->writeRow($this->fields, $format);
         }
     }
