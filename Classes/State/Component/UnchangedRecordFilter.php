@@ -40,6 +40,10 @@ use CPSIT\ImportExportCore\State\IdMapping;
  *   as in the `idMap` settings of the task
  * - `sourceIdField` (string, required): field holding the source ID, as in
  *   the `idMap` settings of the task
+ * - `targetIdField` (string): field in which `TargetIdPreProcessor` sets the
+ *   target ID, as in the `idMap` settings of the task; required if it differs
+ *   from `sourceIdField`, otherwise records are written once more after their
+ *   first run
  */
 final class UnchangedRecordFilter implements ProcessedRecordFilterInterface, ConfigurableInterface
 {
@@ -55,7 +59,9 @@ final class UnchangedRecordFilter implements ProcessedRecordFilterInterface, Con
             && \is_string($configuration['namespace'])
             && \is_string($configuration['sourceIdField'])
             && $configuration['namespace'] !== ''
-            && $configuration['sourceIdField'] !== '';
+            && $configuration['sourceIdField'] !== ''
+            && (!isset($configuration['targetIdField'])
+                || (\is_string($configuration['targetIdField']) && $configuration['targetIdField'] !== ''));
     }
 
     /**
@@ -76,6 +82,9 @@ final class UnchangedRecordFilter implements ProcessedRecordFilterInterface, Con
 
         $mapping = $this->idMap->get((string)$this->configuration['namespace'], (string)$sourceId);
 
-        return !$mapping->exists() || $mapping->checksum !== IdMapping::recordChecksum($record, $sourceIdField);
+        $excludedFields = isset($this->configuration['targetIdField']) ? [(string)$this->configuration['targetIdField']] : [];
+
+        return !$mapping->exists()
+            || $mapping->checksum !== IdMapping::recordChecksum($record, $sourceIdField, ...$excludedFields);
     }
 }

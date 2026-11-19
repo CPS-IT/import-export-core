@@ -44,7 +44,7 @@ Lists without keys (`- class: ...`) are replaced as a whole.
 | `target` | component, required | data target |
 | `label`, `description` | string | shown by applications, e.g. in a backend module |
 | `class` | string | class of the converted records, for applications that need it |
-| `idMap` | map | `namespace` and `sourceIdField`, both strings; see [ID map](../Developer/State.md#id-map) |
+| `idMap` | map | `namespace` and `sourceIdField`, both strings, and optionally `targetIdField`; see [ID map](../Developer/State.md#id-map) |
 | `initializers` | map of components | run once before the records are read |
 | `filters` | map of components | decide whether a record is processed |
 | `preProcessors` | map of components | change the record |

@@ -80,7 +80,8 @@ use Psr\EventDispatcher\EventDispatcherInterface;
  * target must implement `IdentifyingTargetInterface`: after the records were
  * written (after `flushBatch()` for batch aware targets, after `persist()` for
  * others), the mapping from source ID to target ID is recorded with the
- * checksum of the pre-processed record (`IdMapping::recordChecksum()`).
+ * checksum of the pre-processed record (`IdMapping::recordChecksum()`, without
+ * `sourceIdField` and `targetIdField`).
  */
 class DataTransferProcessor implements TransferProcessorInterface
 {
@@ -456,7 +457,7 @@ class DataTransferProcessor implements TransferProcessorInterface
             $settings->namespace,
             (string)$sourceId,
             $target->getTargetId($persistedRecord),
-            IdMapping::recordChecksum($processedRecord, $settings->sourceIdField)
+            IdMapping::recordChecksum($processedRecord, $settings->sourceIdField, ...$settings->excludedFields())
         ));
     }
 

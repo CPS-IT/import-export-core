@@ -40,17 +40,20 @@ readonly class IdMapping
 
     /**
      * Checksum of a record as the processor stores it: of the record after the
-     * pre-processors, without its ID field. The ID is the key of the mapping;
-     * leaving it out keeps the checksum stable when a pre-processor sets the
-     * target ID in that field (`TargetIdPreProcessor`), which it does only
-     * once a mapping exists.
+     * pre-processors, without its ID field and the given other fields, e.g. the
+     * target ID field. The ID is the key of the mapping; leaving out the ID
+     * fields keeps the checksum stable when a pre-processor sets the target ID
+     * (`TargetIdPreProcessor`), which it does only once a mapping exists.
      *
      * @param array<mixed> $record
      * @throws \JsonException if the record cannot be encoded
      */
-    public static function recordChecksum(array $record, string $idField): string
+    public static function recordChecksum(array $record, string $idField, string ...$excludedFields): string
     {
         unset($record[$idField]);
+        foreach ($excludedFields as $field) {
+            unset($record[$field]);
+        }
 
         return self::checksum($record);
     }

@@ -4,6 +4,16 @@ All notable changes to this project are documented in this file. The project
 follows [Semantic Versioning](https://semver.org/). While the version is `0.x`,
 a new minor version may contain breaking changes.
 
+## Unreleased
+
+### Fixed
+
+* Incremental mode wrote each record once more in its second run if the
+  target ID is in another field than the source ID. `idMap` and
+  `UnchangedRecordFilter` take the option `targetIdField`, which is left out
+  of the checksum like the source ID field
+  ([#85](https://github.com/CPS-IT/import-export-core/issues/85))
+
 ## 0.3.0 - 2026-11-19
 
 ### Added
