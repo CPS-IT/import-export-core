@@ -20,8 +20,9 @@ namespace CPSIT\ImportExportCore\File;
  *
  * - Attributes are collected in `@attributes` (name => value).
  * - Child elements are fields, named by their local name. Repeated elements
- *   become a list. An element with only text becomes a string, an empty
- *   element ''.
+ *   become a list, and elements named in `$lists` always do; such elements
+ *   missing in the record element are an empty list. An element with only
+ *   text becomes a string, an empty element ''.
  * - Text of an element that also has attributes or child elements is kept
  *   in `@value`, if it is not only whitespace.
  *
@@ -35,19 +36,26 @@ final class XmlElementConverter
     public const string KEY_VALUE = '@value';
 
     /**
+     * @param list<string> $lists names of elements that are always lists
      * @return array<string, mixed>
      */
-    public function toRecord(\DOMElement $element): array
+    public function toRecord(\DOMElement $element, array $lists = []): array
     {
-        $value = $this->convert($element);
+        $lists = array_fill_keys($lists, true);
+        $value = $this->convert($element, $lists);
+        $record = \is_array($value) ? $value : ($value === '' ? [] : [self::KEY_VALUE => $value]);
+        foreach (array_keys($lists) as $name) {
+            $record[$name] ??= [];
+        }
 
-        return \is_array($value) ? $value : ($value === '' ? [] : [self::KEY_VALUE => $value]);
+        return $record;
     }
 
     /**
+     * @param array<string, true> $lists
      * @return array<string, mixed>|string
      */
-    private function convert(\DOMElement $element): array|string
+    private function convert(\DOMElement $element, array $lists): array|string
     {
         $result = [];
         $attributes = [];
@@ -66,8 +74,11 @@ final class XmlElementConverter
             if ($child instanceof \DOMElement) {
                 $hasChildElements = true;
                 $name = (string)($child->localName ?? $child->nodeName);
-                $value = $this->convert($child);
-                if (!\array_key_exists($name, $result)) {
+                $value = $this->convert($child, $lists);
+                if (isset($lists[$name])) {
+                    $result[$name] ??= [];
+                    $result[$name][] = $value;
+                } elseif (!\array_key_exists($name, $result)) {
                     $result[$name] = $value;
                 } elseif (isset($repeated[$name]) && \is_array($result[$name])) {
                     $result[$name][] = $value;

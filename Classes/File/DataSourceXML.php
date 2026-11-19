@@ -57,6 +57,9 @@ use CPSIT\ImportExportCore\Stream\ResourceStream;
  *   selects are skipped
  * - `namespaces` (map of prefix => URI): namespaces for `element` and
  *   `expression`
+ * - `lists` (list of strings): local names of child elements that are always
+ *   lists, so that a field has the same type in all records: also with one
+ *   element, and an empty list if the record element has none
  * - `recordNumberField` (string): adds the number of the record (1 for the
  *   first) as this field, e.g. as source ID for the ID map
  */
@@ -67,6 +70,7 @@ class DataSourceXML implements DataSourceInterface, ConfigurableInterface, Resum
     public const string KEY_ELEMENT = 'element';
     public const string KEY_EXPRESSION = 'expression';
     public const string KEY_NAMESPACES = 'namespaces';
+    public const string KEY_LISTS = 'lists';
     public const string KEY_RECORD_NUMBER_FIELD = 'recordNumberField';
     public const int ERROR_INVALID_CONFIGURATION = 1795200601;
     public const int ERROR_INVALID_XML = 1795200602;
@@ -106,6 +110,15 @@ class DataSourceXML implements DataSourceInterface, ConfigurableInterface, Resum
                 return false;
             }
         }
+        $lists = $configuration[self::KEY_LISTS] ?? [];
+        if (!\is_array($lists) || !array_is_list($lists)) {
+            return false;
+        }
+        foreach ($lists as $name) {
+            if (!\is_string($name) || !self::isName($name)) {
+                return false;
+            }
+        }
         if (isset($configuration[self::KEY_RECORD_NUMBER_FIELD])
             && (!\is_string($configuration[self::KEY_RECORD_NUMBER_FIELD]) || $configuration[self::KEY_RECORD_NUMBER_FIELD] === '')
         ) {
@@ -142,6 +155,8 @@ class DataSourceXML implements DataSourceInterface, ConfigurableInterface, Resum
         $namespaces = $configuration[self::KEY_NAMESPACES] ?? [];
         $recordNumberField = $configuration[self::KEY_RECORD_NUMBER_FIELD] ?? null;
         $recordNumberField = \is_string($recordNumberField) ? $recordNumberField : null;
+        /** @var list<string> $lists */
+        $lists = $configuration[self::KEY_LISTS] ?? [];
         $skip = $this->parseCursor($this->resumeCursor);
         $this->cursor = $this->resumeCursor;
 
@@ -157,7 +172,7 @@ class DataSourceXML implements DataSourceInterface, ConfigurableInterface, Resum
                 continue;
             }
             $this->cursor = (string)$recordNumber;
-            $record = $this->converter->toRecord($node);
+            $record = $this->converter->toRecord($node, $lists);
             if ($recordNumberField !== null) {
                 $record[$recordNumberField] = $recordNumber;
             }

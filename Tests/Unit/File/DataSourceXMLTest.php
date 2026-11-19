@@ -130,6 +130,30 @@ class DataSourceXMLTest extends TestCase
         self::assertCount(3, $this->read(['file' => 'ns.xml', 'element' => 'item']));
     }
 
+    #[DataProvider('modeProvider')]
+    public function testConfiguredElementsAreAlwaysLists(array $mode): void
+    {
+        $records = $this->read(['file' => 'news.xml', 'lists' => ['tag', 'category', 'title']] + $mode);
+
+        self::assertSame(['a', 'b', 'c'], $records[0]['tag']);
+        self::assertSame(['x'], $records[1]['tag']);
+        self::assertSame([], $records[2]['tag']);
+        self::assertSame([], $records[0]['category']);
+        self::assertSame(['Two'], $records[1]['title']);
+    }
+
+    public function testListsApplyToNestedElements(): void
+    {
+        $this->loader->set('nested.xml', '<r><item><author><name>A</name></author><author><name>B</name><name>C</name></author></item></r>');
+
+        $records = $this->read(['file' => 'nested.xml', 'element' => 'item', 'lists' => ['name']]);
+
+        self::assertSame(
+            [['author' => [['name' => ['A']], ['name' => ['B', 'C']]], 'name' => []]],
+            $records
+        );
+    }
+
     public function testAddsRecordNumber(): void
     {
         $records = $this->read(['file' => 'news.xml', 'element' => 'title', 'recordNumberField' => 'n']);
@@ -250,6 +274,10 @@ class DataSourceXMLTest extends TestCase
             'namespaces not a map' => [['file' => 'a.xml', 'element' => 'item', 'namespaces' => ['urn:a']], false],
             'empty namespace uri' => [['file' => 'a.xml', 'element' => 'item', 'namespaces' => ['a' => '']], false],
             'empty record number field' => [['file' => 'a.xml', 'element' => 'item', 'recordNumberField' => ''], false],
+            'lists' => [['file' => 'a.xml', 'element' => 'item', 'lists' => ['tag', 'category']], true],
+            'lists not a list' => [['file' => 'a.xml', 'element' => 'item', 'lists' => 'tag'], false],
+            'lists map' => [['file' => 'a.xml', 'element' => 'item', 'lists' => ['a' => 'tag']], false],
+            'invalid list name' => [['file' => 'a.xml', 'element' => 'item', 'lists' => ['b:tag']], false],
         ];
     }
 

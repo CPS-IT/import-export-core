@@ -18,6 +18,7 @@ namespace CPSIT\ImportExportCore\File;
 use CPSIT\ImportExportCore\ConfigurableInterface;
 use CPSIT\ImportExportCore\ConfigurableTrait;
 use CPSIT\ImportExportCore\Exception\MissingResourceException;
+use CPSIT\ImportExportCore\Exception\ParseException;
 use CPSIT\ImportExportCore\LoggingInterface;
 use CPSIT\ImportExportCore\LoggingTrait;
 use CPSIT\ImportExportCore\Persistence\DataSourceInterface;
@@ -32,7 +33,9 @@ use CPSIT\ImportExportCore\Stream\ResourceStream;
  * The file is read row by row, so large files are not held in memory. Empty
  * rows are skipped. A UTF-8 byte order mark at the start of the file is
  * removed. A row with more or fewer values than fields is skipped and
- * reported as error 1795200501.
+ * reported as error 1795200501 with its row number, or, with `strict`, ends
+ * the task with a `ParseException`. Rows are counted in the file, including
+ * the header and empty rows; a value with line breaks is part of one row.
  *
  * The source is resumable: the cursor holds the number and the position of
  * the last record read, so an interrupted task continues after it.
@@ -49,14 +52,19 @@ use CPSIT\ImportExportCore\Stream\ResourceStream;
  *   field names.
  * - `header` (bool, default true without `fields`, false with `fields`):
  *   whether the first row holds field names. With `fields` and `header:
- *   true`, the first row is skipped.
+ *   true`, `fields` name the columns and the first row is skipped. Without
+ *   `fields` and with `header: false`, the fields are the column numbers,
+ *   starting at 0.
  * - `delimiter` (string, default ','): one character
  * - `enclosure` (string, default '"'): one character
  * - `escape` (string, default '\'): one character, or '' for none
- * - `encoding` (string, default 'UTF-8'): encoding of the file; values are
- *   converted to UTF-8. Other encodings than UTF-8 require the PHP extension
- *   mbstring and must keep delimiter, enclosure and line breaks as single
- *   bytes, e.g. ISO-8859-1 or Windows-1252 (not UTF-16).
+ * - `encoding` (string, default 'UTF-8'): encoding of the file, one of
+ *   `UTF-8`, `ASCII`, `ISO-8859-1` to `ISO-8859-10`, `ISO-8859-13` to
+ *   `ISO-8859-16`, `Windows-1251`, `Windows-1252`, `Windows-1254`, `CP850`
+ *   (case-insensitive); values are converted to UTF-8. Encodings other than
+ *   UTF-8 and ASCII require the PHP extension mbstring.
+ * - `strict` (bool, default false): a row with a wrong number of values
+ *   ends the task with a `ParseException` instead of being skipped
  * - `recordNumberField` (string): adds the number of the record (1 for the
  *   first row after the header) as this field, e.g. as source ID for the ID
  *   map
@@ -69,7 +77,19 @@ class DataSourceCSV implements DataSourceInterface, ConfigurableInterface, Resum
     public const string KEY_HEADER = 'header';
     public const string KEY_ENCODING = 'encoding';
     public const string KEY_RECORD_NUMBER_FIELD = 'recordNumberField';
+    public const string KEY_STRICT = 'strict';
     public const string DEFAULT_ENCODING = 'UTF-8';
+
+    /**
+     * Encodings that keep delimiter, enclosure and line breaks as single
+     * bytes, so the file can be split into rows before converting values.
+     */
+    public const array SUPPORTED_ENCODINGS = [
+        'UTF-8', 'ASCII',
+        'ISO-8859-1', 'ISO-8859-2', 'ISO-8859-3', 'ISO-8859-4', 'ISO-8859-5', 'ISO-8859-6', 'ISO-8859-7',
+        'ISO-8859-8', 'ISO-8859-9', 'ISO-8859-10', 'ISO-8859-13', 'ISO-8859-14', 'ISO-8859-15', 'ISO-8859-16',
+        'Windows-1251', 'Windows-1252', 'Windows-1254', 'CP850',
+    ];
     public const string BYTE_ORDER_MARK = "\xEF\xBB\xBF";
     public const int ERROR_INVALID_ROW = 1795200501;
     public const int ERROR_INVALID_CURSOR = 1795200502;
@@ -98,8 +118,10 @@ class DataSourceCSV implements DataSourceInterface, ConfigurableInterface, Resum
         if (!ResourceLocation::isValid($configuration) || !CsvFormat::isValid($configuration)) {
             return false;
         }
-        if (isset($configuration[self::KEY_HEADER]) && !\is_bool($configuration[self::KEY_HEADER])) {
-            return false;
+        foreach ([self::KEY_HEADER, self::KEY_STRICT] as $key) {
+            if (isset($configuration[$key]) && !\is_bool($configuration[$key])) {
+                return false;
+            }
         }
         if (isset($configuration[self::KEY_RECORD_NUMBER_FIELD])
             && (!\is_string($configuration[self::KEY_RECORD_NUMBER_FIELD]) || $configuration[self::KEY_RECORD_NUMBER_FIELD] === '')
@@ -112,6 +134,7 @@ class DataSourceCSV implements DataSourceInterface, ConfigurableInterface, Resum
 
     /**
      * @throws MissingResourceException
+     * @throws ParseException with `strict`, for a row with a wrong number of values
      * @return \Generator<array<string, mixed>>
      */
     public function getRecords(array $configuration): iterable
@@ -123,8 +146,8 @@ class DataSourceCSV implements DataSourceInterface, ConfigurableInterface, Resum
         $format = CsvFormat::fromConfiguration($configuration);
         $fields = CsvFormat::fields($configuration);
         $header = $configuration[self::KEY_HEADER] ?? $fields === null;
-        $encoding = $configuration[self::KEY_ENCODING] ?? self::DEFAULT_ENCODING;
-        $encoding = \is_string($encoding) && !self::isUtf8($encoding) ? $encoding : null;
+        $encoding = self::sourceEncoding($configuration[self::KEY_ENCODING] ?? self::DEFAULT_ENCODING);
+        $strict = ($configuration[self::KEY_STRICT] ?? false) === true;
         $recordNumberField = $configuration[self::KEY_RECORD_NUMBER_FIELD] ?? null;
         $recordNumberField = \is_string($recordNumberField) ? $recordNumberField : null;
         [$resumeRecord, $resumeRow, $resumeOffset] = $this->parseCursor($this->resumeCursor);
@@ -161,6 +184,18 @@ class DataSourceCSV implements DataSourceInterface, ConfigurableInterface, Resum
                 $this->cursor = $recordNumber . ':' . $rowNumber . ':' . (int)ftell($handle);
                 $fields ??= array_map(strval(...), array_keys($row));
                 if (\count($row) !== \count($fields)) {
+                    if ($strict) {
+                        throw new ParseException(
+                            \sprintf(
+                                'Row %d of "%s" has %d values, but there are %d fields.',
+                                $rowNumber,
+                                $location,
+                                \count($row),
+                                \count($fields)
+                            ),
+                            self::ERROR_INVALID_ROW
+                        );
+                    }
                     $this->logError(self::ERROR_INVALID_ROW, [$rowNumber, $location, \count($row), \count($fields)]);
                     continue;
                 }
@@ -238,21 +273,31 @@ class DataSourceCSV implements DataSourceInterface, ConfigurableInterface, Resum
 
     private static function isSupportedEncoding(mixed $encoding): bool
     {
-        if (!\is_string($encoding) || $encoding === '') {
-            return false;
-        }
-        if (self::isUtf8($encoding)) {
-            return true;
-        }
-        if (!\function_exists('mb_list_encodings')) {
+        if (!\is_string($encoding) || self::canonicalEncoding($encoding) === null) {
             return false;
         }
 
-        return \in_array(strtolower($encoding), array_map(strtolower(...), mb_list_encodings()), true);
+        return self::sourceEncoding($encoding) === null || \function_exists('mb_convert_encoding');
     }
 
-    private static function isUtf8(string $encoding): bool
+    private static function canonicalEncoding(string $encoding): ?string
     {
-        return \in_array(strtolower($encoding), ['utf-8', 'utf8'], true);
+        foreach (self::SUPPORTED_ENCODINGS as $supported) {
+            if (strcasecmp($supported, $encoding) === 0) {
+                return $supported;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Returns the encoding to convert from, or null if no conversion is needed.
+     */
+    private static function sourceEncoding(mixed $encoding): ?string
+    {
+        $canonical = \is_string($encoding) ? self::canonicalEncoding($encoding) : null;
+
+        return $canonical === null || $canonical === 'UTF-8' || $canonical === 'ASCII' ? null : $canonical;
     }
 }

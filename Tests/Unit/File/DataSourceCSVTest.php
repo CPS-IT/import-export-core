@@ -16,6 +16,7 @@ declare(strict_types=1);
 namespace CPSIT\ImportExportCore\Tests\Unit\File;
 
 use CPSIT\ImportExportCore\Exception\MissingResourceException;
+use CPSIT\ImportExportCore\Exception\ParseException;
 use CPSIT\ImportExportCore\File\DataSourceCSV;
 use CPSIT\ImportExportCore\Messaging\Message;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -133,6 +134,24 @@ class DataSourceCSVTest extends TestCase
         self::assertStringContainsString('Row 4 of "a.csv" has 3 values', $messages[1]->getMessage());
     }
 
+    public function testThrowsForRowWithWrongNumberOfValuesInStrictMode(): void
+    {
+        $this->loader->set('a.csv', "uid,title\n1,One\n\n2\n");
+        $records = [];
+
+        try {
+            foreach ($this->subject->getRecords(['file' => 'a.csv', 'strict' => true]) as $record) {
+                $records[] = $record;
+            }
+            self::fail('No exception thrown');
+        } catch (ParseException $exception) {
+            self::assertSame(DataSourceCSV::ERROR_INVALID_ROW, $exception->getCode());
+            self::assertSame('Row 4 of "a.csv" has 1 values, but there are 2 fields.', $exception->getMessage());
+        }
+        self::assertSame([['uid' => '1', 'title' => 'One']], $records);
+        self::assertSame([], $this->subject->getAndPurgeMessages());
+    }
+
     public function testEmptyFileHasNoRecords(): void
     {
         $this->loader->set('a.csv', '');
@@ -246,7 +265,13 @@ class DataSourceCSVTest extends TestCase
             'empty enclosure' => [['file' => 'a.csv', 'enclosure' => ''], false],
             'long escape' => [['file' => 'a.csv', 'escape' => '\\\\'], false],
             'header not bool' => [['file' => 'a.csv', 'header' => 'yes'], false],
+            'encoding in lower case' => [['file' => 'a.csv', 'encoding' => 'iso-8859-15'], true],
+            'ascii' => [['file' => 'a.csv', 'encoding' => 'ASCII'], true],
+            'strict' => [['file' => 'a.csv', 'strict' => true], true],
             'unknown encoding' => [['file' => 'a.csv', 'encoding' => 'klingon'], false],
+            'multi-byte encoding' => [['file' => 'a.csv', 'encoding' => 'UTF-16'], false],
+            'encoding not a string' => [['file' => 'a.csv', 'encoding' => 8859], false],
+            'strict not bool' => [['file' => 'a.csv', 'strict' => 1], false],
             'empty record number field' => [['file' => 'a.csv', 'recordNumberField' => ''], false],
         ];
     }

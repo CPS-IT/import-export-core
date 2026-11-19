@@ -62,7 +62,9 @@ Reads records from a CSV file, one record per row.
 The file is read row by row, so large files are not held in memory. Empty
 rows are skipped. A UTF-8 byte order mark at the start of the file is
 removed. A row with more or fewer values than fields is skipped and
-reported as error 1795200501.
+reported as error 1795200501 with its row number, or, with `strict`, ends
+the task with a `ParseException`. Rows are counted in the file, including
+the header and empty rows; a value with line breaks is part of one row.
 
 The source is resumable: the cursor holds the number and the position of
 the last record read, so an interrupted task continues after it.
@@ -79,14 +81,19 @@ Configuration:
   field names.
 - `header` (bool, default true without `fields`, false with `fields`):
   whether the first row holds field names. With `fields` and `header:
-  true`, the first row is skipped.
+  true`, `fields` name the columns and the first row is skipped. Without
+  `fields` and with `header: false`, the fields are the column numbers,
+  starting at 0.
 - `delimiter` (string, default ','): one character
 - `enclosure` (string, default '"'): one character
 - `escape` (string, default '\'): one character, or '' for none
-- `encoding` (string, default 'UTF-8'): encoding of the file; values are
-  converted to UTF-8. Other encodings than UTF-8 require the PHP extension
-  mbstring and must keep delimiter, enclosure and line breaks as single
-  bytes, e.g. ISO-8859-1 or Windows-1252 (not UTF-16).
+- `encoding` (string, default 'UTF-8'): encoding of the file, one of
+  `UTF-8`, `ASCII`, `ISO-8859-1` to `ISO-8859-10`, `ISO-8859-13` to
+  `ISO-8859-16`, `Windows-1251`, `Windows-1252`, `Windows-1254`, `CP850`
+  (case-insensitive); values are converted to UTF-8. Encodings other than
+  UTF-8 and ASCII require the PHP extension mbstring.
+- `strict` (bool, default false): a row with a wrong number of values
+  ends the task with a `ParseException` instead of being skipped
 - `recordNumberField` (string): adds the number of the record (1 for the
   first row after the header) as this field, e.g. as source ID for the ID
   map
@@ -126,6 +133,9 @@ Configuration:
   selects are skipped
 - `namespaces` (map of prefix => URI): namespaces for `element` and
   `expression`
+- `lists` (list of strings): local names of child elements that are always
+  lists, so that a field has the same type in all records: also with one
+  element, and an empty list if the record element has none
 - `recordNumberField` (string): adds the number of the record (1 for the
   first) as this field, e.g. as source ID for the ID map
 
