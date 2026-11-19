@@ -15,10 +15,12 @@ declare(strict_types=1);
 
 namespace CPSIT\ImportExportCore\Tests\Unit\File;
 
+use CPSIT\ImportExportCore\Exception\InvalidConfigurationException;
 use CPSIT\ImportExportCore\Exception\MissingResourceException;
 use CPSIT\ImportExportCore\Exception\ParseException;
 use CPSIT\ImportExportCore\File\DataSourceXML;
 use CPSIT\ImportExportCore\Resource\FileResourceLoader;
+use CPSIT\ImportExportCore\Resource\FileTypePolicy;
 use CPSIT\ImportExportCore\Resource\PathResolver;
 use CPSIT\ImportExportCore\Tests\Unit\Resource\TemporaryDirectoryTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -105,6 +107,14 @@ class DataSourceXMLTest extends TestCase
         $records = $this->read(['file' => 'news.xml', 'expression' => '/feed/item[@type="news"]/title | //other']);
 
         self::assertSame([['@value' => 'One'], ['item' => ['@attributes' => ['id' => '3'], 'title' => 'Three']]], $records);
+    }
+
+    public function testRejectsFileWithOtherType(): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionCode(FileTypePolicy::ERROR_NOT_ALLOWED);
+
+        $this->read(['file' => 'news.csv', 'element' => 'item']);
     }
 
     public function testSkipsNodesThatAreNoElements(): void

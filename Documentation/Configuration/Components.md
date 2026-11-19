@@ -69,6 +69,10 @@ the header and empty rows; a value with line breaks is part of one row.
 The source is resumable: the cursor holds the number and the position of
 the last record read, so an interrupted task continues after it.
 
+`file` must have one of the allowed file types (`FileTypePolicy`), by
+default `csv`, `tsv` or `txt`. The application can pass other types as
+constructor argument. Executable files are never allowed.
+
 Configuration:
 
 - `file` (string, required unless `url`): location of the file, passed to
@@ -116,6 +120,10 @@ to attributes or child elements in `@value`.
 The source is resumable: the cursor is the number of the last record read.
 A resumed task reads the file from the beginning again and skips the
 records up to the cursor.
+
+`file` must have one of the allowed file types (`FileTypePolicy`), by
+default `xml`. The application can pass other types as
+constructor argument. Executable files are never allowed.
 
 Configuration:
 
@@ -443,6 +451,10 @@ The file is created, or replaced, when the first record is written, and
 closed in `persistAll()`. Records must be arrays. Values that are not
 scalar are written as JSON; `Stringable` objects as string. Fields missing
 in a record are written as empty values.
+
+`file` must have one of the allowed file types (`FileTypePolicy`), by
+default `csv`, `tsv` or `txt`. The application can pass other types as
+constructor argument. Executable files are never allowed.
 
 Configuration:
 

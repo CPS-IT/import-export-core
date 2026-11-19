@@ -22,6 +22,7 @@ use CPSIT\ImportExportCore\Exception\ParseException;
 use CPSIT\ImportExportCore\Persistence\DataSourceInterface;
 use CPSIT\ImportExportCore\Persistence\ResumableSourceInterface;
 use CPSIT\ImportExportCore\Resource\FileResourceLoader;
+use CPSIT\ImportExportCore\Resource\FileTypePolicy;
 use CPSIT\ImportExportCore\Resource\ResourceLoaderInterface;
 use CPSIT\ImportExportCore\Stream\ResourceStream;
 
@@ -40,6 +41,10 @@ use CPSIT\ImportExportCore\Stream\ResourceStream;
  * The source is resumable: the cursor is the number of the last record read.
  * A resumed task reads the file from the beginning again and skips the
  * records up to the cursor.
+ *
+ * `file` must have one of the allowed file types (`FileTypePolicy`), by
+ * default `xml`. The application can pass other types as
+ * constructor argument. Executable files are never allowed.
  *
  * Configuration:
  *
@@ -65,6 +70,11 @@ use CPSIT\ImportExportCore\Stream\ResourceStream;
  */
 class DataSourceXML implements DataSourceInterface, ConfigurableInterface, ResumableSourceInterface
 {
+    /**
+     * @var list<string>
+     */
+    public const array DEFAULT_FILE_EXTENSIONS = ['xml'];
+
     use ConfigurableTrait;
 
     public const string KEY_ELEMENT = 'element';
@@ -79,15 +89,21 @@ class DataSourceXML implements DataSourceInterface, ConfigurableInterface, Resum
 
     protected readonly ResourceLoaderInterface $resourceLoader;
 
+    protected readonly FileTypePolicy $fileTypes;
+
     protected readonly XmlElementConverter $converter;
 
     protected string $cursor = '';
 
     protected string $resumeCursor = '';
 
-    public function __construct(?ResourceLoaderInterface $resourceLoader = null)
+    /**
+     * @param FileTypePolicy|null $fileTypes allowed types of `file`; default: `DEFAULT_FILE_EXTENSIONS`
+     */
+    public function __construct(?ResourceLoaderInterface $resourceLoader = null, ?FileTypePolicy $fileTypes = null)
     {
         $this->resourceLoader = $resourceLoader ?? new FileResourceLoader();
+        $this->fileTypes = $fileTypes ?? new FileTypePolicy(self::DEFAULT_FILE_EXTENSIONS);
         $this->converter = new XmlElementConverter();
     }
 
@@ -151,6 +167,9 @@ class DataSourceXML implements DataSourceInterface, ConfigurableInterface, Resum
             throw new \UnexpectedValueException('Invalid configuration for the XML data source.', self::ERROR_INVALID_CONFIGURATION);
         }
         $location = ResourceLocation::fromConfiguration($configuration);
+        if (ResourceLocation::isFile($configuration)) {
+            $this->fileTypes->assertAllowed($location);
+        }
         /** @var array<string, string> $namespaces */
         $namespaces = $configuration[self::KEY_NAMESPACES] ?? [];
         $recordNumberField = $configuration[self::KEY_RECORD_NUMBER_FIELD] ?? null;

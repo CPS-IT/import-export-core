@@ -42,6 +42,16 @@ final class ResourceLocation
     }
 
     /**
+     * Whether the location is a file (`file`), not a URL
+     *
+     * @param array<string, mixed> $configuration
+     */
+    public static function isFile(array $configuration): bool
+    {
+        return isset($configuration[self::KEY_FILE]);
+    }
+
+    /**
      * @param array<string, mixed> $configuration
      */
     public static function fromConfiguration(array $configuration): string

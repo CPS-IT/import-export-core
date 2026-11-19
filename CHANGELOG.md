@@ -4,6 +4,20 @@ All notable changes to this project are documented in this file. The project
 follows [Semantic Versioning](https://semver.org/). While the version is `0.x`,
 a new minor version may contain breaking changes.
 
+## Unreleased
+
+### Added
+
+* `Resource\FileTypePolicy`: `DataSourceCSV`, `DataSourceXML` and
+  `DataTargetCSV` accept only their file types in `file` (`csv`, `tsv`, `txt`
+  or `xml`); the application can set other types
+* `HttpResourceLoader` takes a list of allowed hosts
+
+### Changed
+
+* `PathResolver` and the file components reject executable file names, e.g.
+  `.php`, also as `a.php.csv`
+
 ## 0.4.0 - 2026-11-19
 
 ### Fixed

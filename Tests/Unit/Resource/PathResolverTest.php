@@ -85,6 +85,9 @@ class PathResolverTest extends TestCase
             'phar' => ['phar://data/a.phar'],
             'windows drive' => ['C:\\Windows'],
             'null byte' => ["data/a.csv\0.txt"],
+            'php file' => ['data/a.php'],
+            'php with second extension' => ['data/a.php.csv'],
+            'htaccess' => ['data/.htaccess'],
         ];
     }
 

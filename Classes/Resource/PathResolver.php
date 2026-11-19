@@ -21,8 +21,9 @@ use CPSIT\ImportExportCore\Exception\InvalidArgumentException;
  * Resolves relative paths against a base directory and does not allow paths
  * outside of it.
  *
- * Absolute paths, stream wrappers (`scheme://`), `..` segments and null bytes
- * are rejected. If the path or one of its parent directories exists, its real
+ * Absolute paths, stream wrappers (`scheme://`), `..` segments, null bytes
+ * and executable file names (`FileTypePolicy::isDenied()`, e.g. `.php`) are
+ * rejected. If the path or one of its parent directories exists, its real
  * path must be inside the base directory, so symbolic links cannot lead out
  * of it either.
  */
@@ -92,6 +93,9 @@ final class PathResolver implements PathResolverInterface
             return false;
         }
         if ($path[0] === '/' || $path[0] === '\\') {
+            return false;
+        }
+        if (FileTypePolicy::isDenied($path)) {
             return false;
         }
 

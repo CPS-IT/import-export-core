@@ -24,6 +24,7 @@ use CPSIT\ImportExportCore\LoggingTrait;
 use CPSIT\ImportExportCore\Persistence\DataSourceInterface;
 use CPSIT\ImportExportCore\Persistence\ResumableSourceInterface;
 use CPSIT\ImportExportCore\Resource\FileResourceLoader;
+use CPSIT\ImportExportCore\Resource\FileTypePolicy;
 use CPSIT\ImportExportCore\Resource\ResourceLoaderInterface;
 use CPSIT\ImportExportCore\Stream\ResourceStream;
 
@@ -39,6 +40,10 @@ use CPSIT\ImportExportCore\Stream\ResourceStream;
  *
  * The source is resumable: the cursor holds the number and the position of
  * the last record read, so an interrupted task continues after it.
+ *
+ * `file` must have one of the allowed file types (`FileTypePolicy`), by
+ * default `csv`, `tsv` or `txt`. The application can pass other types as
+ * constructor argument. Executable files are never allowed.
  *
  * Configuration:
  *
@@ -71,6 +76,11 @@ use CPSIT\ImportExportCore\Stream\ResourceStream;
  */
 class DataSourceCSV implements DataSourceInterface, ConfigurableInterface, ResumableSourceInterface, LoggingInterface
 {
+    /**
+     * @var list<string>
+     */
+    public const array DEFAULT_FILE_EXTENSIONS = ['csv', 'tsv', 'txt'];
+
     use ConfigurableTrait;
     use LoggingTrait;
 
@@ -104,13 +114,19 @@ class DataSourceCSV implements DataSourceInterface, ConfigurableInterface, Resum
 
     protected readonly ResourceLoaderInterface $resourceLoader;
 
+    protected readonly FileTypePolicy $fileTypes;
+
     protected string $cursor = '';
 
     protected string $resumeCursor = '';
 
-    public function __construct(?ResourceLoaderInterface $resourceLoader = null)
+    /**
+     * @param FileTypePolicy|null $fileTypes allowed types of `file`; default: `DEFAULT_FILE_EXTENSIONS`
+     */
+    public function __construct(?ResourceLoaderInterface $resourceLoader = null, ?FileTypePolicy $fileTypes = null)
     {
         $this->resourceLoader = $resourceLoader ?? new FileResourceLoader();
+        $this->fileTypes = $fileTypes ?? new FileTypePolicy(self::DEFAULT_FILE_EXTENSIONS);
     }
 
     public function isConfigurationValid(array $configuration): bool
@@ -143,6 +159,9 @@ class DataSourceCSV implements DataSourceInterface, ConfigurableInterface, Resum
             throw new \UnexpectedValueException('Invalid configuration for the CSV data source.', self::ERROR_INVALID_CONFIGURATION);
         }
         $location = ResourceLocation::fromConfiguration($configuration);
+        if (ResourceLocation::isFile($configuration)) {
+            $this->fileTypes->assertAllowed($location);
+        }
         $format = CsvFormat::fromConfiguration($configuration);
         $fields = CsvFormat::fields($configuration);
         $header = $configuration[self::KEY_HEADER] ?? $fields === null;

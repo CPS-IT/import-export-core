@@ -28,17 +28,55 @@ use Psr\Http\Message\StreamInterface;
  *
  * Loading URLs is not enabled by default: an application adds this loader
  * explicitly, e.g. to a {@see DelegatingResourceLoader}. A configuration can
- * then make the application request any URL the client reaches, so the client
- * should be restricted to the hosts that are needed.
+ * then make the application request any URL the client reaches. Pass the
+ * hosts that are needed as `$allowedHosts`: `example.org` allows this host,
+ * `*.example.org` its subdomains. Requests to other hosts throw a
+ * `MissingResourceException` before they are sent. Redirects are followed by
+ * the client; restrict them in the client if needed.
  */
 final class HttpResourceLoader implements ResourceLoaderInterface
 {
     public const int ERROR_REQUEST_FAILED = 1795200301;
+    public const int ERROR_HOST_NOT_ALLOWED = 1795200302;
 
+    /**
+     * @var list<string>|null
+     */
+    private readonly ?array $allowedHosts;
+
+    /**
+     * @param list<string>|null $allowedHosts hosts that may be requested,
+     *                                        `*.example.org` for subdomains;
+     *                                        null: all hosts
+     */
     public function __construct(
         private readonly ClientInterface $client,
         private readonly RequestFactoryInterface $requestFactory,
+        ?array $allowedHosts = null,
     ) {
+        $this->allowedHosts = $allowedHosts === null
+            ? null
+            : array_map(static fn (string $host): string => strtolower(trim($host)), $allowedHosts);
+    }
+
+    public function isHostAllowed(string $location): bool
+    {
+        if ($this->allowedHosts === null) {
+            return true;
+        }
+        $host = rtrim(strtolower((string)parse_url($location, PHP_URL_HOST)), '.');
+        if ($host === '') {
+            return false;
+        }
+        foreach ($this->allowedHosts as $allowedHost) {
+            if ($host === $allowedHost
+                || (str_starts_with($allowedHost, '*.') && str_ends_with($host, substr($allowedHost, 1)))
+            ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function supports(string $location): bool
@@ -55,6 +93,12 @@ final class HttpResourceLoader implements ResourceLoaderInterface
     {
         if (!$this->supports($location)) {
             throw $this->failed($location, 'not an http(s) URL');
+        }
+        if (!$this->isHostAllowed($location)) {
+            throw new MissingResourceException(
+                \sprintf('Resource "%s" cannot be loaded: the host is not allowed.', $location),
+                self::ERROR_HOST_NOT_ALLOWED
+            );
         }
         try {
             $response = $this->client->sendRequest($this->requestFactory->createRequest('GET', $location));

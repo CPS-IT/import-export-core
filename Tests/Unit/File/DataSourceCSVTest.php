@@ -15,10 +15,12 @@ declare(strict_types=1);
 
 namespace CPSIT\ImportExportCore\Tests\Unit\File;
 
+use CPSIT\ImportExportCore\Exception\InvalidConfigurationException;
 use CPSIT\ImportExportCore\Exception\MissingResourceException;
 use CPSIT\ImportExportCore\Exception\ParseException;
 use CPSIT\ImportExportCore\File\DataSourceCSV;
 use CPSIT\ImportExportCore\Messaging\Message;
+use CPSIT\ImportExportCore\Resource\FileTypePolicy;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -42,6 +44,34 @@ class DataSourceCSVTest extends TestCase
             [['uid' => '1', 'title' => 'One'], ['uid' => '2', 'title' => 'Two, with comma']],
             $this->read(['file' => 'a.csv'])
         );
+    }
+
+    public function testRejectsFileWithOtherType(): void
+    {
+        $this->loader->set('a.xml', "uid\n1\n");
+
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionCode(FileTypePolicy::ERROR_NOT_ALLOWED);
+
+        $this->read(['file' => 'a.xml']);
+    }
+
+    public function testUsesFileTypesOfTheApplication(): void
+    {
+        $this->loader->set('a.dat', "uid\n1\n");
+        $this->loader->set('a.csv', "uid\n1\n");
+        $this->subject = new DataSourceCSV($this->loader, new FileTypePolicy(['dat']));
+
+        self::assertSame([['uid' => '1']], $this->read(['file' => 'a.dat']));
+        $this->expectExceptionCode(FileTypePolicy::ERROR_NOT_ALLOWED);
+        $this->read(['file' => 'a.csv']);
+    }
+
+    public function testDoesNotCheckTheTypeOfUrls(): void
+    {
+        $this->loader->set('https://example.org/export?format=csv', "uid\n1\n");
+
+        self::assertSame([['uid' => '1']], $this->read(['url' => 'https://example.org/export?format=csv']));
     }
 
     public function testReadsValuesWithLineBreaks(): void
