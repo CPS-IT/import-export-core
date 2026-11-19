@@ -141,6 +141,18 @@ Configuration:
 - `identifier` (string, required): the queue
 - `limit` (int, default 10): items per run
 
+### NullDataSource
+
+`CPSIT\ImportExportCore\Persistence\NullDataSource`
+
+Data source without records, e.g. for tasks that only run initializers or
+finishers. Note that finishers run, but the target's `persistAll()` is not
+called without records.
+
+Configuration:
+
+none.
+
 ## Pre-processors
 
 Key in the task: `preProcessors`
@@ -407,6 +419,31 @@ Configuration:
   existing row on update, or from the generated ID after an insert. Set it
   to '' for tables without such a column; the target reports no IDs then.
 
+### DataTargetCSV
+
+`CPSIT\ImportExportCore\File\DataTargetCSV`
+
+Writes records into a CSV file, one row per record.
+
+The file is created, or replaced, when the first record is written, and
+closed in `persistAll()`. Records must be arrays. Values that are not
+scalar are written as JSON; `Stringable` objects as string. Fields missing
+in a record are written as empty values.
+
+Configuration:
+
+- `file` (string, required): path of the file, resolved by the path
+  resolver; by default relative to the working directory. Missing
+  directories are created.
+- `fields` (list of strings or comma-separated string): fields to write,
+  in this order; without `fields`, the fields of the first record
+- `header` (bool, default true): writes the field names in the first row
+- `delimiter` (string, default ','): one character
+- `enclosure` (string, default '"'): one character
+- `escape` (string, default '\'): one character, or '' for none
+- `bom` (bool, default false): starts the file with a UTF-8 byte order
+  mark, e.g. for spreadsheet applications
+
 ### DataTargetQueue
 
 `CPSIT\ImportExportCore\Persistence\DataTargetQueue`
@@ -419,3 +456,14 @@ Configuration:
 - `identifier` (string, required): the queue
 - `allowUpdate` (bool, default false): records already in the queue are set
   back to new
+
+### NullDataTarget
+
+`CPSIT\ImportExportCore\Persistence\NullDataTarget`
+
+Data target that does not write anything, e.g. for tasks whose finishers
+use the result, or to try a configuration.
+
+Configuration:
+
+none.

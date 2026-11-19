@@ -21,24 +21,24 @@ namespace CPSIT\ImportExportCore\Tests\Unit\Resource;
  */
 trait TemporaryDirectoryTrait
 {
-    private string $directory = '';
+    private string $temporaryDirectory = '';
 
     protected function createTemporaryDirectory(): string
     {
-        $this->directory = sys_get_temp_dir() . '/import-export-core-' . bin2hex(random_bytes(6));
-        mkdir($this->directory);
-        $this->directory = (string)realpath($this->directory);
+        $this->temporaryDirectory = sys_get_temp_dir() . '/import-export-core-' . bin2hex(random_bytes(6));
+        mkdir($this->temporaryDirectory);
+        $this->temporaryDirectory = (string)realpath($this->temporaryDirectory);
 
-        return $this->directory;
+        return $this->temporaryDirectory;
     }
 
     protected function removeTemporaryDirectory(): void
     {
-        if ($this->directory === '' || !is_dir($this->directory)) {
+        if ($this->temporaryDirectory === '' || !is_dir($this->temporaryDirectory)) {
             return;
         }
         $iterator = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($this->directory, \FilesystemIterator::SKIP_DOTS),
+            new \RecursiveDirectoryIterator($this->temporaryDirectory, \FilesystemIterator::SKIP_DOTS),
             \RecursiveIteratorIterator::CHILD_FIRST
         );
         foreach ($iterator as $file) {
@@ -49,7 +49,7 @@ trait TemporaryDirectoryTrait
                 unlink($file->getPathname());
             }
         }
-        rmdir($this->directory);
-        $this->directory = '';
+        rmdir($this->temporaryDirectory);
+        $this->temporaryDirectory = '';
     }
 }
