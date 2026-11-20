@@ -34,6 +34,7 @@ Optional interfaces:
 | `BatchAwareInterface` | `flushBatch($result)` is called after each batch, e.g. to write buffered records and commit a transaction. Checkpoints are saved only for batch aware targets, because only they are known to have written the batch. |
 | `IdentifyingTargetInterface` | `getTargetId($record)` returns the ID of a written record. Required for tasks with `idMap`, see [State](State.md#id-map). The processor asks after `flushBatch()` for batch aware targets, after `persist()` for others. |
 | `Component\DisableableInterface` | `isDisabled($configuration, $record, $result)`: the target skips the record. |
+| `EmptyRunAwareInterface` | `persistEmptyRun($result, $configuration)` is called instead of `persistAll()` if the source returned no records, e.g. to replace the output of the previous run. Not called when a run resumed from a checkpoint. `DataTargetCSV` implements it. |
 
 ## Files
 

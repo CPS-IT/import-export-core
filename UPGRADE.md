@@ -28,6 +28,20 @@ names, e.g. `a.php` or `a.php.csv`.
 **Migration**: rename the files, or pass the types as constructor argument:
 `new DataSourceCSV($loader, new FileTypePolicy(['csv', 'dat']))`.
 
+### `DataTargetCSV` replaces the file also without records
+
+Issue: [#93](https://github.com/CPS-IT/import-export-core/issues/93)
+
+**Affects**: tasks with `DataTargetCSV` that read or write no records.
+
+**Change**: the file is replaced with an empty one (only the header row with
+`fields`, the byte order mark with `bom`) instead of keeping the file of the
+previous run. The processor calls `persistEmptyRun()` of targets that
+implement `Persistence\EmptyRunAwareInterface` if the source returned no
+records.
+
+**Migration**: none, unless a later step relied on the old file being kept.
+
 ## 0.4.0
 
 ### Expressions: read-only `result`, errors and ranges

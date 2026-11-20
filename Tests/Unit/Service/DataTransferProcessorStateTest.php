@@ -28,6 +28,7 @@ use CPSIT\ImportExportCore\State\NullCheckpointStore;
 use CPSIT\ImportExportCore\State\NullIdMap;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\ArraySource;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\CursorSource;
+use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\EmptyRunTarget;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\FailingBatchTarget;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\InMemoryTarget;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\LogInitializer;
@@ -156,6 +157,16 @@ class DataTransferProcessorStateTest extends TestCase
         self::assertSame([3, 4, 5], $target->ids);
         self::assertSame(3, $result->getStatistics()->getRead());
         self::assertTrue($this->checkpoints->get('task')->isInitial());
+    }
+
+    public function testResumedRunWithoutFurtherRecordsDoesNotCallPersistEmptyRun(): void
+    {
+        $this->checkpoints->save(new Checkpoint('task', 1, 2));
+        $target = new EmptyRunTarget();
+
+        $this->createProcessor()->process($this->createTask(new ArraySource(self::records(2)), $target), new TaskResult());
+
+        self::assertSame([], $target->calls);
     }
 
     public function testResumableSourceContinuesFromCursor(): void
