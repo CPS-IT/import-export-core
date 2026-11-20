@@ -13,7 +13,7 @@ Each entry contains:
 
 [CHANGELOG.md](CHANGELOG.md) lists all changes, including non-breaking ones.
 
-## 0.5.0 (unreleased)
+## 0.5.0
 
 ### File components accept only their file types
 
