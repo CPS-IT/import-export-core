@@ -79,6 +79,21 @@ class DbalStateStoresTest extends TestCase
         self::assertSame([], [...$this->idMap->all('sys_file')]);
     }
 
+    public function testIdMapKeysAreCaseSensitiveAndKeepTrailingSpaces(): void
+    {
+        $this->idMap->set(new IdMapping('pages', 'ABC', '1'));
+        $this->idMap->set(new IdMapping('pages', 'abc', '2'));
+        $this->idMap->set(new IdMapping('pages', 'abc ', '3'));
+        $this->idMap->set(new IdMapping('Pages', 'abc', '4'));
+
+        self::assertSame('1', $this->idMap->get('pages', 'ABC')->targetId);
+        self::assertSame('2', $this->idMap->get('pages', 'abc')->targetId);
+        self::assertSame('3', $this->idMap->get('pages', 'abc ')->targetId);
+        self::assertSame('4', $this->idMap->get('Pages', 'abc')->targetId);
+        self::assertFalse($this->idMap->has('pages', 'Abc'));
+        self::assertCount(3, [...$this->idMap->all('pages')]);
+    }
+
     public function testIdMapUsesGivenTable(): void
     {
         $idMap = new DbalIdMap($this->connection, 'custom_id_map');

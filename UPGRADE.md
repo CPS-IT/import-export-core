@@ -51,6 +51,57 @@ failed by that run; they stay new and are processed again.
 **Migration**: none, unless the application relies on such items being
 finished by the running task.
 
+### ID map keys are compared byte by byte on MySQL and MariaDB
+
+Issue: [#116](https://github.com/CPS-IT/import-export-core/issues/116)
+
+**Affects**: applications using `Dbal\State\DbalIdMap` on MySQL or MariaDB,
+and applications that create the table with their own schema tools.
+
+**Change**: `DbalIdMap::getTables()` gives the columns `namespace` and
+`source_id` a binary collation, so `ABC`, `abc` and `abc ` are different
+keys, as they are on PostgreSQL and SQLite:
+
+| Server | Collation |
+|---|---|
+| MySQL 8.0.17 and later | `utf8mb4_0900_bin` |
+| MariaDB | `utf8mb4_nopad_bin` |
+| MySQL 5.7 | `utf8mb4_bin` (trailing spaces are still ignored) |
+
+Before, the columns had the default collation of the database (e.g.
+`utf8mb4_unicode_ci`), and source IDs that differ only in case or in trailing
+spaces shared one mapping.
+
+**Migration**: `SchemaInstaller` does not change existing columns, so an
+existing table keeps its collation. Change the columns once, e.g. on MySQL 8
+(on MariaDB with `utf8mb4_nopad_bin`):
+
+```sql
+ALTER TABLE import_export_id_map
+    MODIFY namespace VARCHAR(255) COLLATE utf8mb4_0900_bin NOT NULL DEFAULT '',
+    MODIFY source_id VARCHAR(255) COLLATE utf8mb4_0900_bin NOT NULL DEFAULT '';
+```
+
+Doctrine's comparator returns the same statement for a table with another
+name:
+
+```php
+$schemaManager = $connection->createSchemaManager();
+$diff = $schemaManager->createComparator()->compareTables(
+    $schemaManager->introspectTable('import_export_id_map'),
+    $idMap->getTables()[0]
+);
+$statements = $connection->getDatabasePlatform()->getAlterTableSQL($diff);
+```
+
+The change cannot fail on existing rows, since the binary collation only
+separates keys. Mappings that were merged before (one row for `ABC` and
+`abc`) are not split: the row keeps the source ID it was created with and the
+target ID written last, and the other source ID gets its own mapping in the
+next run. Check the targets
+of namespaces whose source IDs may differ only in case. Tables created with own schema tools need the collation in their
+definition. PostgreSQL and SQLite are not affected.
+
 ## 0.6.0
 
 ### Components of a task are sorted by their keys

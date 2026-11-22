@@ -39,6 +39,10 @@ batch are recorded after `flushBatch()`, so a record cannot refer to another
 record of the same batch through the ID map. Use a batch size of 1 or a
 second task for such references, e.g. the parent page in a page tree.
 
+Source IDs are compared exactly: `ABC`, `abc` and `abc ` are different
+source IDs. `DbalIdMap` gives its key columns a binary collation on MySQL and
+MariaDB for this, see [Persistence](Persistence.md#tables-of-the-core).
+
 `IdMapInterface::get()` returns a `NullIdMapping` (`exists()` is false) if
 there is no mapping.
 

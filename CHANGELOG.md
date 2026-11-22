@@ -26,6 +26,14 @@ a new minor version may contain breaking changes.
 
 ### Fixed
 
+* `Dbal\State\DbalIdMap`: on MySQL and MariaDB, the columns `namespace` and
+  `source_id` used the default collation of the database, which is usually
+  case-insensitive and ignores trailing spaces. Source IDs such as `ABC` and
+  `abc` shared one mapping. The columns now have a binary collation
+  (`utf8mb4_0900_bin` on MySQL 8, `utf8mb4_nopad_bin` on MariaDB,
+  `utf8mb4_bin` on MySQL 5.7). Existing tables have to be changed manually,
+  see [UPGRADE.md](UPGRADE.md)
+  ([#116](https://github.com/CPS-IT/import-export-core/issues/116))
 * Queue items stayed in processing after a failed task if `DataSourceQueue`
   and `DataTargetDBAL` used the same connection: the source marked the items
   as failed inside the open batch transaction of the target, and the rollback
