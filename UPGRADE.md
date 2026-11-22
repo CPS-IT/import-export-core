@@ -13,6 +13,41 @@ Each entry contains:
 
 [CHANGELOG.md](CHANGELOG.md) lists all changes, including non-breaking ones.
 
+## 0.6.0
+
+### Components of a task are sorted by their keys
+
+Issue: [#81](https://github.com/CPS-IT/import-export-core/issues/81)
+
+**Affects**: task configurations whose component lists (`filters`,
+`initializers`, `preProcessors`, `converters`, `postProcessors`, `finishers`)
+have integer keys that are not in ascending order, including keys that a later
+configuration file adds between existing ones.
+
+**Change**: `TransferTaskFactory` sorts the components of a list by their
+integer keys in ascending order. Components with string keys (e.g. `last` or
+`1.5`) follow in the order in which they appear in the configuration. Lists
+without keys (`- class: ...`) keep their order. Before, components ran in the
+order of the merged configuration, and a component added under a new key ran
+last.
+
+Note that `ConfigurationHandler` treats a component map whose keys are
+exactly `0` to `n-1` (e.g. only `0: ...`) as a list: a later file with such a
+map replaces the earlier one instead of merging into it, and a later map does
+not merge into an earlier list either.
+
+**Migration**: check lists with unordered keys and change the keys so that
+they reflect the intended order. Use keys that do not start at `0` (`10`,
+`20`, ...), so that later files can add components in between:
+
+```yaml
+preProcessors:
+  10:
+    class: ...   # runs first
+  20:
+    class: ...   # runs second, also if it appears first in the file
+```
+
 ## 0.5.0
 
 ### File components accept only their file types

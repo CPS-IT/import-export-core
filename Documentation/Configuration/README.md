@@ -35,6 +35,11 @@ and lists replace the earlier value. Component lists keyed by position
 (`10`, `20`) are maps, so a later file can replace single components or add
 new ones.
 Lists without keys (`- class: ...`) are replaced as a whole.
+A map whose keys are exactly `0` to `n-1` in this order (e.g. only `0: ...`)
+counts as a list as well: in a later file it replaces the earlier value
+instead of being merged into it, and an earlier value with such keys is
+replaced by a later map. Use keys that do not start at `0` (`10`, `20`, ...)
+for components that later files should change or extend.
 
 ## Task
 
@@ -52,9 +57,13 @@ Lists without keys (`- class: ...`) are replaced as a whole.
 | `postProcessors` | map of components | change the converted record |
 | `finishers` | map of components | run once after all records were written |
 
-The components of a list run in the order in which they appear in the
-configuration; the keys are not sorted. A component that a later file adds
-under a new key runs after the existing ones, whatever its key.
+The components of a list run in the ascending order of their integer keys,
+whatever the order in the configuration. A later file can therefore add a
+component between existing ones, e.g. `15` between `10` and `20`. Components
+with string keys (e.g. `last`, also `1.5`) run after those with integer keys,
+in the order in which they appear in the configuration. Lists without keys
+run in their order. To add a component in a later file, the existing list
+must use keys that do not start at `0` (see above).
 
 ## Component
 
