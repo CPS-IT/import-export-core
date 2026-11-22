@@ -112,7 +112,14 @@ final class XmlSchema
                 if (!$attribute instanceof \DOMAttr) {
                     continue;
                 }
-                $reference = self::resolve($current, trim($attribute->value));
+                $value = trim($attribute->value);
+                if ($value === '') {
+                    throw new ParseException(
+                        \sprintf('The schema "%s" contains an empty schemaLocation.', $current),
+                        $invalidCode
+                    );
+                }
+                $reference = self::resolve($current, $value);
                 if (!isset($uris[$reference])) {
                     if (\count($uris) >= self::MAX_DOCUMENTS) {
                         throw new ParseException(
@@ -282,10 +289,15 @@ final class XmlSchema
      * Resolves a schema location relative to the location of the schema
      * naming it. Absolute paths are kept, so that the resource loader
      * decides on them (`PathResolver` rejects them).
+     *
+     * Under a URL, a location starting with `/` is a path on the host of
+     * the naming schema. This includes `//host/x.xsd`, which stays on that
+     * host as `/host/x.xsd`: unlike RFC 3986, a network-path reference does
+     * not switch the host. Other hosts have to be named with a full URL.
      */
     private static function resolve(string $base, string $location): string
     {
-        if ($location === '' || self::hasScheme($location)) {
+        if (self::hasScheme($location)) {
             return $location;
         }
         if (self::hasScheme($base)) {
