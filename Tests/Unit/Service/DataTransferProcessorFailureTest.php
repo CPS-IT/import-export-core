@@ -167,6 +167,22 @@ class DataTransferProcessorFailureTest extends TestCase
         );
     }
 
+    public function testNotifiesSourceAndTargetOnError(): void
+    {
+        $error = new \TypeError('Wrong type');
+        $task = $this->createTask($this->createSource(), $this->createTarget());
+        $task->setPreProcessors([$this->failingPreProcessor($error)]);
+
+        try {
+            (new DataTransferProcessor())->process($task);
+            self::fail('The error should be passed on.');
+        } catch (\TypeError $exception) {
+            self::assertSame($error, $exception);
+        }
+
+        self::assertSame(['source fail: Wrong type', 'target fail: Wrong type'], $this->log);
+    }
+
     public function testExceptionOfFailDoesNotHideOriginalException(): void
     {
         $error = new \RuntimeException('Record broken');
