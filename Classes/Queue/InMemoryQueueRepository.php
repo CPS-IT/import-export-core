@@ -18,7 +18,7 @@ namespace CPSIT\ImportExportCore\Queue;
 /**
  * Keeps the queue in memory, e.g. for tests or transfers within one process.
  */
-final class InMemoryQueueRepository implements QueueRepositoryInterface
+final class InMemoryQueueRepository implements ClaimAwareQueueRepositoryInterface
 {
     /**
      * @var array<string, array<string, QueueItem>> queue => id => item
@@ -37,7 +37,7 @@ final class InMemoryQueueRepository implements QueueRepositoryInterface
             if (!$requeue) {
                 return false;
             }
-            $this->store($item->withStatus(QueueItemStatus::New, new \DateTimeImmutable()));
+            $this->store($item->withStatus(QueueItemStatus::New, new \DateTimeImmutable())->withClaimToken(''));
 
             return true;
         }
@@ -51,6 +51,7 @@ final class InMemoryQueueRepository implements QueueRepositoryInterface
     public function claim(string $queue, int $limit): array
     {
         $claimed = [];
+        $token = bin2hex(random_bytes(16));
         foreach ($this->items[$queue] ?? [] as $item) {
             if (\count($claimed) >= $limit) {
                 break;
@@ -58,7 +59,9 @@ final class InMemoryQueueRepository implements QueueRepositoryInterface
             if ($item->status !== QueueItemStatus::New) {
                 continue;
             }
-            $claimed[] = $this->store($item->withStatus(QueueItemStatus::Processing, new \DateTimeImmutable()));
+            $claimed[] = $this->store(
+                $item->withStatus(QueueItemStatus::Processing, new \DateTimeImmutable())->withClaimToken($token)
+            );
         }
 
         return $claimed;
@@ -74,12 +77,27 @@ final class InMemoryQueueRepository implements QueueRepositoryInterface
         $this->setStatus($item, QueueItemStatus::Failed);
     }
 
+    public function failClaimed(QueueItem $item): bool
+    {
+        $stored = $this->items[$item->queue][$item->id] ?? null;
+        if ($stored === null
+            || $item->claimToken === ''
+            || $stored->status !== QueueItemStatus::Processing
+            || $stored->claimToken !== $item->claimToken
+        ) {
+            return false;
+        }
+        $this->store($stored->withStatus(QueueItemStatus::Failed, new \DateTimeImmutable()));
+
+        return true;
+    }
+
     public function release(string $queue): int
     {
         $released = 0;
         foreach ($this->items[$queue] ?? [] as $item) {
             if ($item->status === QueueItemStatus::Processing) {
-                $this->store($item->withStatus(QueueItemStatus::New, new \DateTimeImmutable()));
+                $this->store($item->withStatus(QueueItemStatus::New, new \DateTimeImmutable())->withClaimToken(''));
                 ++$released;
             }
         }

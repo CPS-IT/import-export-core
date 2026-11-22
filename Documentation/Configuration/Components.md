@@ -155,7 +155,10 @@ Reads up to `limit` new records from a queue and claims them. After the
 task, the claimed items are marked as finished. If the task fails, all items
 claimed in the run and not finished are marked as failed: also those not
 read yet and those of batches the target already committed. They have to be
-enqueued again with `requeue` to be processed again.
+enqueued again with `requeue` to be processed again. If the repository
+implements `ClaimAwareQueueRepositoryInterface`, only items still in
+processing with the claim of the run are marked as failed; items released
+and claimed again or finished in the meantime are left as they are.
 
 Configuration:
 

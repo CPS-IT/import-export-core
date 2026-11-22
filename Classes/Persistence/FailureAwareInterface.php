@@ -19,11 +19,12 @@ namespace CPSIT\ImportExportCore\Persistence;
  * For data sources and targets that have to act when a task fails, e.g. to
  * roll back a transaction or to mark claimed items as failed.
  *
- * The processor calls `fail()` on the source and the target of a task when an
- * exception ends the task, after the task started and before the exception is
- * passed on. `complete()` and `persistAll()` are not called then. Exceptions
- * thrown by `fail()` are added to the result as error messages; the original
- * exception is passed on.
+ * The processor calls `fail()` on the target and then on the source of a task
+ * when an exception ends the task, after the task started and before the
+ * exception is passed on. `complete()` and `persistAll()` are not called then.
+ * Exceptions thrown by `fail()` are added to the result as error messages
+ * (`DataTransferProcessor::ERROR_FAIL_THREW`) only; the original exception is
+ * passed on.
  */
 interface FailureAwareInterface
 {

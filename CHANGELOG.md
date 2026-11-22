@@ -4,6 +4,34 @@ All notable changes to this project are documented in this file. The project
 follows [Semantic Versioning](https://semver.org/). While the version is `0.x`,
 a new minor version may contain breaking changes.
 
+## Unreleased
+
+### Added
+
+* `Queue\ClaimAwareQueueRepositoryInterface` with `failClaimed()`: marks an
+  item as failed only while it is still in processing with the claim token of
+  the item. `InMemoryQueueRepository` and `DbalQueueRepository` implement it;
+  `QueueItem` has a `claimToken` (default `''`)
+  ([#109](https://github.com/CPS-IT/import-export-core/issues/109))
+
+### Changed
+
+* `DataTransferProcessor` calls `fail()` (`FailureAwareInterface`) on the
+  target of a failed task first, then on the source. Before, the source was
+  told first ([#109](https://github.com/CPS-IT/import-export-core/issues/109))
+
+### Fixed
+
+* Queue items stayed in processing after a failed task if `DataSourceQueue`
+  and `DataTargetDBAL` used the same connection: the source marked the items
+  as failed inside the open batch transaction of the target, and the rollback
+  of the target undid it. The target now rolls back first
+  ([#109](https://github.com/CPS-IT/import-export-core/issues/109))
+* `DataSourceQueue::fail()` no longer marks items that were released and
+  claimed again by another run, or finished in the meantime, if the
+  repository implements `ClaimAwareQueueRepositoryInterface`
+  ([#109](https://github.com/CPS-IT/import-export-core/issues/109))
+
 ## 0.6.1 - 2026-11-22
 
 ### Fixed

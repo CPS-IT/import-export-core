@@ -91,6 +91,40 @@ class InMemoryQueueRepositoryTest extends TestCase
         self::assertSame(0, $this->subject->count('news', QueueItemStatus::Finished));
     }
 
+    public function testFailClaimedMarksItemsOfTheClaimOnly(): void
+    {
+        $this->subject->enqueue('news', ['id' => 1]);
+        $this->subject->enqueue('news', ['id' => 2]);
+        $this->subject->enqueue('news', ['id' => 3]);
+        [$released, $finished, $claimed] = $this->subject->claim('news', 3);
+        $this->subject->complete($finished);
+        $this->subject->release('news');
+        [$reclaimed] = $this->subject->claim('news', 1);
+
+        self::assertNotSame('', $claimed->claimToken);
+        self::assertNotSame($released->claimToken, $reclaimed->claimToken);
+        self::assertFalse($this->subject->failClaimed($released));
+        self::assertFalse($this->subject->failClaimed($finished));
+        self::assertFalse($this->subject->failClaimed($claimed));
+        self::assertTrue($this->subject->failClaimed($reclaimed));
+        self::assertFalse($this->subject->failClaimed($reclaimed));
+
+        self::assertSame(1, $this->subject->count('news', QueueItemStatus::Failed));
+        self::assertSame(1, $this->subject->count('news', QueueItemStatus::Finished));
+        self::assertSame(1, $this->subject->count('news', QueueItemStatus::New));
+    }
+
+    public function testFailClaimedIgnoresUnknownItemAndItemWithoutToken(): void
+    {
+        $now = new \DateTimeImmutable();
+        $this->subject->enqueue('news', ['id' => 1]);
+        [$item] = $this->subject->claim('news', 1);
+
+        self::assertFalse($this->subject->failClaimed(new QueueItem('42', 'news', 'x', [], QueueItemStatus::Processing, $now, $now, 'token')));
+        self::assertFalse($this->subject->failClaimed(new QueueItem($item->id, 'news', $item->checksum, [], QueueItemStatus::Processing, $now, $now)));
+        self::assertSame(1, $this->subject->count('news', QueueItemStatus::Processing));
+    }
+
     public function testThrowsForUnknownItem(): void
     {
         $now = new \DateTimeImmutable();

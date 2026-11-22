@@ -19,9 +19,9 @@ use CPSIT\ImportExportCore\Dbal\Identifier;
 use CPSIT\ImportExportCore\Dbal\Queries;
 use CPSIT\ImportExportCore\Dbal\Schema\TableDefinition;
 use CPSIT\ImportExportCore\Dbal\Schema\TableProviderInterface;
+use CPSIT\ImportExportCore\Queue\ClaimAwareQueueRepositoryInterface;
 use CPSIT\ImportExportCore\Queue\QueueItem;
 use CPSIT\ImportExportCore\Queue\QueueItemStatus;
-use CPSIT\ImportExportCore\Queue\QueueRepositoryInterface;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
@@ -37,7 +37,7 @@ use Doctrine\DBAL\Types\Types;
  * may return fewer items than requested if another runner claimed some of
  * them in the meantime.
  */
-final class DbalQueueRepository implements QueueRepositoryInterface, TableProviderInterface
+final class DbalQueueRepository implements ClaimAwareQueueRepositoryInterface, TableProviderInterface
 {
     public const string DEFAULT_TABLE = 'import_export_queue_item';
 
@@ -166,6 +166,35 @@ final class DbalQueueRepository implements QueueRepositoryInterface, TableProvid
         $this->setStatus($item, QueueItemStatus::Failed);
     }
 
+    /**
+     * The conditions of the update ensure that an item released and claimed
+     * again in the meantime is not changed.
+     */
+    public function failClaimed(QueueItem $item): bool
+    {
+        if ($item->claimToken === '') {
+            return false;
+        }
+
+        return Queries::builder($this->connection)
+            ->update($this->quote($this->table))
+            ->set($this->quote('status'), ':failed')
+            ->set($this->quote('updated_at'), ':now')
+            ->where(
+                $this->quote('id') . ' = :id',
+                $this->quote('queue') . ' = :queue',
+                $this->quote('status') . ' = :processing',
+                $this->quote('claim_token') . ' = :token'
+            )
+            ->setParameter('failed', QueueItemStatus::Failed->value, ParameterType::INTEGER)
+            ->setParameter('now', new \DateTimeImmutable(), Types::DATETIME_IMMUTABLE)
+            ->setParameter('id', $item->id)
+            ->setParameter('queue', $item->queue)
+            ->setParameter('processing', QueueItemStatus::Processing->value, ParameterType::INTEGER)
+            ->setParameter('token', $item->claimToken)
+            ->executeStatement() > 0;
+    }
+
     public function release(string $queue): int
     {
         return (int)Queries::builder($this->connection)
@@ -259,7 +288,8 @@ final class DbalQueueRepository implements QueueRepositoryInterface, TableProvid
             \is_array($data) ? $data : [],
             QueueItemStatus::from((int)$this->scalar($row, 'status')),
             $this->dateTime($row, 'created_at'),
-            $this->dateTime($row, 'updated_at')
+            $this->dateTime($row, 'updated_at'),
+            (string)$this->scalar($row, 'claim_token')
         );
     }
 

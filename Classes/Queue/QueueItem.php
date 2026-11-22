@@ -24,6 +24,8 @@ final readonly class QueueItem
      * @param string $id assigned by the repository
      * @param string $queue identifier of the queue
      * @param array<mixed> $data the record
+     * @param string $claimToken identifies the claim of an item in processing;
+     *                           '' if the repository sets none
      */
     public function __construct(
         public string $id,
@@ -33,12 +35,18 @@ final readonly class QueueItem
         public QueueItemStatus $status,
         public \DateTimeImmutable $createdAt,
         public \DateTimeImmutable $updatedAt,
+        public string $claimToken = '',
     ) {
     }
 
     public function withStatus(QueueItemStatus $status, \DateTimeImmutable $updatedAt): self
     {
-        return new self($this->id, $this->queue, $this->checksum, $this->data, $status, $this->createdAt, $updatedAt);
+        return new self($this->id, $this->queue, $this->checksum, $this->data, $status, $this->createdAt, $updatedAt, $this->claimToken);
+    }
+
+    public function withClaimToken(string $claimToken): self
+    {
+        return new self($this->id, $this->queue, $this->checksum, $this->data, $this->status, $this->createdAt, $this->updatedAt, $claimToken);
     }
 
     /**

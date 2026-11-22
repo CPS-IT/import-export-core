@@ -89,8 +89,8 @@ use Psr\EventDispatcher\EventDispatcherInterface;
  * checksum of the pre-processed record (`IdMapping::recordChecksum()`, without
  * `sourceIdField` and `targetIdField`).
  *
- * If an exception ends a task, sources and targets implementing
- * `FailureAwareInterface` get `fail()` before the exception is passed on.
+ * If an exception ends a task, the target and then the source get `fail()` if
+ * they implement `FailureAwareInterface`, before the exception is passed on.
  */
 class DataTransferProcessor implements TransferProcessorInterface
 {
@@ -177,13 +177,16 @@ class DataTransferProcessor implements TransferProcessorInterface
     }
 
     /**
-     * Tells the source and the target of a failed task. An exception thrown
-     * by `fail()` is added to the result as error message, so that it does
-     * not replace the exception that ended the task.
+     * Tells the target and then the source of a failed task, in the same order
+     * as `persistAll()` before `complete()`: the target can roll back its
+     * transaction before the source updates its own state, which may use the
+     * same connection. An exception thrown by `fail()` is added to the result
+     * as error message, so that it does not replace the exception that ended
+     * the task, and the other component is still told.
      */
     protected function notifyFailure(TransferTaskInterface $task, \Throwable $error, ResultInterface $result): void
     {
-        foreach ([$task->getSource(), $task->getTarget()] as $component) {
+        foreach ([$task->getTarget(), $task->getSource()] as $component) {
             if (!$component instanceof FailureAwareInterface) {
                 continue;
             }

@@ -13,6 +13,26 @@ Each entry contains:
 
 [CHANGELOG.md](CHANGELOG.md) lists all changes, including non-breaking ones.
 
+## Unreleased
+
+### Failed tasks tell the target before the source
+
+Issue: [#109](https://github.com/CPS-IT/import-export-core/issues/109)
+
+**Affects**: sources and targets implementing
+`Persistence\FailureAwareInterface` that depend on the order in which
+`fail()` is called.
+
+**Change**: if a task fails, `DataTransferProcessor` calls `fail()` first on
+the target, then on the source. Before, the source was told first. The new
+order matches the order of `persistAll()` and `complete()`: the target rolls
+back its transaction before the source updates its own state, e.g. queue
+items on the same connection.
+
+**Migration**: a source whose `fail()` expects the target to be still
+unchanged has to handle this itself. No action is needed for
+`DataSourceQueue` and `DataTargetDBAL`.
+
 ## 0.6.0
 
 ### Components of a task are sorted by their keys

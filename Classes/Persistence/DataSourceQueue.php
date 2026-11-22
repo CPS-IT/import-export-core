@@ -18,6 +18,7 @@ namespace CPSIT\ImportExportCore\Persistence;
 use CPSIT\ImportExportCore\ConfigurableInterface;
 use CPSIT\ImportExportCore\ConfigurableTrait;
 use CPSIT\ImportExportCore\Domain\Model\ResultInterface;
+use CPSIT\ImportExportCore\Queue\ClaimAwareQueueRepositoryInterface;
 use CPSIT\ImportExportCore\Queue\QueueItem;
 use CPSIT\ImportExportCore\Queue\QueueRepositoryInterface;
 
@@ -26,7 +27,10 @@ use CPSIT\ImportExportCore\Queue\QueueRepositoryInterface;
  * task, the claimed items are marked as finished. If the task fails, all items
  * claimed in the run and not finished are marked as failed: also those not
  * read yet and those of batches the target already committed. They have to be
- * enqueued again with `requeue` to be processed again.
+ * enqueued again with `requeue` to be processed again. If the repository
+ * implements `ClaimAwareQueueRepositoryInterface`, only items still in
+ * processing with the claim of the run are marked as failed; items released
+ * and claimed again or finished in the meantime are left as they are.
  *
  * Configuration:
  *
@@ -97,7 +101,11 @@ class DataSourceQueue implements DataSourceInterface, ConfigurableInterface, Com
         $claimed = $this->claimed;
         $this->claimed = [];
         foreach ($claimed as $item) {
-            $this->repository->fail($item);
+            if ($this->repository instanceof ClaimAwareQueueRepositoryInterface) {
+                $this->repository->failClaimed($item);
+            } else {
+                $this->repository->fail($item);
+            }
         }
     }
 }
