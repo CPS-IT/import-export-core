@@ -84,11 +84,13 @@ final class DbalIdMap implements IdMapInterface, TableProviderInterface
 
     public function getTables(): array
     {
+        $platform = $this->connection->getDatabasePlatform();
+
         return [
             TableDefinition::table($this->table)
                 ->setColumns(
-                    TableDefinition::string('namespace'),
-                    TableDefinition::string('source_id'),
+                    TableDefinition::binaryString('namespace', $platform),
+                    TableDefinition::binaryString('source_id', $platform),
                     TableDefinition::string('target_id'),
                     TableDefinition::string('checksum', 40),
                 )

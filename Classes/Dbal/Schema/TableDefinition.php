@@ -16,6 +16,10 @@ declare(strict_types=1);
 namespace CPSIT\ImportExportCore\Dbal\Schema;
 
 use CPSIT\ImportExportCore\Dbal\Identifier;
+use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
+use Doctrine\DBAL\Platforms\AbstractPlatform;
+use Doctrine\DBAL\Platforms\MariaDBPlatform;
+use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Index;
 use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
@@ -65,6 +69,44 @@ final class TableDefinition
             ->setLength($length)
             ->setDefaultValue('')
             ->create();
+    }
+
+    /**
+     * A string column compared byte by byte, for keys holding external values
+     * such as source IDs: `ABC` and `abc` are different keys. On MySQL and
+     * MariaDB, the column gets a binary collation instead of the default
+     * collation of the database, which is usually case-insensitive. Other
+     * platforms compare strings this way by default.
+     *
+     * @param non-empty-string $name
+     */
+    public static function binaryString(string $name, AbstractPlatform $platform, int $length = 255): Column
+    {
+        $editor = self::string($name, $length)->edit();
+        $collation = self::binaryCollation($platform);
+        if ($collation !== null) {
+            $editor->setCollation($collation);
+        }
+
+        return $editor->create();
+    }
+
+    /**
+     * Returns a binary collation for utf8mb4 on MySQL and MariaDB, where
+     * trailing spaces are significant (NO PAD) if the server supports it.
+     * `utf8mb4_0900_bin` requires MySQL 8.0.17 or later. MySQL 5.7 (the
+     * platform class `MySQLPlatform` itself) has only `utf8mb4_bin`, which
+     * ignores trailing spaces. The platform follows the `serverVersion` of the
+     * connection, if set, so it must match the server.
+     */
+    public static function binaryCollation(AbstractPlatform $platform): ?string
+    {
+        return match (true) {
+            $platform instanceof MariaDBPlatform => 'utf8mb4_nopad_bin',
+            $platform::class === MySQLPlatform::class => 'utf8mb4_bin',
+            $platform instanceof AbstractMySQLPlatform => 'utf8mb4_0900_bin',
+            default => null,
+        };
     }
 
     /**
