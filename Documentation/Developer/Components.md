@@ -119,6 +119,13 @@ Because every task gets its own clone, a component may keep state for one
 task, e.g. a cache of looked-up values. It must not rely on state of other
 tasks.
 
+`clone` is shallow: objects referenced by the component are shared between
+the clones. A component that keeps state for one configuration or task in
+such an object has to copy the object in `__clone()`, as
+`ValidateXMLPreProcessor` and `ValidateXMLFinisher` do with their loaded
+schema. Shared objects without such state, e.g. resource loaders or
+connection providers, can stay shared.
+
 ## Registering short names
 
 A configuration names the class of a component in `class`. Besides the fully

@@ -284,6 +284,38 @@ final class ValidateXMLPreProcessorTest extends TestCase
         self::assertArrayNotHasKey(ValidateXMLPreProcessor::KEY_VALIDATION_FAILED, $result);
     }
 
+    public function testClonesValidateWithTheirOwnSchema(): void
+    {
+        $this->loader->set('other.xsd', str_replace('"title"', '"name"', self::SCHEMA));
+        $prototype = new ValidateXMLPreProcessor($this->loader);
+        $first = clone $prototype;
+        $first->setConfiguration(['fields' => 'foo', 'schema' => ['file' => 'schema.xsd']]);
+        $second = clone $prototype;
+        $second->setConfiguration(['fields' => 'foo', 'schema' => ['file' => 'other.xsd']]);
+        $title = ['uid' => 1, 'foo' => '<item><title>a</title></item>'];
+        $name = ['uid' => 2, 'foo' => '<item><name>a</name></item>'];
+
+        self::assertSame($title, $first->process($title));
+        self::assertSame($name, $second->process($name));
+        self::assertSame($title, $first->process($title));
+        self::assertTrue($first->process($name)[ValidateXMLPreProcessor::KEY_VALIDATION_FAILED]);
+        self::assertTrue($second->process($title)[ValidateXMLPreProcessor::KEY_VALIDATION_FAILED]);
+    }
+
+    public function testCloneOfConfiguredPreProcessorKeepsSchemaOfOriginal(): void
+    {
+        $this->loader->set('other.xsd', str_replace('"title"', '"name"', self::SCHEMA));
+        $original = $this->createSubject(['fields' => 'foo', 'schema' => ['file' => 'schema.xsd']]);
+        $title = ['uid' => 1, 'foo' => '<item><title>a</title></item>'];
+        self::assertSame($title, $original->process($title));
+        $clone = clone $original;
+        $clone->setConfiguration(['fields' => 'foo', 'schema' => ['file' => 'other.xsd']]);
+
+        $clone->process(['uid' => 2, 'foo' => '<item><name>a</name></item>']);
+
+        self::assertSame($title, $original->process($title));
+    }
+
     public function testLoadsSchemaFromUrl(): void
     {
         $this->loader->set('https://example.org/schema.xsd', self::SCHEMA);

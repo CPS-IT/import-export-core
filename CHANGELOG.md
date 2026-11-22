@@ -48,6 +48,11 @@ a new minor version may contain breaking changes.
   released and claimed again by another run, or failed in the meantime, if
   the repository implements `ClaimAwareQueueRepositoryInterface`
   ([#115](https://github.com/CPS-IT/import-export-core/issues/115))
+* Clones of `ValidateXMLPreProcessor` and `ValidateXMLFinisher` shared the
+  loaded schema with the original. With two clones configured with different
+  schemas, e.g. created by `ContainerInstantiator`, records could be
+  validated against the schema of the other clone. Each clone now copies the
+  schema ([#119](https://github.com/CPS-IT/import-export-core/issues/119))
 
 ## 0.6.1 - 2026-11-22
 

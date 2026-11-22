@@ -114,6 +114,14 @@ final class ValidateXMLFinisher implements FinisherInterface, ConfigurableInterf
         $this->schemaLoader = new XmlSchema($this->resourceLoader, $schemaFileTypes);
     }
 
+    /**
+     * A clone loads its schema independently of the original.
+     */
+    public function __clone()
+    {
+        $this->schemaLoader = clone $this->schemaLoader;
+    }
+
     public function isConfigurationValid(array $configuration): bool
     {
         if (!ResourceLocation::isValid($configuration)) {
