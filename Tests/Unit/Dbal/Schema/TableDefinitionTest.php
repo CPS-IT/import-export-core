@@ -63,7 +63,10 @@ class TableDefinitionTest extends TestCase
     public static function serverVersionProvider(): array
     {
         return [
+            'MySQL 5.7' => ['5.7.44', 'utf8mb4_bin'],
+            'MySQL 8.0' => ['8.0.40', 'utf8mb4_0900_bin'],
             'MySQL 8.4' => ['8.4.0', 'utf8mb4_0900_bin'],
+            'MariaDB 10.6' => ['10.6.28-MariaDB', 'utf8mb4_nopad_bin'],
             'MariaDB 11.8' => ['11.8.0-MariaDB', 'utf8mb4_nopad_bin'],
         ];
     }

@@ -277,9 +277,11 @@ instead.
 The table name is the second constructor argument.
 
 On MySQL and MariaDB, the columns `namespace` and `source_id` of the ID map
-get a binary collation (`utf8mb4_0900_bin` on MySQL 8, `utf8mb4_nopad_bin`
-on MariaDB, `utf8mb4_bin` on MySQL 5.7), since source IDs are external values
-that may differ only in case. Otherwise the default collation of the database
+get a binary collation (`utf8mb4_0900_bin` on MySQL 8.0.17 or later,
+`utf8mb4_nopad_bin` on MariaDB, `utf8mb4_bin` on MySQL 5.7), since source IDs
+are external values that may differ only in case. The collation is chosen by
+the platform of the connection; if the connection has a `serverVersion`, it
+must match the server. Otherwise the default collation of the database
 applies, which is usually case-insensitive. With `utf8mb4_bin`, trailing
 spaces are still ignored. Tables created with other schema tools need the
 same collation. The other key columns hold names from the configuration

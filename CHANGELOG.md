@@ -30,9 +30,10 @@ a new minor version may contain breaking changes.
   `source_id` used the default collation of the database, which is usually
   case-insensitive and ignores trailing spaces. Source IDs such as `ABC` and
   `abc` shared one mapping. The columns now have a binary collation
-  (`utf8mb4_0900_bin` on MySQL 8, `utf8mb4_nopad_bin` on MariaDB,
-  `utf8mb4_bin` on MySQL 5.7). Existing tables have to be changed manually,
-  see [UPGRADE.md](UPGRADE.md)
+  (`utf8mb4_0900_bin` on MySQL 8.0.17 or later, `utf8mb4_nopad_bin` on
+  MariaDB, `utf8mb4_bin` on MySQL 5.7). `DbalIdMap::all()` returns the
+  mappings in byte order of the source IDs there. Existing tables have to be
+  changed manually, see [UPGRADE.md](UPGRADE.md)
   ([#116](https://github.com/CPS-IT/import-export-core/issues/116))
 * Queue items stayed in processing after a failed task if `DataSourceQueue`
   and `DataTargetDBAL` used the same connection: the source marked the items

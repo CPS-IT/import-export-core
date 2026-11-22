@@ -73,8 +73,8 @@ Before, the columns had the default collation of the database (e.g.
 spaces shared one mapping.
 
 **Migration**: `SchemaInstaller` does not change existing columns, so an
-existing table keeps its collation. Change the columns once, e.g. on MySQL 8
-(on MariaDB with `utf8mb4_nopad_bin`):
+existing table keeps its collation. Change the columns once. On MySQL 8.0.17
+or later:
 
 ```sql
 ALTER TABLE import_export_id_map
@@ -82,8 +82,18 @@ ALTER TABLE import_export_id_map
     MODIFY source_id VARCHAR(255) COLLATE utf8mb4_0900_bin NOT NULL DEFAULT '';
 ```
 
-Doctrine's comparator returns the same statement for a table with another
-name:
+On MariaDB, use `utf8mb4_nopad_bin` instead. On MySQL 5.7, use `utf8mb4_bin`
+(trailing spaces are still ignored there):
+
+```sql
+ALTER TABLE import_export_id_map
+    MODIFY namespace VARCHAR(255) COLLATE utf8mb4_bin NOT NULL DEFAULT '',
+    MODIFY source_id VARCHAR(255) COLLATE utf8mb4_bin NOT NULL DEFAULT '';
+```
+
+The statement rebuilds the table, so run it while no import runs. For a
+table with another name, Doctrine's comparator returns an equivalent
+statement (`CHANGE ... COLLATE ...`):
 
 ```php
 $schemaManager = $connection->createSchemaManager();
@@ -98,8 +108,8 @@ The change cannot fail on existing rows, since the binary collation only
 separates keys. Mappings that were merged before (one row for `ABC` and
 `abc`) are not split: the row keeps the source ID it was created with and the
 target ID written last, and the other source ID gets its own mapping in the
-next run. Check the targets
-of namespaces whose source IDs may differ only in case. Tables created with own schema tools need the collation in their
+next run. Check the targets of namespaces whose source IDs may differ only
+in case. Tables created with own schema tools need the collation in their
 definition. PostgreSQL and SQLite are not affected.
 
 ## 0.6.0

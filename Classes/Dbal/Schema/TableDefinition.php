@@ -19,7 +19,7 @@ use CPSIT\ImportExportCore\Dbal\Identifier;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\MariaDBPlatform;
-use Doctrine\DBAL\Platforms\MySQL80Platform;
+use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Index;
 use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
@@ -94,14 +94,17 @@ final class TableDefinition
     /**
      * Returns a binary collation for utf8mb4 on MySQL and MariaDB, where
      * trailing spaces are significant (NO PAD) if the server supports it.
-     * MySQL 5.7 has only `utf8mb4_bin`, which ignores trailing spaces.
+     * `utf8mb4_0900_bin` requires MySQL 8.0.17 or later. MySQL 5.7 (the
+     * platform class `MySQLPlatform` itself) has only `utf8mb4_bin`, which
+     * ignores trailing spaces. The platform follows the `serverVersion` of the
+     * connection, if set, so it must match the server.
      */
     public static function binaryCollation(AbstractPlatform $platform): ?string
     {
         return match (true) {
             $platform instanceof MariaDBPlatform => 'utf8mb4_nopad_bin',
-            $platform instanceof MySQL80Platform => 'utf8mb4_0900_bin',
-            $platform instanceof AbstractMySQLPlatform => 'utf8mb4_bin',
+            $platform::class === MySQLPlatform::class => 'utf8mb4_bin',
+            $platform instanceof AbstractMySQLPlatform => 'utf8mb4_0900_bin',
             default => null,
         };
     }
