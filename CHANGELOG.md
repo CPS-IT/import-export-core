@@ -4,6 +4,16 @@ All notable changes to this project are documented in this file. The project
 follows [Semantic Versioning](https://semver.org/). While the version is `0.x`,
 a new minor version may contain breaking changes.
 
+## Unreleased
+
+### Fixed
+
+* `Dbal\Queue\DbalQueueRepository`: claimed items have their real
+  `createdAt` and `updatedAt` also in a TYPO3 process. TYPO3 registers a type
+  for `datetime_immutable` that returns a mutable `\DateTime`, which was
+  replaced by 1970-01-01
+  ([#106](https://github.com/CPS-IT/import-export-core/issues/106))
+
 ## 0.6.0 - 2026-11-22
 
 ### Added

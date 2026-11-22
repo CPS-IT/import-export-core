@@ -25,9 +25,13 @@ use CPSIT\ImportExportCore\Queue\QueueItem;
 use CPSIT\ImportExportCore\Queue\QueueItemStatus;
 use CPSIT\ImportExportCore\Service\DataTransferProcessor;
 use CPSIT\ImportExportCore\Tests\Unit\Dbal\ConnectionFactoryTrait;
+use CPSIT\ImportExportCore\Tests\Unit\Dbal\Fixtures\MutableDateTimeType;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\ArraySource;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\InMemoryTarget;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Types\DateTimeImmutableType;
+use Doctrine\DBAL\Types\Type;
+use Doctrine\DBAL\Types\Types;
 use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/../../Service/Fixtures/Components.php';
@@ -83,6 +87,29 @@ class DbalQueueRepositoryTest extends TestCase
         self::assertSame([], $this->subject->claim('news', 2));
         self::assertSame([], $this->subject->claim('news', 0));
         self::assertSame(3, $this->subject->count('news', QueueItemStatus::Processing));
+    }
+
+    /**
+     * TYPO3 registers a type for `datetime_immutable` that returns a mutable
+     * \DateTime.
+     */
+    public function testClaimReturnsTimestampsWithMutableDateTimeType(): void
+    {
+        Type::overrideType(Types::DATETIME_IMMUTABLE, MutableDateTimeType::class);
+        try {
+            $before = time();
+            $this->subject->enqueue('news', ['id' => 1]);
+            $items = $this->subject->claim('news', 1);
+            $after = time();
+        } finally {
+            Type::overrideType(Types::DATETIME_IMMUTABLE, DateTimeImmutableType::class);
+        }
+
+        self::assertCount(1, $items);
+        self::assertGreaterThanOrEqual($before, $items[0]->createdAt->getTimestamp());
+        self::assertLessThanOrEqual($after, $items[0]->createdAt->getTimestamp());
+        self::assertGreaterThanOrEqual($before, $items[0]->updatedAt->getTimestamp());
+        self::assertLessThanOrEqual($after, $items[0]->updatedAt->getTimestamp());
     }
 
     public function testClaimsEachItemOnceWithSeveralRepositories(): void
