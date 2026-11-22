@@ -244,6 +244,32 @@ class DataTargetDBALTest extends TestCase
         self::assertSame([], $this->connection->fetchFirstColumn('SELECT title FROM pages'));
     }
 
+    public function testFailAfterFailedCommitKeepsOuterTransaction(): void
+    {
+        $commitError = new \RuntimeException('Commit failed');
+        $broken = $this->createMock(Connection::class);
+        $broken->method('isTransactionActive')->willReturn(true);
+        $broken->method('getDatabasePlatform')->willReturn($this->connection->getDatabasePlatform());
+        $broken->expects(self::once())->method('commit')->willThrowException($commitError);
+        $broken->expects(self::never())->method('rollBack');
+        $subject = new DataTargetDBAL(new ConnectionRegistry(['default' => $this->connection, 'broken' => $broken]));
+        $this->connection->beginTransaction();
+        $subject->persist(['title' => 'Home'], ['table' => 'pages', 'idField' => 'uid']);
+        $subject->persist(['title' => 'Lost'], ['table' => 'pages', 'connection' => 'broken', 'idField' => '']);
+
+        try {
+            $subject->flushBatch(new TaskResult());
+            self::fail('The commit error should be thrown.');
+        } catch (\RuntimeException $exception) {
+            self::assertSame($commitError, $exception);
+        }
+        $subject->fail($commitError);
+
+        self::assertSame(1, $this->connection->getTransactionNestingLevel());
+        self::assertSame(['Home'], $this->connection->fetchFirstColumn('SELECT title FROM pages'));
+        $this->connection->rollBack();
+    }
+
     public function testForgetsIdsOfPreviousBatch(): void
     {
         $this->subject->setConfiguration(['table' => 'pages', 'idField' => 'uid']);

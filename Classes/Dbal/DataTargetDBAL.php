@@ -215,12 +215,17 @@ class DataTargetDBAL implements DataTargetInterface, ConfigurableInterface, Batc
         throw new \LogicException('The record was not written in the current batch.', 1794700024);
     }
 
+    /**
+     * Each connection is forgotten before its commit: after a failed commit,
+     * DBAL has closed the transaction of the batch, and a later `fail()` must
+     * not roll back an outer transaction of the connection.
+     */
     protected function commit(): void
     {
-        foreach ($this->transactions as $connection) {
+        foreach ($this->transactions as $name => $connection) {
+            unset($this->transactions[$name]);
             $connection->commit();
         }
-        $this->transactions = [];
     }
 
     /**
