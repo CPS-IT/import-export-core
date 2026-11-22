@@ -25,7 +25,13 @@ use CPSIT\ImportExportCore\Exception\InvalidArgumentException;
  * and executable file names (`FileTypePolicy::isDenied()`, e.g. `.php`) are
  * rejected. If the path or one of its parent directories exists, its real
  * path must be inside the base directory, so symbolic links cannot lead out
- * of it either.
+ * of it either. Dangling symbolic links (whose target does not exist) are
+ * rejected, because writing to them would create their target.
+ *
+ * The check and the later access to the file are not atomic: whoever can
+ * write to the base directory can still replace a checked path with a
+ * symbolic link in between. The base directory should therefore only be
+ * writable by trusted users.
  */
 final class PathResolver implements PathResolverInterface
 {
@@ -73,6 +79,10 @@ final class PathResolver implements PathResolverInterface
 
         $existing = $absolutePath;
         while (!file_exists($existing) && $existing !== $this->baseDirectory) {
+            if (is_link($existing)) {
+                // dangling symbolic link: writing to it would create its target
+                throw $this->notAllowed($path);
+            }
             $existing = \dirname($existing);
         }
         $realPath = realpath($existing);
