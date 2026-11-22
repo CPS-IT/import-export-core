@@ -79,17 +79,12 @@ final class InMemoryQueueRepository implements ClaimAwareQueueRepositoryInterfac
 
     public function failClaimed(QueueItem $item): bool
     {
-        $stored = $this->items[$item->queue][$item->id] ?? null;
-        if ($stored === null
-            || $item->claimToken === ''
-            || $stored->status !== QueueItemStatus::Processing
-            || $stored->claimToken !== $item->claimToken
-        ) {
-            return false;
-        }
-        $this->store($stored->withStatus(QueueItemStatus::Failed, new \DateTimeImmutable()));
+        return $this->setClaimedStatus($item, QueueItemStatus::Failed);
+    }
 
-        return true;
+    public function completeClaimed(QueueItem $item): bool
+    {
+        return $this->setClaimedStatus($item, QueueItemStatus::Finished);
     }
 
     public function release(string $queue): int
@@ -115,6 +110,21 @@ final class InMemoryQueueRepository implements ClaimAwareQueueRepositoryInterfac
         }
 
         return $count;
+    }
+
+    private function setClaimedStatus(QueueItem $item, QueueItemStatus $status): bool
+    {
+        $stored = $this->items[$item->queue][$item->id] ?? null;
+        if ($stored === null
+            || $item->claimToken === ''
+            || $stored->status !== QueueItemStatus::Processing
+            || $stored->claimToken !== $item->claimToken
+        ) {
+            return false;
+        }
+        $this->store($stored->withStatus($status, new \DateTimeImmutable()));
+
+        return true;
     }
 
     private function setStatus(QueueItem $item, QueueItemStatus $status): void

@@ -197,6 +197,39 @@ class DbalQueueRepositoryTest extends TestCase
         self::assertSame(1, $this->subject->count('news', QueueItemStatus::Processing));
     }
 
+    public function testCompleteClaimedFinishesItemsOfTheClaimOnly(): void
+    {
+        $this->subject->enqueue('news', ['id' => 1]);
+        $this->subject->enqueue('news', ['id' => 2]);
+        $this->subject->enqueue('news', ['id' => 3]);
+        [$released, $failed, $claimed] = $this->subject->claim('news', 3);
+        $this->subject->fail($failed);
+        $this->subject->release('news');
+        [$reclaimed] = $this->subject->claim('news', 1);
+
+        self::assertNotSame($released->claimToken, $reclaimed->claimToken);
+        self::assertFalse($this->subject->completeClaimed($released));
+        self::assertFalse($this->subject->completeClaimed($failed));
+        self::assertFalse($this->subject->completeClaimed($claimed));
+        self::assertTrue($this->subject->completeClaimed($reclaimed));
+        self::assertFalse($this->subject->completeClaimed($reclaimed));
+
+        self::assertSame(1, $this->subject->count('news', QueueItemStatus::Finished));
+        self::assertSame(1, $this->subject->count('news', QueueItemStatus::Failed));
+        self::assertSame(1, $this->subject->count('news', QueueItemStatus::New));
+    }
+
+    public function testCompleteClaimedIgnoresUnknownItemAndItemWithoutToken(): void
+    {
+        $now = new \DateTimeImmutable();
+        $this->subject->enqueue('news', ['id' => 1]);
+        [$item] = $this->subject->claim('news', 1);
+
+        self::assertFalse($this->subject->completeClaimed(new QueueItem('42', 'news', 'x', [], QueueItemStatus::Processing, $now, $now, 'token')));
+        self::assertFalse($this->subject->completeClaimed(new QueueItem($item->id, 'news', $item->checksum, [], QueueItemStatus::Processing, $now, $now)));
+        self::assertSame(1, $this->subject->count('news', QueueItemStatus::Processing));
+    }
+
     public function testThrowsForUnknownItem(): void
     {
         $now = new \DateTimeImmutable();

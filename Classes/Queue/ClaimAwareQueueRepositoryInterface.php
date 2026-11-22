@@ -19,9 +19,9 @@ namespace CPSIT\ImportExportCore\Queue;
  * Queue repositories that give each claim a token (`QueueItem::$claimToken`)
  * and can change items only while they are still claimed with it.
  *
- * `DataSourceQueue` uses it if the repository implements it, so that a failed
- * run does not mark items that were released and claimed again by another
- * run, or finished in the meantime.
+ * `DataSourceQueue` uses it if the repository implements it, so that a run
+ * does not mark items as finished or failed that were released and claimed
+ * again by another run, or finished or failed in the meantime.
  */
 interface ClaimAwareQueueRepositoryInterface extends QueueRepositoryInterface
 {
@@ -33,4 +33,13 @@ interface ClaimAwareQueueRepositoryInterface extends QueueRepositoryInterface
      *              not exist, has no claim token, or is not claimed with it
      */
     public function failClaimed(QueueItem $item): bool;
+
+    /**
+     * Marks the item as finished if it is still in processing with the claim
+     * token of `$item`.
+     *
+     * @return bool whether the item was marked as finished; false if it does
+     *              not exist, has no claim token, or is not claimed with it
+     */
+    public function completeClaimed(QueueItem $item): bool;
 }

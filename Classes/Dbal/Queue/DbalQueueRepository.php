@@ -166,33 +166,14 @@ final class DbalQueueRepository implements ClaimAwareQueueRepositoryInterface, T
         $this->setStatus($item, QueueItemStatus::Failed);
     }
 
-    /**
-     * The conditions of the update ensure that an item released and claimed
-     * again in the meantime is not changed.
-     */
     public function failClaimed(QueueItem $item): bool
     {
-        if ($item->claimToken === '') {
-            return false;
-        }
+        return $this->setClaimedStatus($item, QueueItemStatus::Failed);
+    }
 
-        return Queries::builder($this->connection)
-            ->update($this->quote($this->table))
-            ->set($this->quote('status'), ':failed')
-            ->set($this->quote('updated_at'), ':now')
-            ->where(
-                $this->quote('id') . ' = :id',
-                $this->quote('queue') . ' = :queue',
-                $this->quote('status') . ' = :processing',
-                $this->quote('claim_token') . ' = :token'
-            )
-            ->setParameter('failed', QueueItemStatus::Failed->value, ParameterType::INTEGER)
-            ->setParameter('now', new \DateTimeImmutable(), Types::DATETIME_IMMUTABLE)
-            ->setParameter('id', $item->id)
-            ->setParameter('queue', $item->queue)
-            ->setParameter('processing', QueueItemStatus::Processing->value, ParameterType::INTEGER)
-            ->setParameter('token', $item->claimToken)
-            ->executeStatement() > 0;
+    public function completeClaimed(QueueItem $item): bool
+    {
+        return $this->setClaimedStatus($item, QueueItemStatus::Finished);
     }
 
     public function release(string $queue): int
@@ -245,6 +226,35 @@ final class DbalQueueRepository implements ClaimAwareQueueRepositoryInterface, T
                 ->addIndex(TableDefinition::index(TableDefinition::indexName($this->table, 'status'), 'queue', 'status'))
                 ->create(),
         ];
+    }
+
+    /**
+     * The conditions of the update ensure that an item released and claimed
+     * again in the meantime is not changed.
+     */
+    private function setClaimedStatus(QueueItem $item, QueueItemStatus $status): bool
+    {
+        if ($item->claimToken === '') {
+            return false;
+        }
+
+        return Queries::builder($this->connection)
+            ->update($this->quote($this->table))
+            ->set($this->quote('status'), ':status')
+            ->set($this->quote('updated_at'), ':now')
+            ->where(
+                $this->quote('id') . ' = :id',
+                $this->quote('queue') . ' = :queue',
+                $this->quote('status') . ' = :processing',
+                $this->quote('claim_token') . ' = :token'
+            )
+            ->setParameter('status', $status->value, ParameterType::INTEGER)
+            ->setParameter('now', new \DateTimeImmutable(), Types::DATETIME_IMMUTABLE)
+            ->setParameter('id', $item->id)
+            ->setParameter('queue', $item->queue)
+            ->setParameter('processing', QueueItemStatus::Processing->value, ParameterType::INTEGER)
+            ->setParameter('token', $item->claimToken)
+            ->executeStatement() > 0;
     }
 
     private function setStatus(QueueItem $item, QueueItemStatus $status): void

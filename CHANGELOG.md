@@ -13,6 +13,10 @@ a new minor version may contain breaking changes.
   the item. `InMemoryQueueRepository` and `DbalQueueRepository` implement it;
   `QueueItem` has a `claimToken` (default `''`)
   ([#109](https://github.com/CPS-IT/import-export-core/issues/109))
+* `ClaimAwareQueueRepositoryInterface::completeClaimed()`: marks an item as
+  finished only while it is still in processing with the claim token of the
+  item; implemented by `InMemoryQueueRepository` and `DbalQueueRepository`
+  ([#115](https://github.com/CPS-IT/import-export-core/issues/115))
 
 ### Changed
 
@@ -31,6 +35,10 @@ a new minor version may contain breaking changes.
   claimed again by another run, or finished in the meantime, if the
   repository implements `ClaimAwareQueueRepositoryInterface`
   ([#109](https://github.com/CPS-IT/import-export-core/issues/109))
+* `DataSourceQueue::complete()` no longer marks items as finished that were
+  released and claimed again by another run, or failed in the meantime, if
+  the repository implements `ClaimAwareQueueRepositoryInterface`
+  ([#115](https://github.com/CPS-IT/import-export-core/issues/115))
 
 ## 0.6.1 - 2026-11-22
 
