@@ -34,6 +34,23 @@ unchanged, or a target whose `fail()` relies on the source having been told
 first, has to handle this itself. No action is needed for `DataSourceQueue`
 and `DataTargetDBAL`.
 
+### Queue items released during a run stay new
+
+Issues: [#109](https://github.com/CPS-IT/import-export-core/issues/109),
+[#115](https://github.com/CPS-IT/import-export-core/issues/115)
+
+**Affects**: applications that call `release()` or `enqueue()` with
+`$requeue = true` while a task with `DataSourceQueue` is running.
+
+**Change**: with `InMemoryQueueRepository` and `DbalQueueRepository`,
+`DataSourceQueue` marks items as finished or failed only while they are
+still claimed by the run (`completeClaimed()`, `failClaimed()`). Items
+released or requeued during the run are no longer marked as finished or
+failed by that run; they stay new and are processed again.
+
+**Migration**: none, unless the application relies on such items being
+finished by the running task.
+
 ## 0.6.0
 
 ### Components of a task are sorted by their keys

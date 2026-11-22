@@ -157,9 +157,11 @@ claimed in the run and not finished are marked as failed: also those not
 read yet and those of batches the target already committed. They have to be
 enqueued again with `requeue` to be processed again. If the repository
 implements `ClaimAwareQueueRepositoryInterface`, only items still in
-processing with the claim of the run are marked as failed; items released
-and claimed again or finished in the meantime are left as they are, and
-items that no longer exist are skipped without an exception.
+processing with the claim of the run are marked as finished or failed; items
+released and claimed again, finished or failed in the meantime are left as
+they are, and items that no longer exist are skipped without an exception.
+An item released or enqueued again with `requeue` while the run processes
+it stays new and is processed again by a later run.
 
 Configuration:
 

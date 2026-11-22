@@ -197,16 +197,19 @@ payload is an array, stored as JSON; the checksum is
 `QueueItem::checksum($queue, $data)`.
 
 Both implement `Queue\ClaimAwareQueueRepositoryInterface`: each claim gets a
-token (`QueueItem::$claimToken`), and `failClaimed($item)` marks an item as
-failed only while it is still in processing with that token. It returns
-whether the item was changed.
+token (`QueueItem::$claimToken`), and `completeClaimed($item)` and
+`failClaimed($item)` mark an item as finished or failed only while it is still
+in processing with that token. They return whether the item was changed.
 
 `DataSourceQueue` claims the items it reads and marks them finished in
 `complete()`. If a task fails, it marks all of them as failed in `fail()`,
 also items not read yet and items of batches the target already committed.
-If the repository implements `ClaimAwareQueueRepositoryInterface`, items
-released and claimed again by another run, or finished, are not changed, and
-items that no longer exist are skipped without an exception. Items of a run
+If the repository implements `ClaimAwareQueueRepositoryInterface`, both
+change only items still claimed by the run: items released and claimed again
+by another run, or finished or failed in the meantime, are not changed, and
+items that no longer exist are skipped without an exception. An item released
+or enqueued again with `$requeue = true` while the run processes it stays new
+and is processed again by a later run. Items of a run
 that ended without `fail()`, e.g. because the process was killed, stay in
 processing until `release()` is called.
 
