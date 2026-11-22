@@ -4,7 +4,7 @@ All notable changes to this project are documented in this file. The project
 follows [Semantic Versioning](https://semver.org/). While the version is `0.x`,
 a new minor version may contain breaking changes.
 
-## Unreleased
+## 0.6.0 - 2026-11-22
 
 ### Added
 
@@ -39,18 +39,19 @@ a new minor version may contain breaking changes.
 
 ### Changed
 
+* Components of a task run in the order of their integer keys (`10`, `15`,
+  `20`); string keys follow in the order of the configuration. Before, the
+  keys were kept but not sorted. Breaking for configurations whose integer
+  keys are not in ascending order
+  ([#81](https://github.com/CPS-IT/import-export-core/issues/81))
+* The protected methods `quoteColumns()` and `types()` of `DataTargetDBAL`
+  are removed. Breaking for subclasses that call or override them
+  ([#98](https://github.com/CPS-IT/import-export-core/issues/98))
 * If a task fails, `DataTargetDBAL` rolls back its open transaction and
   `DataSourceQueue` marks its claimed items as failed instead of leaving them
   in processing. Breaking for applications that roll back the connection
   themselves or release the items
   ([#102](https://github.com/CPS-IT/import-export-core/issues/102))
-* Components of a task run in the order of their integer keys (`10`, `15`,
-  `20`); string keys follow in the order of the configuration. Before, the
-  keys were kept but not sorted
-  ([#81](https://github.com/CPS-IT/import-export-core/issues/81))
-* The protected methods `quoteColumns()` and `types()` of `DataTargetDBAL`
-  are removed. Breaking for subclasses that call them
-  ([#98](https://github.com/CPS-IT/import-export-core/issues/98))
 
 ### Fixed
 
@@ -74,7 +75,6 @@ a new minor version may contain breaking changes.
   `DataTargetCSV` accept only their file types in `file` (`csv`, `tsv`, `txt`
   or `xml`); the application can set other types
 * `HttpResourceLoader` takes a list of allowed hosts
-
 * `Persistence\EmptyRunAwareInterface`: targets that have to act when a
   task reads no records
 
