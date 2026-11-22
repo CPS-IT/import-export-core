@@ -31,8 +31,14 @@ without keys (`- class: ...`) keep their order. Before, components ran in the
 order of the merged configuration, and a component added under a new key ran
 last.
 
+Note that `ConfigurationHandler` treats a component map whose keys are
+exactly `0` to `n-1` (e.g. only `0: ...`) as a list: a later file with such a
+map replaces the earlier one instead of merging into it, and a later map does
+not merge into an earlier list either.
+
 **Migration**: check lists with unordered keys and change the keys so that
-they reflect the intended order:
+they reflect the intended order. Use keys that do not start at `0` (`10`,
+`20`, ...), so that later files can add components in between:
 
 ```yaml
 preProcessors:

@@ -144,7 +144,7 @@ class TransferTaskFactory
     private function sortByKeys(array $list): array
     {
         $numeric = array_filter($list, is_int(...), ARRAY_FILTER_USE_KEY);
-        ksort($numeric, SORT_NUMERIC);
+        ksort($numeric);
 
         return $numeric + array_diff_key($list, $numeric);
     }

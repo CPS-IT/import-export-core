@@ -15,6 +15,8 @@ declare(strict_types=1);
 
 namespace CPSIT\ImportExportCore\Tests\Unit\Factory;
 
+use CPSIT\ImportExportCore\Configuration\ConfigurationHandler;
+use CPSIT\ImportExportCore\Configuration\ConfigurationLoaderInterface;
 use CPSIT\ImportExportCore\Exception\InvalidConfigurationException;
 use CPSIT\ImportExportCore\Factory\ComponentFactory;
 use CPSIT\ImportExportCore\Factory\ComponentRegistry;
@@ -140,6 +142,40 @@ class TransferTaskFactoryTest extends TestCase
         ]);
 
         self::assertSame([-5, 15, 20, 100], array_keys($task->getPreProcessors()));
+    }
+
+    public function testRunsComponentAddedByLaterConfigurationBetweenExistingOnes(): void
+    {
+        $step = static fn (string $value): array => [
+            'class' => FieldPreProcessor::class,
+            'config' => ['field' => 'step', 'value' => $value],
+        ];
+        $loader = $this->createStub(ConfigurationLoaderInterface::class);
+        $loader->method('load')->willReturnMap([
+            ['base.yaml', ['import' => ['tasks' => ['news' => [
+                'source' => ['class' => 'test'],
+                'target' => [],
+                'preProcessors' => [10 => $step('10'), 20 => $step('20')],
+            ]]]]],
+            ['override.yaml', ['import' => ['tasks' => ['news' => [
+                'preProcessors' => [15 => $step('15')],
+            ]]]]],
+        ]);
+        $handler = (new ConfigurationHandler())
+            ->addConfiguration($loader, 'base.yaml')
+            ->addConfiguration($loader, 'override.yaml');
+        $settings = $handler->getTasks()['import']['news'];
+        self::assertIsArray($settings);
+
+        $task = $this->subject->create('news', $settings);
+
+        $steps = [];
+        $record = [];
+        foreach ($task->getPreProcessors() as $preProcessor) {
+            $record = $preProcessor->process($record);
+            $steps[] = $record['step'];
+        }
+        self::assertSame(['10', '15', '20'], $steps);
     }
 
     public function testKeepsOrderOfListsWithoutKeys(): void
