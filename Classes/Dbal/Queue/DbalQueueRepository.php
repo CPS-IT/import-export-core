@@ -264,6 +264,9 @@ final class DbalQueueRepository implements QueueRepositoryInterface, TableProvid
     }
 
     /**
+     * Accepts any \DateTimeInterface, since TYPO3 registers a type for
+     * `datetime_immutable` that returns a mutable \DateTime.
+     *
      * @param array<string, mixed> $row
      */
     private function dateTime(array $row, string $column): \DateTimeImmutable
@@ -271,7 +274,9 @@ final class DbalQueueRepository implements QueueRepositoryInterface, TableProvid
         $value = Type::getType(Types::DATETIME_IMMUTABLE)
             ->convertToPHPValue($row[$column] ?? null, $this->connection->getDatabasePlatform());
 
-        return $value instanceof \DateTimeImmutable ? $value : new \DateTimeImmutable('@0');
+        return $value instanceof \DateTimeInterface
+            ? \DateTimeImmutable::createFromInterface($value)
+            : new \DateTimeImmutable('@0');
     }
 
     /**
