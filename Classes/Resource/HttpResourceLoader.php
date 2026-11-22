@@ -34,10 +34,15 @@ use Psr\Http\Message\StreamInterface;
  * `MissingResourceException` before they are sent.
  *
  * Redirects (301, 302, 303, 307, 308) are followed by the loader, at most
- * `MAX_REDIRECTS`. The target of each redirect must be an http(s) URL with an
- * allowed host as well. The client must not follow redirects itself, as the
- * loader cannot check them then: `sendRequest()` of Guzzle does not follow
- * them, other clients have to be configured accordingly.
+ * `MAX_REDIRECTS`, with a GET request. The target of each redirect must be an
+ * http(s) URL with an allowed host as well; the port may change. A redirect
+ * from https to http is not followed. Default headers of the client are sent
+ * with every request, also to the target of a redirect.
+ *
+ * The PSR-18 client must not follow redirects itself, as the loader cannot
+ * check them then. `sendRequest()` of Guzzle does not follow redirects; the
+ * `Psr18Client` of Symfony does by default, configure it with
+ * `max_redirects: 0`.
  */
 final class HttpResourceLoader implements ResourceLoaderInterface
 {
@@ -104,8 +109,16 @@ final class HttpResourceLoader implements ResourceLoaderInterface
     public function open(string $location): StreamInterface
     {
         $url = $location;
+        $previous = null;
         for ($redirects = 0; ; $redirects++) {
             $this->assertAllowed($url, $location);
+            if (
+                $previous !== null
+                && strtolower((string)parse_url($previous, PHP_URL_SCHEME)) === 'https'
+                && strtolower((string)parse_url($url, PHP_URL_SCHEME)) === 'http'
+            ) {
+                throw $this->failed($location, 'a redirect leads from https to http');
+            }
             try {
                 $response = $this->client->sendRequest($this->requestFactory->createRequest('GET', $url));
             } catch (ClientExceptionInterface $exception) {
@@ -116,9 +129,11 @@ final class HttpResourceLoader implements ResourceLoaderInterface
             if (!\in_array($status, self::REDIRECT_STATUS, true) || $target === '') {
                 break;
             }
+            $response->getBody()->close();
             if ($redirects >= self::MAX_REDIRECTS) {
                 throw $this->failed($location, 'more than ' . self::MAX_REDIRECTS . ' redirects');
             }
+            $previous = $url;
             $url = self::resolveRedirect($url, $target);
         }
         if ($status < 200 || $status >= 300) {
@@ -147,30 +162,99 @@ final class HttpResourceLoader implements ResourceLoaderInterface
     }
 
     /**
-     * Resolves the `Location` of a redirect against the URL of the request.
-     * The result is checked like the original location.
+     * Resolves the `Location` of a redirect against the URL of the request
+     * (RFC 3986, section 5.2). The fragment is removed, it is not part of a
+     * request. The result is checked like the original location.
      */
     private static function resolveRedirect(string $url, string $target): string
     {
-        if (preg_match('#^[a-zA-Z][a-zA-Z0-9+.-]*:#', $target) === 1) {
-            return $target;
-        }
-        // $url passed supports(): it has a scheme and a host
-        $parts = (array)parse_url($url);
-        $scheme = (string)($parts['scheme'] ?? '');
-        if (str_starts_with($target, '//')) {
-            return $scheme . ':' . $target;
-        }
-        $origin = $scheme . '://' . (string)($parts['host'] ?? '') . (isset($parts['port']) ? ':' . $parts['port'] : '');
-        $path = (string)($parts['path'] ?? '/');
-        if (str_starts_with($target, '/')) {
-            return $origin . $target;
-        }
-        if (str_starts_with($target, '?')) {
-            return $origin . $path . $target;
+        $base = self::parseReference($url);
+        $reference = self::parseReference($target);
+        if ($reference['scheme'] !== null) {
+            $scheme = $reference['scheme'];
+            $authority = $reference['authority'];
+            $path = self::removeDotSegments($reference['path']);
+            $query = $reference['query'];
+        } else {
+            $scheme = $base['scheme'];
+            if ($reference['authority'] !== null) {
+                $authority = $reference['authority'];
+                $path = self::removeDotSegments($reference['path']);
+                $query = $reference['query'];
+            } else {
+                $authority = $base['authority'];
+                if ($reference['path'] === '') {
+                    $path = $base['path'];
+                    $query = $reference['query'] ?? $base['query'];
+                } else {
+                    if (str_starts_with($reference['path'], '/')) {
+                        $path = self::removeDotSegments($reference['path']);
+                    } elseif ($base['authority'] !== null && $base['path'] === '') {
+                        $path = self::removeDotSegments('/' . $reference['path']);
+                    } else {
+                        $directory = substr($base['path'], 0, (int)strrpos($base['path'], '/') + 1);
+                        $path = self::removeDotSegments($directory . $reference['path']);
+                    }
+                    $query = $reference['query'];
+                }
+            }
         }
 
-        return $origin . substr($path, 0, (int)strrpos($path, '/') + 1) . $target;
+        return ($scheme !== null ? $scheme . ':' : '')
+            . ($authority !== null ? '//' . $authority : '')
+            . $path
+            . ($query !== null ? '?' . $query : '');
+    }
+
+    /**
+     * Splits a URI reference into its components (RFC 3986, appendix B)
+     *
+     * @return array{scheme: string|null, authority: string|null, path: string, query: string|null}
+     */
+    private static function parseReference(string $reference): array
+    {
+        preg_match('#^(?:([^:/?\#]+):)?(?://([^/?\#]*))?([^?\#]*)(?:\?([^\#]*))?#', $reference, $matches, PREG_UNMATCHED_AS_NULL);
+
+        return [
+            'scheme' => $matches[1] ?? null,
+            'authority' => $matches[2] ?? null,
+            'path' => $matches[3] ?? '',
+            'query' => $matches[4] ?? null,
+        ];
+    }
+
+    /**
+     * RFC 3986, section 5.2.4
+     */
+    private static function removeDotSegments(string $path): string
+    {
+        $output = [];
+        while ($path !== '') {
+            if (str_starts_with($path, '../')) {
+                $path = substr($path, 3);
+            } elseif (str_starts_with($path, './')) {
+                $path = substr($path, 2);
+            } elseif (str_starts_with($path, '/./')) {
+                $path = substr($path, 2);
+            } elseif ($path === '/.') {
+                $path = '/';
+            } elseif (str_starts_with($path, '/../')) {
+                $path = substr($path, 3);
+                array_pop($output);
+            } elseif ($path === '/..') {
+                $path = '/';
+                array_pop($output);
+            } elseif ($path === '.' || $path === '..') {
+                $path = '';
+            } else {
+                $position = strpos($path, '/', 1);
+                $segment = $position === false ? $path : substr($path, 0, $position);
+                $output[] = $segment;
+                $path = substr($path, \strlen($segment));
+            }
+        }
+
+        return implode('', $output);
     }
 
     private function failed(string $location, string $reason, ?\Throwable $previous = null): MissingResourceException
