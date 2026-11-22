@@ -29,7 +29,6 @@ use CPSIT\ImportExportCore\Tests\Unit\Dbal\Fixtures\MutableDateTimeType;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\ArraySource;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\InMemoryTarget;
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Types\DateTimeImmutableType;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use PHPUnit\Framework\TestCase;
@@ -95,6 +94,7 @@ class DbalQueueRepositoryTest extends TestCase
      */
     public function testClaimReturnsTimestampsWithMutableDateTimeType(): void
     {
+        $original = Type::getType(Types::DATETIME_IMMUTABLE);
         Type::overrideType(Types::DATETIME_IMMUTABLE, MutableDateTimeType::class);
         try {
             $before = time();
@@ -102,7 +102,7 @@ class DbalQueueRepositoryTest extends TestCase
             $items = $this->subject->claim('news', 1);
             $after = time();
         } finally {
-            Type::overrideType(Types::DATETIME_IMMUTABLE, DateTimeImmutableType::class);
+            Type::getTypeRegistry()->override(Types::DATETIME_IMMUTABLE, $original);
         }
 
         self::assertCount(1, $items);

@@ -8,10 +8,9 @@ a new minor version may contain breaking changes.
 
 ### Fixed
 
-* `Dbal\Queue\DbalQueueRepository`: claimed items have their real
-  `createdAt` and `updatedAt` also in a TYPO3 process. TYPO3 registers a type
-  for `datetime_immutable` that returns a mutable `\DateTime`, which was
-  replaced by 1970-01-01
+* `Dbal\Queue\DbalQueueRepository`: in a TYPO3 process, claimed items had
+  `createdAt` and `updatedAt` set to 1970-01-01, since TYPO3 registers a type
+  for `datetime_immutable` that returns a mutable `\DateTime`
   ([#106](https://github.com/CPS-IT/import-export-core/issues/106))
 
 ## 0.6.0 - 2026-11-22
