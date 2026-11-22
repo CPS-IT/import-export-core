@@ -49,20 +49,25 @@ public function fail(\Throwable $error): void;
 
 If an exception ends a task after it started (in an initializer, while
 reading or writing records, in `persistAll()`, `complete()` or a finisher),
-the processor calls `fail()` with this exception, first on the source, then
-on the target, and passes the exception on. Use it to undo or mark what the
-run left open, e.g. to roll back a transaction. `fail()` may be called after
-`complete()` or `persistAll()` if a finisher fails, so it should only act on
-what is still open.
+the processor calls `fail()` with this exception, first on the target, then
+on the source, and passes the exception on. This is the same order as
+`persistAll()` before `complete()`: the target rolls back its transaction
+before the source updates its own state, which may use the same connection.
+Use it to undo or mark what the run left open, e.g. to roll back a
+transaction. Initializers and finishers are not told. `fail()` may be called
+after `complete()` or `persistAll()` if a finisher fails, so it should only
+act on what is still open.
 
 If `fail()` throws, the exception is added to the result as an error message
 (`DataTransferProcessor::ERROR_FAIL_THREW`), the other component is still
-told, and the exception that ended the task is passed on.
+told, and the exception that ended the task is passed on. The exception of
+`fail()` is reported in the result only: callers that do not inspect the
+result do not see it.
 
 | Class | `fail()` |
 |---|---|
 | `Dbal\DataTargetDBAL` | rolls back the transaction of the current batch; earlier batches stay committed |
-| `Persistence\DataSourceQueue` | marks all items claimed in the run and not finished as failed: also those not read yet and those of batches the target already committed. Enqueue them again with `$requeue = true` to process them again |
+| `Persistence\DataSourceQueue` | marks all items claimed in the run and not finished as failed: also those not read yet and those of batches the target already committed. With a `ClaimAwareQueueRepositoryInterface`, only items still claimed by the run are changed. Enqueue them again with `$requeue = true` to process them again |
 
 ## Files
 
@@ -191,11 +196,19 @@ Implementations: `InMemoryQueueRepository` (tests, single runs) and
 payload is an array, stored as JSON; the checksum is
 `QueueItem::checksum($queue, $data)`.
 
+Both implement `Queue\ClaimAwareQueueRepositoryInterface`: each claim gets a
+token (`QueueItem::$claimToken`), and `failClaimed($item)` marks an item as
+failed only while it is still in processing with that token. It returns
+whether the item was changed.
+
 `DataSourceQueue` claims the items it reads and marks them finished in
 `complete()`. If a task fails, it marks all of them as failed in `fail()`,
-also items not read yet and items of batches the target already committed. Items
-of a run that ended without `fail()`, e.g. because the process was killed,
-stay in processing until `release()` is called.
+also items not read yet and items of batches the target already committed.
+If the repository implements `ClaimAwareQueueRepositoryInterface`, items
+released and claimed again by another run, or finished, are not changed, and
+items that no longer exist are skipped without an exception. Items of a run
+that ended without `fail()`, e.g. because the process was killed, stay in
+processing until `release()` is called.
 
 ## Database (Doctrine DBAL)
 

@@ -123,7 +123,11 @@ class DataTransferProcessorFailureTest extends TestCase
         };
     }
 
-    public function testNotifiesSourceAndTargetAndRethrowsOriginalException(): void
+    /**
+     * The target is told first, so that it can roll back its transaction
+     * before the source updates its own state, e.g. on the same connection.
+     */
+    public function testNotifiesTargetThenSourceAndRethrowsOriginalException(): void
     {
         $error = new \RuntimeException('Record broken');
         $task = $this->createTask($this->createSource(), $this->createTarget());
@@ -136,7 +140,25 @@ class DataTransferProcessorFailureTest extends TestCase
             self::assertSame($error, $exception);
         }
 
-        self::assertSame(['source fail: Record broken', 'target fail: Record broken'], $this->log);
+        self::assertSame(['target fail: Record broken', 'source fail: Record broken'], $this->log);
+    }
+
+    public function testNotifiesSourceIfFailOfTargetThrows(): void
+    {
+        $error = new \RuntimeException('Record broken');
+        $task = $this->createTask($this->createSource(), $this->createTarget(new \LogicException('Rollback failed')));
+        $task->setPreProcessors([$this->failingPreProcessor($error)]);
+        $result = new TaskResult();
+
+        try {
+            (new DataTransferProcessor())->process($task, $result);
+            self::fail('The exception should be passed on.');
+        } catch (\RuntimeException $exception) {
+            self::assertSame($error, $exception);
+        }
+
+        self::assertSame(['target fail: Record broken', 'source fail: Record broken'], $this->log);
+        self::assertTrue($result->hasMessageWithId(DataTransferProcessor::ERROR_FAIL_THREW));
     }
 
     public function testNotifiesSourceAndTargetIfFinisherFails(): void
@@ -162,7 +184,7 @@ class DataTransferProcessorFailureTest extends TestCase
         }
 
         self::assertSame(
-            ['target persistAll', 'source complete', 'source fail: Finisher broken', 'target fail: Finisher broken'],
+            ['target persistAll', 'source complete', 'target fail: Finisher broken', 'source fail: Finisher broken'],
             $this->log
         );
     }
@@ -180,7 +202,7 @@ class DataTransferProcessorFailureTest extends TestCase
             self::assertSame($error, $exception);
         }
 
-        self::assertSame(['source fail: Wrong type', 'target fail: Wrong type'], $this->log);
+        self::assertSame(['target fail: Wrong type', 'source fail: Wrong type'], $this->log);
     }
 
     public function testExceptionOfFailDoesNotHideOriginalException(): void
@@ -200,12 +222,12 @@ class DataTransferProcessorFailureTest extends TestCase
             self::assertSame($error, $exception);
         }
 
-        self::assertSame(['source fail: Record broken', 'target fail: Record broken'], $this->log);
+        self::assertSame(['target fail: Record broken', 'source fail: Record broken'], $this->log);
         self::assertTrue($result->hasMessageWithId(DataTransferProcessor::ERROR_FAIL_THREW));
         $messages = array_map(static fn ($message): string => $message->getMessage(), $result->getMessages());
         self::assertCount(2, $messages);
-        self::assertStringContainsString('LogicException: Source cleanup failed', $messages[0]);
-        self::assertStringContainsString('LogicException: Target cleanup failed', $messages[1]);
+        self::assertStringContainsString('LogicException: Target cleanup failed', $messages[0]);
+        self::assertStringContainsString('LogicException: Source cleanup failed', $messages[1]);
     }
 
     public function testDoesNotNotifyOnSuccess(): void

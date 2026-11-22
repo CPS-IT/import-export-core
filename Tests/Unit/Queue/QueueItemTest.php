@@ -36,6 +36,17 @@ class QueueItemTest extends TestCase
         self::assertSame(['1', 'news', 'abc', ['id' => 1]], [$changed->id, $changed->queue, $changed->checksum, $changed->data]);
     }
 
+    public function testClaimTokenIsKeptByWithStatusAndChangedByWithClaimToken(): void
+    {
+        $now = new \DateTimeImmutable();
+        $item = new QueueItem('1', 'news', 'abc', [], QueueItemStatus::Processing, $now, $now, 'token');
+
+        self::assertSame('', (new QueueItem('1', 'news', 'abc', [], QueueItemStatus::New, $now, $now))->claimToken);
+        self::assertSame('token', $item->withStatus(QueueItemStatus::Failed, $now)->claimToken);
+        self::assertSame('other', $item->withClaimToken('other')->claimToken);
+        self::assertSame('token', $item->claimToken);
+    }
+
     public function testChecksumDependsOnQueueAndData(): void
     {
         $checksum = QueueItem::checksum('news', ['id' => 1, 'title' => 'Ä/b']);

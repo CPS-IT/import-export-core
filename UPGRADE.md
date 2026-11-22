@@ -13,6 +13,27 @@ Each entry contains:
 
 [CHANGELOG.md](CHANGELOG.md) lists all changes, including non-breaking ones.
 
+## Unreleased
+
+### Failed tasks tell the target before the source
+
+Issue: [#109](https://github.com/CPS-IT/import-export-core/issues/109)
+
+**Affects**: sources and targets implementing
+`Persistence\FailureAwareInterface` that depend on the order in which
+`fail()` is called.
+
+**Change**: if a task fails, `DataTransferProcessor` calls `fail()` first on
+the target, then on the source. Before, the source was told first. The new
+order matches the order of `persistAll()` and `complete()`: the target rolls
+back its transaction before the source updates its own state, e.g. queue
+items on the same connection.
+
+**Migration**: a source whose `fail()` expects the target to be still
+unchanged, or a target whose `fail()` relies on the source having been told
+first, has to handle this itself. No action is needed for `DataSourceQueue`
+and `DataTargetDBAL`.
+
 ## 0.6.0
 
 ### Components of a task are sorted by their keys
@@ -71,9 +92,12 @@ or `DataSourceQueue` themselves.
 
 **Change**: if a task fails, `DataTransferProcessor` calls `fail()` on its
 source and target (`Persistence\FailureAwareInterface`) before it passes
-the exception on. `DataTargetDBAL` rolls back the open transaction of the
-current batch. `DataSourceQueue` marks all items claimed in the run as
-failed; before, they stayed in processing until `release()` was called.
+the exception on. An exception thrown by `fail()` is only reported in the
+result (`DataTransferProcessor::ERROR_FAIL_THREW`); callers that do not
+inspect the result do not see it. `DataTargetDBAL` rolls back the open
+transaction of the current batch. `DataSourceQueue` marks all items claimed
+in the run as failed; before, they stayed in processing until `release()`
+was called.
 This includes items the task has not read yet and items of batches that a
 batch aware target already committed before the failure.
 

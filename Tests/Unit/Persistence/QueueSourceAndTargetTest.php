@@ -199,6 +199,23 @@ class QueueSourceAndTargetTest extends TestCase
         self::assertSame(1, $this->repository->count('news', QueueItemStatus::New));
     }
 
+    public function testSourceDoesNotFailItemsReclaimedByAnotherRun(): void
+    {
+        $this->repository->enqueue('news', ['id' => 1]);
+        $this->repository->enqueue('news', ['id' => 2]);
+        $subject = new DataSourceQueue($this->repository);
+        iterator_to_array($subject->getRecords(['identifier' => 'news', 'limit' => 2]), false);
+        $this->repository->release('news');
+        $other = new DataSourceQueue($this->repository);
+        iterator_to_array($other->getRecords(['identifier' => 'news', 'limit' => 1]), false);
+
+        $subject->fail(new \RuntimeException('Task failed'));
+
+        self::assertSame(0, $this->repository->count('news', QueueItemStatus::Failed));
+        self::assertSame(1, $this->repository->count('news', QueueItemStatus::Processing));
+        self::assertSame(1, $this->repository->count('news', QueueItemStatus::New));
+    }
+
     public function testFailAfterPartialCompleteKeepsFinishedItems(): void
     {
         $this->repository->enqueue('news', ['id' => 1]);
