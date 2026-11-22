@@ -103,7 +103,8 @@ class TransferTaskFactory
     }
 
     /**
-     * Keys of the configuration are kept; they determine the order.
+     * Keys of the configuration are kept. Integer keys are sorted in ascending
+     * order; string keys follow in the order of the configuration.
      *
      * @template T of ComponentInterface
      * @param class-string<T> $interface
@@ -122,7 +123,7 @@ class TransferTaskFactory
         }
 
         $components = [];
-        foreach ($list as $position => $componentSettings) {
+        foreach ($this->sortByKeys($list) as $position => $componentSettings) {
             if (!\is_array($componentSettings)) {
                 throw new InvalidConfigurationException(
                     \sprintf('Invalid configuration for task "%s": %s.%s must be an array.', $identifier, $key, $position),
@@ -134,5 +135,17 @@ class TransferTaskFactory
         }
 
         return $components;
+    }
+
+    /**
+     * @param array<mixed> $list
+     * @return array<mixed>
+     */
+    private function sortByKeys(array $list): array
+    {
+        $numeric = array_filter($list, is_int(...), ARRAY_FILTER_USE_KEY);
+        ksort($numeric, SORT_NUMERIC);
+
+        return $numeric + array_diff_key($list, $numeric);
     }
 }

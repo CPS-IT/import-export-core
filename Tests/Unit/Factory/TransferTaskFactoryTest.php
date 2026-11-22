@@ -92,7 +92,7 @@ class TransferTaskFactoryTest extends TestCase
         self::assertSame(['table' => 'tx_news'], $target->getConfiguration());
 
         self::assertInstanceOf(LogInitializer::class, $task->getInitializers()[0]);
-        self::assertSame([20, 10], array_keys($task->getPreProcessors()));
+        self::assertSame([10, 20], array_keys($task->getPreProcessors()));
         $preProcessor = $task->getPreProcessors()[10];
         self::assertInstanceOf(FieldPreProcessor::class, $preProcessor);
         self::assertSame(['field' => 'a'], $preProcessor->getConfiguration());
@@ -124,6 +124,56 @@ class TransferTaskFactoryTest extends TestCase
         self::assertInstanceOf(LegacyConverterAdapter::class, $task->getConverters()[0]);
         self::assertInstanceOf(LegacyPostProcessorAdapter::class, $task->getPostProcessors()[0]);
         self::assertInstanceOf(LegacyFinisherAdapter::class, $task->getFinishers()[0]);
+    }
+
+    public function testSortsComponentsByNumericKeys(): void
+    {
+        $task = $this->subject->create('sorted', [
+            'source' => ['class' => 'test'],
+            'target' => [],
+            'preProcessors' => [
+                '20' => ['class' => FieldPreProcessor::class, 'config' => ['field' => 'a']],
+                '100' => ['class' => FieldPreProcessor::class, 'config' => ['field' => 'a']],
+                '-5' => ['class' => FieldPreProcessor::class, 'config' => ['field' => 'a']],
+                '15' => ['class' => FieldPreProcessor::class, 'config' => ['field' => 'a']],
+            ],
+        ]);
+
+        self::assertSame([-5, 15, 20, 100], array_keys($task->getPreProcessors()));
+    }
+
+    public function testKeepsOrderOfListsWithoutKeys(): void
+    {
+        $task = $this->subject->create('list', [
+            'source' => ['class' => 'test'],
+            'target' => [],
+            'preProcessors' => [
+                ['class' => FieldPreProcessor::class, 'config' => ['field' => 'a']],
+                ['class' => FieldPreProcessor::class, 'config' => ['field' => 'b']],
+            ],
+        ]);
+
+        $preProcessors = $task->getPreProcessors();
+        self::assertSame([0, 1], array_keys($preProcessors));
+        self::assertInstanceOf(FieldPreProcessor::class, $preProcessors[0]);
+        self::assertSame(['field' => 'a'], $preProcessors[0]->getConfiguration());
+    }
+
+    public function testPutsStringKeysAfterNumericKeysInConfiguredOrder(): void
+    {
+        $task = $this->subject->create('mixed', [
+            'source' => ['class' => 'test'],
+            'target' => [],
+            'preProcessors' => [
+                'last' => ['class' => FieldPreProcessor::class, 'config' => ['field' => 'a']],
+                '20' => ['class' => FieldPreProcessor::class, 'config' => ['field' => 'a']],
+                'first' => ['class' => FieldPreProcessor::class, 'config' => ['field' => 'a']],
+                '1.5' => ['class' => FieldPreProcessor::class, 'config' => ['field' => 'a']],
+                '10' => ['class' => FieldPreProcessor::class, 'config' => ['field' => 'a']],
+            ],
+        ]);
+
+        self::assertSame([10, 20, 'last', 'first', '1.5'], array_keys($task->getPreProcessors()));
     }
 
     public function testComponentListsAreOptional(): void

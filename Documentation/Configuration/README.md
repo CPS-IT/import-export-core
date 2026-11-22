@@ -52,9 +52,12 @@ Lists without keys (`- class: ...`) are replaced as a whole.
 | `postProcessors` | map of components | change the converted record |
 | `finishers` | map of components | run once after all records were written |
 
-The components of a list run in the order in which they appear in the
-configuration; the keys are not sorted. A component that a later file adds
-under a new key runs after the existing ones, whatever its key.
+The components of a list run in the ascending order of their integer keys,
+whatever the order in the configuration. A later file can therefore add a
+component between existing ones, e.g. `15` between `10` and `20`. Components
+with string keys (e.g. `last`, also `1.5`) run after those with integer keys,
+in the order in which they appear in the configuration. Lists without keys
+run in their order.
 
 ## Component
 
