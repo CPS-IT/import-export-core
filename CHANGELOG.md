@@ -14,6 +14,13 @@ a new minor version may contain breaking changes.
   files must have the type `xsd`
   ([#25](https://github.com/CPS-IT/import-export-core/issues/25))
 
+### Changed
+
+* Components of a task run in the order of their integer keys (`10`, `15`,
+  `20`); string keys follow in the order of the configuration. Before, the
+  keys were kept but not sorted
+  ([#81](https://github.com/CPS-IT/import-export-core/issues/81))
+
 ## 0.5.0 - 2026-11-20
 
 ### Added
