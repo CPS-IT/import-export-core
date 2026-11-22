@@ -24,23 +24,25 @@ use CPSIT\ImportExportCore\Persistence\DataTargetQueue;
 use CPSIT\ImportExportCore\Queue\QueueItem;
 use CPSIT\ImportExportCore\Queue\QueueItemStatus;
 use CPSIT\ImportExportCore\Service\DataTransferProcessor;
+use CPSIT\ImportExportCore\Tests\Unit\Dbal\ConnectionFactoryTrait;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\ArraySource;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\InMemoryTarget;
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\DriverManager;
 use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/../../Service/Fixtures/Components.php';
 
 class DbalQueueRepositoryTest extends TestCase
 {
+    use ConnectionFactoryTrait;
+
     private Connection $connection;
 
     private DbalQueueRepository $subject;
 
     protected function setUp(): void
     {
-        $this->connection = DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' => true]);
+        $this->connection = self::createConnection();
         $this->subject = new DbalQueueRepository($this->connection);
         (new SchemaInstaller($this->connection))->install($this->subject);
     }

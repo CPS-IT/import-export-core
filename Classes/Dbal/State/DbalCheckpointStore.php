@@ -16,6 +16,7 @@ declare(strict_types=1);
 namespace CPSIT\ImportExportCore\Dbal\State;
 
 use CPSIT\ImportExportCore\Dbal\Identifier;
+use CPSIT\ImportExportCore\Dbal\Queries;
 use CPSIT\ImportExportCore\Dbal\Schema\TableDefinition;
 use CPSIT\ImportExportCore\Dbal\Schema\TableProviderInterface;
 use CPSIT\ImportExportCore\State\Checkpoint;
@@ -40,7 +41,7 @@ final class DbalCheckpointStore implements CheckpointStoreInterface, TableProvid
 
     public function get(string $taskKey): Checkpoint
     {
-        $row = $this->connection->createQueryBuilder()
+        $row = Queries::builder($this->connection)
             ->select($this->quote('batch_number'), $this->quote('records_processed'), $this->quote('source_cursor'))
             ->from($this->quote($this->table))
             ->where($this->quote('task_key') . ' = :taskKey')
@@ -62,13 +63,18 @@ final class DbalCheckpointStore implements CheckpointStoreInterface, TableProvid
     public function save(Checkpoint $checkpoint): void
     {
         $values = [
-            $this->quote('batch_number') => $checkpoint->batchNumber,
-            $this->quote('records_processed') => $checkpoint->recordsProcessed,
-            $this->quote('source_cursor') => $checkpoint->cursor,
-            $this->quote('updated_at') => new \DateTimeImmutable(),
+            'batch_number' => $checkpoint->batchNumber,
+            'records_processed' => $checkpoint->recordsProcessed,
+            'source_cursor' => $checkpoint->cursor,
+            'updated_at' => new \DateTimeImmutable(),
         ];
-        $types = [Types::INTEGER, Types::BIGINT, Types::TEXT, Types::DATETIME_IMMUTABLE];
-        $exists = $this->connection->createQueryBuilder()
+        $types = [
+            'batch_number' => Types::INTEGER,
+            'records_processed' => Types::BIGINT,
+            'source_cursor' => Types::TEXT,
+            'updated_at' => Types::DATETIME_IMMUTABLE,
+        ];
+        $exists = Queries::builder($this->connection)
             ->select('1')
             ->from($this->quote($this->table))
             ->where($this->quote('task_key') . ' = :taskKey')
@@ -76,25 +82,16 @@ final class DbalCheckpointStore implements CheckpointStoreInterface, TableProvid
             ->executeQuery()
             ->fetchOne() !== false;
         if ($exists) {
-            $this->connection->update(
-                $this->quote($this->table),
-                $values,
-                [$this->quote('task_key') => $checkpoint->taskKey],
-                [...$types, Types::STRING]
-            );
+            Queries::update($this->connection, $this->table, $values, ['task_key' => $checkpoint->taskKey], $types);
 
             return;
         }
-        $this->connection->insert(
-            $this->quote($this->table),
-            [$this->quote('task_key') => $checkpoint->taskKey] + $values,
-            [Types::STRING, ...$types]
-        );
+        Queries::insert($this->connection, $this->table, ['task_key' => $checkpoint->taskKey] + $values, $types);
     }
 
     public function clear(string $taskKey): void
     {
-        $this->connection->delete($this->quote($this->table), [$this->quote('task_key') => $taskKey]);
+        Queries::delete($this->connection, $this->table, ['task_key' => $taskKey]);
     }
 
     public function getTables(): array

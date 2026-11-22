@@ -16,6 +16,7 @@ declare(strict_types=1);
 namespace CPSIT\ImportExportCore\Dbal\State;
 
 use CPSIT\ImportExportCore\Dbal\Identifier;
+use CPSIT\ImportExportCore\Dbal\Queries;
 use CPSIT\ImportExportCore\Dbal\Schema\TableDefinition;
 use CPSIT\ImportExportCore\Dbal\Schema\TableProviderInterface;
 use CPSIT\ImportExportCore\State\IdMapInterface;
@@ -41,23 +42,14 @@ final class DbalIdMap implements IdMapInterface, TableProviderInterface
 
     public function set(IdMapping $mapping): void
     {
-        $values = [
-            $this->quote('target_id') => $mapping->targetId,
-            $this->quote('checksum') => $mapping->checksum,
-        ];
+        $key = ['namespace' => $mapping->namespace, 'source_id' => $mapping->sourceId];
+        $values = ['target_id' => $mapping->targetId, 'checksum' => $mapping->checksum];
         if ($this->has($mapping->namespace, $mapping->sourceId)) {
-            $this->connection->update(
-                $this->quote($this->table),
-                $values,
-                [$this->quote('namespace') => $mapping->namespace, $this->quote('source_id') => $mapping->sourceId]
-            );
+            Queries::update($this->connection, $this->table, $values, $key);
 
             return;
         }
-        $this->connection->insert(
-            $this->quote($this->table),
-            [$this->quote('namespace') => $mapping->namespace, $this->quote('source_id') => $mapping->sourceId] + $values
-        );
+        Queries::insert($this->connection, $this->table, $key + $values);
     }
 
     public function get(string $namespace, string $sourceId): IdMapping
@@ -107,7 +99,7 @@ final class DbalIdMap implements IdMapInterface, TableProviderInterface
 
     private function select(string $namespace): QueryBuilder
     {
-        return $this->connection->createQueryBuilder()
+        return Queries::builder($this->connection)
             ->select(
                 $this->quote('namespace'),
                 $this->quote('source_id'),

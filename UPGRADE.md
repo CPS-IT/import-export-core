@@ -48,6 +48,20 @@ preProcessors:
     class: ...   # runs second, also if it appears first in the file
 ```
 
+### `DataTargetDBAL` without `quoteColumns()` and `types()`
+
+Issue: [#98](https://github.com/CPS-IT/import-export-core/issues/98)
+
+**Affects**: subclasses of `Dbal\DataTargetDBAL` that call or override the
+protected methods `quoteColumns()` or `types()`.
+
+**Change**: the methods are removed. Rows are written with a query builder
+that quotes the column names and sets the parameter types itself.
+
+**Migration**: drop the overrides, or move the code into the subclass
+(quote names with `Connection::quoteSingleIdentifier()`, pass
+`Doctrine\DBAL\ParameterType` values as types).
+
 ## 0.5.0
 
 ### File components accept only their file types

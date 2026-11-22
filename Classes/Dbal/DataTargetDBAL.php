@@ -142,26 +142,14 @@ class DataTargetDBAL implements DataTargetInterface, ConfigurableInterface, Batc
         if ($conditions !== []) {
             $existingId = $this->findExisting($connection, $table, $idField, $conditions);
             if ($existingId !== null) {
-                $update = $connection->createQueryBuilder()->update(Identifier::quote($connection, $table));
-                foreach ($object as $column => $value) {
-                    $update->set(
-                        Identifier::quote($connection, (string)$column),
-                        $update->createNamedParameter($value, Conditions::type($value))
-                    );
-                }
-                Conditions::apply($update, $connection, $conditions);
-                $update->executeStatement();
+                Queries::update($connection, $table, $object, $conditions);
                 $this->written[] = [$object, $existingId];
 
                 return false;
             }
         }
 
-        $connection->insert(
-            Identifier::quote($connection, $table),
-            $this->quoteColumns($connection, $object),
-            $this->types($object)
-        );
+        Queries::insert($connection, $table, $object);
         $this->written[] = [$object, $this->insertedId($connection, $idField, $object)];
 
         return true;
@@ -258,7 +246,7 @@ class DataTargetDBAL implements DataTargetInterface, ConfigurableInterface, Batc
      */
     protected function findExisting(Connection $connection, string $table, string $idField, array $conditions): ?string
     {
-        $query = $connection->createQueryBuilder()
+        $query = Queries::builder($connection)
             ->select($idField === '' ? '1' : Identifier::quote($connection, $idField))
             ->from(Identifier::quote($connection, $table))
             ->setMaxResults(1);
@@ -309,28 +297,5 @@ class DataTargetDBAL implements DataTargetInterface, ConfigurableInterface, Batc
                 );
             }
         }
-    }
-
-    /**
-     * @param array<mixed> $record
-     * @return array<string, mixed>
-     */
-    protected function quoteColumns(Connection $connection, array $record): array
-    {
-        $quoted = [];
-        foreach ($record as $column => $value) {
-            $quoted[Identifier::quote($connection, (string)$column)] = $value;
-        }
-
-        return $quoted;
-    }
-
-    /**
-     * @param array<mixed> $record
-     * @return list<\Doctrine\DBAL\ParameterType>
-     */
-    protected function types(array $record): array
-    {
-        return array_values(array_map(Conditions::type(...), $record));
     }
 }

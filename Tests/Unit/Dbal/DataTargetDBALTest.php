@@ -19,19 +19,20 @@ use CPSIT\ImportExportCore\Dbal\ConnectionRegistry;
 use CPSIT\ImportExportCore\Dbal\DataTargetDBAL;
 use CPSIT\ImportExportCore\Domain\Model\TaskResult;
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\DriverManager;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class DataTargetDBALTest extends TestCase
 {
+    use ConnectionFactoryTrait;
+
     private Connection $connection;
 
     private DataTargetDBAL $subject;
 
     protected function setUp(): void
     {
-        $this->connection = DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' => true]);
+        $this->connection = self::createConnection();
         $this->connection->executeStatement(
             'CREATE TABLE pages (uid INTEGER PRIMARY KEY AUTOINCREMENT, import_source TEXT, import_id TEXT, title TEXT, hidden INTEGER)'
         );
@@ -192,7 +193,7 @@ class DataTargetDBALTest extends TestCase
 
     public function testUsesConfigurationPassedToPersist(): void
     {
-        $other = DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' => true]);
+        $other = self::createConnection();
         $other->executeStatement('CREATE TABLE news (id INTEGER PRIMARY KEY, title TEXT)');
         $subject = new DataTargetDBAL(new ConnectionRegistry(['default' => $this->connection, 'target' => $other]));
 
