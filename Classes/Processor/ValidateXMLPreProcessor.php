@@ -19,6 +19,7 @@ use CPSIT\ImportExportCore\ConfigurableInterface;
 use CPSIT\ImportExportCore\ConfigurableTrait;
 use CPSIT\ImportExportCore\Exception\InvalidConfigurationException;
 use CPSIT\ImportExportCore\Exception\MissingResourceException;
+use CPSIT\ImportExportCore\Exception\ParseException;
 use CPSIT\ImportExportCore\File\XmlSchema;
 use CPSIT\ImportExportCore\LoggingInterface;
 use CPSIT\ImportExportCore\LoggingTrait;
@@ -41,9 +42,14 @@ use CPSIT\ImportExportCore\Resource\ResourceLoaderInterface;
  * missing or empty field. The record is passed on in any case; a filter or
  * a condition on `xmlValidationFailed` can leave it out.
  *
- * The schema is loaded once per task. `schema.file` must have one of the
- * allowed file types (`FileTypePolicy`), by default `xsd`; the application
- * can pass other types as constructor argument.
+ * The schema is loaded and checked once per task. Schemas it names in
+ * `xs:include`, `xs:import`, `xs:redefine` or `xs:override` are loaded with
+ * the same resource loader, relative to the location of the naming schema;
+ * with the default loader, absolute paths and URLs are not allowed. Schema
+ * files must have one of the allowed file types (`FileTypePolicy`), by
+ * default `xsd`; the application can pass other types as constructor
+ * argument. libxml loads no other files or URLs, so external entities and
+ * external DTDs in the records are not loaded.
  *
  * Moved from PreProcessor\ValidateXML of t3import_export.
  *
@@ -54,8 +60,10 @@ use CPSIT\ImportExportCore\Resource\ResourceLoaderInterface;
  *   used in the messages
  * - `schema` (map): the XML schema, `{file: ...}` or `{url: ...}`, passed to
  *   the resource loader; with the default loader a path relative to the
- *   working directory. A schema that cannot be loaded or is empty throws a
- *   `MissingResourceException` (1646301113)
+ *   working directory. A schema that cannot be loaded, is empty or includes
+ *   a schema that cannot be loaded throws a `MissingResourceException`
+ *   (1646301113), a schema that is not a valid XML schema a
+ *   `ParseException` (1795200903)
  */
 final class ValidateXMLPreProcessor implements PreProcessorInterface, ConfigurableInterface, LoggingInterface
 {
@@ -69,6 +77,7 @@ final class ValidateXMLPreProcessor implements PreProcessorInterface, Configurab
     public const string DEFAULT_IDENTIFIER_FIELD = 'uid';
     public const int ERROR_INVALID_XML = 1646304431;
     public const int ERROR_MISSING_SCHEMA = 1646301113;
+    public const int ERROR_INVALID_SCHEMA = 1795200903;
 
     public const array ERROR_CODES = [
         self::ERROR_INVALID_XML => ['Validation Error', 'XML is invalid'],
@@ -117,8 +126,9 @@ final class ValidateXMLPreProcessor implements PreProcessorInterface, Configurab
     }
 
     /**
-     * @throws InvalidConfigurationException if the file type of the schema is not allowed
-     * @throws MissingResourceException if the schema cannot be loaded or is empty
+     * @throws InvalidConfigurationException if the file type of a schema is not allowed
+     * @throws MissingResourceException if a schema cannot be loaded or is empty
+     * @throws ParseException if the schema is not a valid XML schema
      */
     public function process(array $record): array
     {
@@ -154,9 +164,11 @@ final class ValidateXMLPreProcessor implements PreProcessorInterface, Configurab
         libxml_clear_errors();
         try {
             $document = new \DOMDocument('1.0', 'utf-8');
-            if ($document->loadXML($xml, LIBXML_NONET) && $schema !== '') {
-                $document->schemaValidateSource($schema);
-            }
+            $this->schemaLoader->run(static function () use ($document, $xml, $schema): void {
+                if ($document->loadXML($xml, LIBXML_NONET) && $schema !== '') {
+                    @$document->schemaValidate($schema);
+                }
+            });
             $errors = libxml_get_errors();
         } finally {
             libxml_clear_errors();
@@ -186,7 +198,7 @@ final class ValidateXMLPreProcessor implements PreProcessorInterface, Configurab
         if ($this->schema === null) {
             $schema = $this->configuration[self::KEY_SCHEMA] ?? null;
             /** @var array<string, mixed>|null $schema checked by isConfigurationValid() */
-            $this->schema = $schema === null ? '' : $this->schemaLoader->load($schema, self::ERROR_MISSING_SCHEMA);
+            $this->schema = $schema === null ? '' : $this->schemaLoader->load($schema, self::ERROR_MISSING_SCHEMA, self::ERROR_INVALID_SCHEMA);
         }
 
         return $this->schema;
