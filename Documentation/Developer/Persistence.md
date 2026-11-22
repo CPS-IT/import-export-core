@@ -108,6 +108,19 @@ A URL with another host throws a `MissingResourceException`
 (`HttpResourceLoader::ERROR_HOST_NOT_ALLOWED`) before a request is sent.
 Without the list, all hosts are allowed.
 
+The loader follows redirects itself (301, 302, 303, 307, 308), at most
+`HttpResourceLoader::MAX_REDIRECTS` (5), with a GET request. The target of
+each redirect must be an `http` or `https` URL with an allowed host as well;
+otherwise the same exceptions are thrown. The port may change. A redirect
+from `https` to `http` is not followed (`ERROR_REQUEST_FAILED`). Default
+headers configured on the client are sent with every request, also to the
+target of a redirect.
+
+The PSR-18 client must not follow redirects itself, as the loader cannot
+check them then. `sendRequest()` of Guzzle does not follow redirects; the
+`Psr18Client` of Symfony does by default, configure it with
+`max_redirects: 0`.
+
 ### File types
 
 Each file component accepts only its own file types in `file`:
