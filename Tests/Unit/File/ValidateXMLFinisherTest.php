@@ -160,6 +160,8 @@ final class ValidateXMLFinisherTest extends TestCase
 
     public function testClonesValidateWithTheirOwnSchema(): void
     {
+        // finish() loads and uses its schema in one call, so this passes also
+        // without __clone(); it guards against changes of that behaviour
         $this->loader->set('other.xsd', str_replace('"item"', '"entry"', self::SCHEMA));
         $this->loader->set('other.xml', '<items><entry>a</entry></items>');
         $prototype = new ValidateXMLFinisher($this->loader);
