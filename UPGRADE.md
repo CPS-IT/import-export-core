@@ -91,8 +91,10 @@ or `DataSourceQueue` themselves.
 
 **Change**: if a task fails, `DataTransferProcessor` calls `fail()` on its
 source and target (`Persistence\FailureAwareInterface`) before it passes
-the exception on. `DataTargetDBAL` rolls back the open transaction of the
-current batch. `DataSourceQueue` marks all items claimed in the run as
+the exception on. An exception thrown by `fail()` is only reported in the
+result (`DataTransferProcessor::ERROR_FAIL_THREW`); callers that do not
+inspect the result do not see it. `DataTargetDBAL` rolls back the open
+transaction of the current batch. `DataSourceQueue` marks all items claimed in the run as
 failed; before, they stayed in processing until `release()` was called.
 This includes items the task has not read yet and items of batches that a
 batch aware target already committed before the failure.
