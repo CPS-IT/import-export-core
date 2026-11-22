@@ -82,7 +82,8 @@ from a relation table ([#58](https://github.com/CPS-IT/import-export-core/issues
 The generic pre-processors of the extension (`AddArrays`, `Clean`,
 `ImplodeArray`, `StringToTime`, `UnsetEmptyFields`) moved there with their
 test cases ([#68](https://github.com/CPS-IT/import-export-core/issues/68));
-`XMLMapper` follows with the XML components
+`XMLMapperPreProcessor` and `ValidateXMLPreProcessor` followed with the XML
+components, together with `File\ValidateXMLFinisher`
 ([#25](https://github.com/CPS-IT/import-export-core/issues/25)).
 `EvaluateExpressionsPreProcessor` sets fields from expressions
 (`Expression\ExpressionEvaluator`, Symfony ExpressionLanguage).

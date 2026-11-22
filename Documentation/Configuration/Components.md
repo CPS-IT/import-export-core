@@ -305,6 +305,39 @@ Configuration:
 
 - `fields` (list or comma-separated string, required): fields to check
 
+### ValidateXMLPreProcessor
+
+`CPSIT\ImportExportCore\Processor\ValidateXMLPreProcessor`
+
+Checks that fields of a record hold well-formed XML and, with `schema`,
+that the XML is valid against an XML schema (XSD).
+
+A field is valid if it holds a string or a `DOMDocument` with XML. A
+missing field, an empty string or a value of another type is invalid. The
+fields are checked in order; at the first invalid field, the record gets
+the field `xmlValidationFailed` with the value true and the remaining
+fields are not checked. Each error of the XML parser or the schema
+validation is logged as error 1646304431, with the field, the record ID
+and the error in the additional information. No message is logged for a
+missing or empty field. The record is passed on in any case; a filter or
+a condition on `xmlValidationFailed` can leave it out.
+
+The schema is loaded once per task. `schema.file` must have one of the
+allowed file types (`FileTypePolicy`), by default `xsd`; the application
+can pass other types as constructor argument.
+
+Moved from PreProcessor\ValidateXML of t3import_export.
+
+Configuration:
+
+- `fields` (list or comma-separated string, required): fields to check
+- `identifier` (string, default `uid`): field with the ID of the record,
+  used in the messages
+- `schema` (map): the XML schema, `{file: ...}` or `{url: ...}`, passed to
+  the resource loader; with the default loader a path relative to the
+  working directory. A schema that cannot be loaded or is empty throws a
+  `MissingResourceException` (1646301113)
+
 ### ValueRulesPreProcessor
 
 `CPSIT\ImportExportCore\Processor\ValueRulesPreProcessor`
@@ -334,6 +367,38 @@ Configuration:
   - `wrap`: `field` not empty -> `prefix` . value . `suffix` (both default '')
   - `join`: `field` = non-empty values of the fields `from`, joined by
     `separator` (default ' ')
+
+### XMLMapperPreProcessor
+
+`CPSIT\ImportExportCore\Processor\XMLMapperPreProcessor`
+
+Marks fields of a record for writing as XML: as attribute, as text or
+CDATA section of the parent element, under another element name, or as
+separate row. The markers are keys starting with `@` (`@attribute`,
+`@value`, `@cdata`, `@mapTo`, `@separateRow`), as read by the XML stream
+target of t3import_export. Missing fields are skipped.
+
+Moved from PreProcessor\XMLMapper of t3import_export.
+
+Configuration:
+
+- `fields` (map of field => rule, required, not empty). Rules:
+  - `'@attribute'`: the field is moved into `@attribute` of its parent
+    (`{id: 1}` -> `{@attribute: {id: 1}}`)
+  - `'@value'`: the field is moved into `@value` of its parent, i.e. it
+    becomes the text of the parent element
+  - `'@cdata'`: the field becomes `{@value: value, @cdata: true}`; if the
+    field is missing and the parent has `@value`, the parent gets
+    `@cdata: true`
+  - `'@value|@cdata'`: `@value`, then `@cdata`; other combinations of
+    rules separated by `|` are accepted, but have no effect
+  - `'@separateRow'`: the field (an array) gets `@separateRow: true`
+  - a map of field => rule: the rules apply inside the field. A field
+    with a string or number becomes `{@value: value}` first. In the map,
+    `mapTo: name` adds `@mapTo: name` (the element name in the XML),
+    `'@separateRow': true` adds `@separateRow: true`, and
+    `children: {field: rule}` applies the rules to every array in the
+    field, e.g. to every element of a list
 
 ### ResolveReferencePreProcessor
 
@@ -497,3 +562,38 @@ use the result, or to try a configuration.
 Configuration:
 
 none.
+
+## Finishers
+
+Key in the task: `finishers`
+
+### ValidateXMLFinisher
+
+`CPSIT\ImportExportCore\File\ValidateXMLFinisher`
+
+Checks after the task that an XML file, e.g. the file written by the
+target, is well-formed and, with `schema`, valid against an XML schema
+(XSD). The file is read element by element (`XMLReader`), so large files
+are not held in memory.
+
+The result is logged as notice: 1508914030 if the file is valid,
+1508776068 with the number of errors and the errors in the additional
+information if it is not. A file that is missing or empty is logged as
+error 1508914547. The finisher does not stop the task or change the file.
+
+`file` must have one of the allowed file types (`FileTypePolicy`), by
+default `xml`, `schema.file` by default `xsd`. The application can pass
+other types as constructor arguments.
+
+Moved from Finisher\ValidateXML of t3import_export.
+
+Configuration:
+
+- `file` (string, required unless `url`): location of the XML file, passed
+  to the resource loader; with the default loader a path relative to the
+  working directory
+- `url` (string, required unless `file`): URL of the XML file; requires a
+  resource loader that supports URLs, e.g. `HttpResourceLoader`
+- `schema` (map): the XML schema, `{file: ...}` or `{url: ...}`. A schema
+  that cannot be loaded or is empty throws a `MissingResourceException`
+  (1795200901)
