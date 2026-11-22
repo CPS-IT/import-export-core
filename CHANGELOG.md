@@ -42,6 +42,11 @@ a new minor version may contain breaking changes.
   `update()` and `delete()`
   ([#98](https://github.com/CPS-IT/import-export-core/issues/98))
 
+### Security
+
+* `PathResolver` rejects dangling symbolic links, as the path itself or as
+  one of its parent directories
+
 ## 0.5.0 - 2026-11-20
 
 ### Added
