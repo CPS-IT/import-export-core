@@ -16,6 +16,7 @@ declare(strict_types=1);
 namespace CPSIT\ImportExportCore\Dbal\Queue;
 
 use CPSIT\ImportExportCore\Dbal\Identifier;
+use CPSIT\ImportExportCore\Dbal\Queries;
 use CPSIT\ImportExportCore\Dbal\Schema\TableDefinition;
 use CPSIT\ImportExportCore\Dbal\Schema\TableProviderInterface;
 use CPSIT\ImportExportCore\Queue\QueueItem;
@@ -50,7 +51,7 @@ final class DbalQueueRepository implements QueueRepositoryInterface, TableProvid
     public function enqueue(string $queue, array $data, bool $requeue = false): bool
     {
         $checksum = QueueItem::checksum($queue, $data);
-        $id = $this->connection->createQueryBuilder()
+        $id = Queries::builder($this->connection)
             ->select($this->quote('id'))
             ->from($this->quote($this->table))
             ->where($this->quote('queue') . ' = :queue', $this->quote('checksum') . ' = :checksum')
@@ -64,7 +65,7 @@ final class DbalQueueRepository implements QueueRepositoryInterface, TableProvid
             if (!$requeue) {
                 return false;
             }
-            $this->connection->createQueryBuilder()
+            Queries::builder($this->connection)
                 ->update($this->quote($this->table))
                 ->set($this->quote('status'), ':status')
                 ->set($this->quote('claim_token'), "''")
@@ -78,18 +79,27 @@ final class DbalQueueRepository implements QueueRepositoryInterface, TableProvid
             return true;
         }
 
-        $this->connection->insert(
-            $this->quote($this->table),
+        Queries::insert(
+            $this->connection,
+            $this->table,
             [
-                $this->quote('queue') => $queue,
-                $this->quote('checksum') => $checksum,
-                $this->quote('data') => QueueItem::encode($data),
-                $this->quote('status') => QueueItemStatus::New->value,
-                $this->quote('claim_token') => '',
-                $this->quote('created_at') => $now,
-                $this->quote('updated_at') => $now,
+                'queue' => $queue,
+                'checksum' => $checksum,
+                'data' => QueueItem::encode($data),
+                'status' => QueueItemStatus::New->value,
+                'claim_token' => '',
+                'created_at' => $now,
+                'updated_at' => $now,
             ],
-            [Types::STRING, Types::STRING, Types::TEXT, Types::SMALLINT, Types::STRING, Types::DATETIME_IMMUTABLE, Types::DATETIME_IMMUTABLE]
+            [
+                'queue' => Types::STRING,
+                'checksum' => Types::STRING,
+                'data' => Types::TEXT,
+                'status' => Types::SMALLINT,
+                'claim_token' => Types::STRING,
+                'created_at' => Types::DATETIME_IMMUTABLE,
+                'updated_at' => Types::DATETIME_IMMUTABLE,
+            ]
         );
 
         return true;
@@ -105,7 +115,7 @@ final class DbalQueueRepository implements QueueRepositoryInterface, TableProvid
         if ($limit < 1) {
             return [];
         }
-        $ids = $this->connection->createQueryBuilder()
+        $ids = Queries::builder($this->connection)
             ->select($this->quote('id'))
             ->from($this->quote($this->table))
             ->where($this->quote('queue') . ' = :queue', $this->quote('status') . ' = :status')
@@ -120,7 +130,7 @@ final class DbalQueueRepository implements QueueRepositoryInterface, TableProvid
         }
 
         $token = bin2hex(random_bytes(16));
-        $this->connection->createQueryBuilder()
+        Queries::builder($this->connection)
             ->update($this->quote($this->table))
             ->set($this->quote('status'), ':processing')
             ->set($this->quote('claim_token'), ':token')
@@ -133,7 +143,7 @@ final class DbalQueueRepository implements QueueRepositoryInterface, TableProvid
             ->setParameter('new', QueueItemStatus::New->value, ParameterType::INTEGER)
             ->executeStatement();
 
-        $rows = $this->connection->createQueryBuilder()
+        $rows = Queries::builder($this->connection)
             ->select('*')
             ->from($this->quote($this->table))
             ->where($this->quote('claim_token') . ' = :token', $this->quote('status') . ' = :processing')
@@ -158,7 +168,7 @@ final class DbalQueueRepository implements QueueRepositoryInterface, TableProvid
 
     public function release(string $queue): int
     {
-        return (int)$this->connection->createQueryBuilder()
+        return (int)Queries::builder($this->connection)
             ->update($this->quote($this->table))
             ->set($this->quote('status'), ':new')
             ->set($this->quote('claim_token'), "''")
@@ -173,7 +183,7 @@ final class DbalQueueRepository implements QueueRepositoryInterface, TableProvid
 
     public function count(string $queue, QueueItemStatus $status): int
     {
-        $count = $this->connection->createQueryBuilder()
+        $count = Queries::builder($this->connection)
             ->select('COUNT(*)')
             ->from($this->quote($this->table))
             ->where($this->quote('queue') . ' = :queue', $this->quote('status') . ' = :status')
@@ -210,7 +220,7 @@ final class DbalQueueRepository implements QueueRepositoryInterface, TableProvid
 
     private function setStatus(QueueItem $item, QueueItemStatus $status): void
     {
-        $exists = $this->connection->createQueryBuilder()
+        $exists = Queries::builder($this->connection)
             ->select('1')
             ->from($this->quote($this->table))
             ->where($this->quote('id') . ' = :id', $this->quote('queue') . ' = :queue')
@@ -224,7 +234,7 @@ final class DbalQueueRepository implements QueueRepositoryInterface, TableProvid
                 1794400101
             );
         }
-        $this->connection->createQueryBuilder()
+        Queries::builder($this->connection)
             ->update($this->quote($this->table))
             ->set($this->quote('status'), ':status')
             ->set($this->quote('updated_at'), ':now')

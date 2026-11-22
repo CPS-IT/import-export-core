@@ -21,12 +21,14 @@ use CPSIT\ImportExportCore\Dbal\State\DbalIdMap;
 use CPSIT\ImportExportCore\State\Checkpoint;
 use CPSIT\ImportExportCore\State\IdMapping;
 use CPSIT\ImportExportCore\State\NullIdMapping;
+use CPSIT\ImportExportCore\Tests\Unit\Dbal\ConnectionFactoryTrait;
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\DriverManager;
 use PHPUnit\Framework\TestCase;
 
 class DbalStateStoresTest extends TestCase
 {
+    use ConnectionFactoryTrait;
+
     private Connection $connection;
 
     private DbalIdMap $idMap;
@@ -35,7 +37,7 @@ class DbalStateStoresTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->connection = DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' => true]);
+        $this->connection = self::createConnection();
         $this->idMap = new DbalIdMap($this->connection);
         $this->checkpoints = new DbalCheckpointStore($this->connection);
         (new SchemaInstaller($this->connection))->install($this->idMap, $this->checkpoints);

@@ -98,7 +98,7 @@ final class RelationListPreProcessor implements PreProcessorInterface, Configura
         $connectionName = $configuration['connection'] ?? ConnectionProviderInterface::DEFAULT_CONNECTION;
         $connection = $this->connectionProvider->getConnection($connectionName);
         $foreignField = Identifier::quote($connection, (string)($configuration['foreignField'] ?? 'uid_foreign'));
-        $query = $connection->createQueryBuilder()
+        $query = Queries::builder($connection)
             ->select($foreignField)
             ->from(Identifier::quote($connection, (string)$configuration['table']));
         /** @var array<string, mixed> $where */

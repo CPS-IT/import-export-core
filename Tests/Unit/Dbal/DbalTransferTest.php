@@ -31,7 +31,6 @@ use CPSIT\ImportExportCore\State\IdMapSettings;
 use CPSIT\ImportExportCore\State\InMemoryCheckpointStore;
 use CPSIT\ImportExportCore\State\InMemoryIdMap;
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\DriverManager;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -39,6 +38,8 @@ use PHPUnit\Framework\TestCase;
  */
 class DbalTransferTest extends TestCase
 {
+    use ConnectionFactoryTrait;
+
     private Connection $legacy;
 
     private Connection $target;
@@ -51,12 +52,12 @@ class DbalTransferTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->legacy = DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' => true]);
+        $this->legacy = self::createConnection();
         $this->legacy->executeStatement('CREATE TABLE news (id INTEGER PRIMARY KEY, headline TEXT, deleted INTEGER)');
         foreach ([[11, 'One', 0], [12, 'Two', 1], [13, 'Three', 0], [14, 'Four', 0], [15, 'Five', 0]] as [$id, $headline, $deleted]) {
             $this->legacy->insert('news', ['id' => $id, 'headline' => $headline, 'deleted' => $deleted]);
         }
-        $this->target = DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' => true]);
+        $this->target = self::createConnection();
         $this->target->executeStatement(
             'CREATE TABLE tx_news (uid INTEGER PRIMARY KEY AUTOINCREMENT, import_id TEXT UNIQUE, title TEXT NOT NULL)'
         );
@@ -157,7 +158,7 @@ class DbalTransferTest extends TestCase
 
     public function testKeepsStateInDatabaseAcrossProcesses(): void
     {
-        $state = DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' => true]);
+        $state = self::createConnection();
         (new SchemaInstaller($state))->install(new DbalIdMap($state), new DbalCheckpointStore($state));
         $createProcessor = static fn (): DataTransferProcessor => new DataTransferProcessor(
             batchSize: 2,

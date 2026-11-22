@@ -20,17 +20,18 @@ use CPSIT\ImportExportCore\Dbal\DataSourceDBAL;
 use CPSIT\ImportExportCore\Dbal\Filter;
 use CPSIT\ImportExportCore\Exception\InvalidConfigurationException;
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\DriverManager;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-final class DataSourceDBALFilterTest extends TestCase
+class DataSourceDBALFilterTest extends TestCase
 {
+    use ConnectionFactoryTrait;
+
     private Connection $connection;
 
     protected function setUp(): void
     {
-        $this->connection = DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' => true]);
+        $this->connection = self::createConnection();
         $this->connection->executeStatement('CREATE TABLE event (uid INTEGER PRIMARY KEY, title TEXT, deleted INTEGER, archived TEXT)');
         $this->connection->executeStatement('CREATE TABLE performance (uid INTEGER PRIMARY KEY, event INTEGER, date INTEGER, deleted INTEGER)');
         $now = time();

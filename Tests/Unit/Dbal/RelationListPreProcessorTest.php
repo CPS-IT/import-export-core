@@ -21,17 +21,18 @@ use CPSIT\ImportExportCore\Exception\InvalidConfigurationException;
 use CPSIT\ImportExportCore\State\Component\ResolveReferencePreProcessor;
 use CPSIT\ImportExportCore\State\IdMapping;
 use CPSIT\ImportExportCore\State\InMemoryIdMap;
-use Doctrine\DBAL\DriverManager;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class RelationListPreProcessorTest extends TestCase
 {
+    use ConnectionFactoryTrait;
+
     private ConnectionRegistry $connections;
 
     protected function setUp(): void
     {
-        $connection = DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' => true]);
+        $connection = self::createConnection();
         $connection->executeStatement('CREATE TABLE event_genre_mm (uid_local INTEGER, uid_foreign INTEGER, sorting INTEGER, fieldname TEXT)');
         foreach ([[1, 7, 2, 'genre'], [1, 5, 1, 'genre'], [1, 9, 3, 'other'], [2, 7, 1, 'genre']] as [$local, $foreign, $sorting, $fieldname]) {
             $connection->insert('event_genre_mm', ['uid_local' => $local, 'uid_foreign' => $foreign, 'sorting' => $sorting, 'fieldname' => $fieldname]);

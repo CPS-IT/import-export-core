@@ -14,6 +14,16 @@ a new minor version may contain breaking changes.
   files must have the type `xsd`
   ([#25](https://github.com/CPS-IT/import-export-core/issues/25))
 
+### Fixed
+
+* The DBAL components work on Connection subclasses that quote names
+  themselves or return their own query builder, such as the connection of
+  TYPO3. Queries are built with the query builder of doctrine/dbal, and
+  inserts, updates and deletes no longer use `Connection::insert()`,
+  `update()` and `delete()`. The protected methods `quoteColumns()` and
+  `types()` of `DataTargetDBAL` are removed
+  ([#98](https://github.com/CPS-IT/import-export-core/issues/98))
+
 ## 0.5.0 - 2026-11-20
 
 ### Added

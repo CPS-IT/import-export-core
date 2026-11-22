@@ -19,19 +19,20 @@ use CPSIT\ImportExportCore\Dbal\ConnectionRegistry;
 use CPSIT\ImportExportCore\Dbal\DataSourceDBAL;
 use CPSIT\ImportExportCore\Exception\MissingResourceException;
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\DriverManager;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class DataSourceDBALTest extends TestCase
 {
+    use ConnectionFactoryTrait;
+
     private Connection $connection;
 
     private DataSourceDBAL $subject;
 
     protected function setUp(): void
     {
-        $this->connection = DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' => true]);
+        $this->connection = self::createConnection();
         $this->connection->executeStatement(
             'CREATE TABLE pages (uid INTEGER PRIMARY KEY, pid INTEGER, title TEXT, deleted INTEGER, nav_title TEXT)'
         );
@@ -199,7 +200,7 @@ class DataSourceDBALTest extends TestCase
 
     public function testUsesNamedConnection(): void
     {
-        $other = DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' => true]);
+        $other = self::createConnection();
         $other->executeStatement('CREATE TABLE pages (uid INTEGER PRIMARY KEY)');
         $other->insert('pages', ['uid' => 42]);
         $subject = new DataSourceDBAL(new ConnectionRegistry(['default' => $this->connection, 'legacy' => $other]));

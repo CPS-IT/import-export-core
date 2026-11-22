@@ -236,7 +236,7 @@ class DataSourceDBAL implements DataSourceInterface, ConfigurableInterface, Resu
         $table = $configuration[self::KEY_TABLE];
         /** @var list<string> $fields */
         $fields = $configuration[self::KEY_FIELDS] ?? [];
-        $query = $connection->createQueryBuilder()
+        $query = Queries::builder($connection)
             ->from(Identifier::quote($connection, $table));
         if ($fields === []) {
             $query->select('*');
