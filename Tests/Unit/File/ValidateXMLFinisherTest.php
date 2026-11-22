@@ -158,6 +158,27 @@ final class ValidateXMLFinisherTest extends TestCase
         self::assertStringStartsWith(\sprintf('XML is invalid. There %s', \count($information) > 1 ? 'were' : 'was'), $messages[0]->getMessage());
     }
 
+    public function testClonesValidateWithTheirOwnSchema(): void
+    {
+        // finish() loads and uses its schema in one call, so this passes also
+        // without __clone(); it guards against changes of that behaviour
+        $this->loader->set('other.xsd', str_replace('"item"', '"entry"', self::SCHEMA));
+        $this->loader->set('other.xml', '<items><entry>a</entry></items>');
+        $prototype = new ValidateXMLFinisher($this->loader);
+        $first = clone $prototype;
+        $second = clone $prototype;
+
+        $this->finish(['file' => 'other.xml', 'schema' => ['file' => 'other.xsd']], $second);
+        $this->finish(['file' => 'export.xml', 'schema' => ['file' => 'schema.xsd']], $first);
+        $this->finish(['file' => 'export.xml', 'schema' => ['file' => 'other.xsd']], $second);
+
+        self::assertSame([ValidateXMLFinisher::NOTICE_VALID], array_map(static fn (Message $message): int => $message->getId(), $first->getMessages()));
+        self::assertSame(
+            [ValidateXMLFinisher::NOTICE_VALID, ValidateXMLFinisher::NOTICE_INVALID],
+            array_map(static fn (Message $message): int => $message->getId(), $second->getMessages())
+        );
+    }
+
     public function testCountsSingleError(): void
     {
         $this->loader->set('export.xml', '<items><item>a</item>');

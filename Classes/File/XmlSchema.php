@@ -33,6 +33,10 @@ use CPSIT\ImportExportCore\Resource\ResourceLoaderInterface;
  * entity loader serves only the loaded schemas and denies everything else,
  * e.g. external entities and DTDs of the validated documents.
  *
+ * The XML validation components copy this object in `__clone()` with a
+ * shallow clone, so it must not keep state of a loaded schema in objects
+ * (e.g. a cached `DOMDocument`); strings and arrays are copied with it.
+ *
  * @internal
  */
 final class XmlSchema

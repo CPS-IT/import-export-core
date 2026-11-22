@@ -103,6 +103,14 @@ final class ValidateXMLPreProcessor implements PreProcessorInterface, Configurab
         $this->schemaLoader = new XmlSchema($resourceLoader ?? new FileResourceLoader(), $fileTypes);
     }
 
+    /**
+     * A clone loads its schema independently of the original.
+     */
+    public function __clone()
+    {
+        $this->schemaLoader = clone $this->schemaLoader;
+    }
+
     public function isConfigurationValid(array $configuration): bool
     {
         if (FieldList::parse($configuration[self::KEY_FIELDS] ?? null) === null) {
