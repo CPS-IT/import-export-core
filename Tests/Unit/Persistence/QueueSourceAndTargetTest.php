@@ -20,7 +20,9 @@ use CPSIT\ImportExportCore\Domain\Model\TransferTask;
 use CPSIT\ImportExportCore\Persistence\DataSourceQueue;
 use CPSIT\ImportExportCore\Persistence\DataTargetQueue;
 use CPSIT\ImportExportCore\Queue\InMemoryQueueRepository;
+use CPSIT\ImportExportCore\Queue\QueueItem;
 use CPSIT\ImportExportCore\Queue\QueueItemStatus;
+use CPSIT\ImportExportCore\Queue\QueueRepositoryInterface;
 use CPSIT\ImportExportCore\Service\DataTransferProcessor;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\ArraySource;
 use CPSIT\ImportExportCore\Tests\Unit\Service\Fixtures\InMemoryTarget;
@@ -195,6 +197,65 @@ class QueueSourceAndTargetTest extends TestCase
         self::assertSame(0, $this->repository->count('news', QueueItemStatus::Processing));
         self::assertSame(0, $this->repository->count('news', QueueItemStatus::Finished));
         self::assertSame(1, $this->repository->count('news', QueueItemStatus::New));
+    }
+
+    public function testFailAfterPartialCompleteKeepsFinishedItems(): void
+    {
+        $this->repository->enqueue('news', ['id' => 1]);
+        $this->repository->enqueue('news', ['id' => 2]);
+        $this->repository->enqueue('news', ['id' => 3]);
+        $repository = new class($this->repository) implements QueueRepositoryInterface {
+            private int $completed = 0;
+
+            public function __construct(private readonly InMemoryQueueRepository $inner)
+            {
+            }
+
+            public function claim(string $queue, int $limit): array
+            {
+                return $this->inner->claim($queue, $limit);
+            }
+
+            public function complete(QueueItem $item): void
+            {
+                if (++$this->completed > 1) {
+                    throw new \RuntimeException('Database gone');
+                }
+                $this->inner->complete($item);
+            }
+
+            public function fail(QueueItem $item): void
+            {
+                $this->inner->fail($item);
+            }
+
+            public function enqueue(string $queue, array $data, bool $requeue = false): bool
+            {
+                return $this->inner->enqueue($queue, $data, $requeue);
+            }
+
+            public function release(string $queue): int
+            {
+                return $this->inner->release($queue);
+            }
+
+            public function count(string $queue, QueueItemStatus $status): int
+            {
+                return $this->inner->count($queue, $status);
+            }
+        };
+        $subject = new DataSourceQueue($repository);
+        iterator_to_array($subject->getRecords(['identifier' => 'news']), false);
+
+        try {
+            $subject->complete(new TaskResult());
+            self::fail('The complete error should be thrown.');
+        } catch (\RuntimeException) {
+        }
+        $subject->fail(new \RuntimeException('Task failed'));
+
+        self::assertSame(1, $this->repository->count('news', QueueItemStatus::Finished));
+        self::assertSame(2, $this->repository->count('news', QueueItemStatus::Failed));
     }
 
     public function testItemsAreMarkedAsFailedIfTaskFails(): void

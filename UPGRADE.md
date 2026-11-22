@@ -72,13 +72,17 @@ or `DataSourceQueue` themselves.
 **Change**: if a task fails, `DataTransferProcessor` calls `fail()` on its
 source and target (`Persistence\FailureAwareInterface`) before it passes
 the exception on. `DataTargetDBAL` rolls back the open transaction of the
-current batch. `DataSourceQueue` marks the items claimed in the run as
+current batch. `DataSourceQueue` marks all items claimed in the run as
 failed; before, they stayed in processing until `release()` was called.
+This includes items the task has not read yet and items of batches that a
+batch aware target already committed before the failure.
 
 **Migration**: do not roll back the target connection after a failed task;
 the transaction is no longer active, and `rollBack()` throws. To process
 failed queue items again, enqueue their data again with `$requeue = true`
-instead of calling `release()`.
+instead of calling `release()`. Targets that write the records of a queue
+should be idempotent (e.g. `DataTargetDBAL` with `key`), since items of
+committed batches are processed again.
 
 ## 0.5.0
 

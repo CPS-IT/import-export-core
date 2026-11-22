@@ -62,7 +62,7 @@ told, and the exception that ended the task is passed on.
 | Class | `fail()` |
 |---|---|
 | `Dbal\DataTargetDBAL` | rolls back the transaction of the current batch; earlier batches stay committed |
-| `Persistence\DataSourceQueue` | marks the items claimed in the run as failed, also those not read yet |
+| `Persistence\DataSourceQueue` | marks all items claimed in the run and not finished as failed: also those not read yet and those of batches the target already committed. Enqueue them again with `$requeue = true` to process them again |
 
 ## Files
 
@@ -192,7 +192,8 @@ payload is an array, stored as JSON; the checksum is
 `QueueItem::checksum($queue, $data)`.
 
 `DataSourceQueue` claims the items it reads and marks them finished in
-`complete()`. If a task fails, it marks them as failed in `fail()`. Items
+`complete()`. If a task fails, it marks all of them as failed in `fail()`,
+also items not read yet and items of batches the target already committed. Items
 of a run that ended without `fail()`, e.g. because the process was killed,
 stay in processing until `release()` is called.
 

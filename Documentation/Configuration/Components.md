@@ -153,7 +153,9 @@ Configuration:
 
 Reads up to `limit` new records from a queue and claims them. After the
 task, the claimed items are marked as finished. If the task fails, all items
-claimed in the run are marked as failed, also those not processed yet.
+claimed in the run and not finished are marked as failed: also those not
+read yet and those of batches the target already committed. They have to be
+enqueued again with `requeue` to be processed again.
 
 Configuration:
 
