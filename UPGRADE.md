@@ -30,8 +30,9 @@ back its transaction before the source updates its own state, e.g. queue
 items on the same connection.
 
 **Migration**: a source whose `fail()` expects the target to be still
-unchanged has to handle this itself. No action is needed for
-`DataSourceQueue` and `DataTargetDBAL`.
+unchanged, or a target whose `fail()` relies on the source having been told
+first, has to handle this itself. No action is needed for `DataSourceQueue`
+and `DataTargetDBAL`.
 
 ## 0.6.0
 
@@ -94,8 +95,9 @@ source and target (`Persistence\FailureAwareInterface`) before it passes
 the exception on. An exception thrown by `fail()` is only reported in the
 result (`DataTransferProcessor::ERROR_FAIL_THREW`); callers that do not
 inspect the result do not see it. `DataTargetDBAL` rolls back the open
-transaction of the current batch. `DataSourceQueue` marks all items claimed in the run as
-failed; before, they stayed in processing until `release()` was called.
+transaction of the current batch. `DataSourceQueue` marks all items claimed
+in the run as failed; before, they stayed in processing until `release()`
+was called.
 This includes items the task has not read yet and items of batches that a
 batch aware target already committed before the failure.
 

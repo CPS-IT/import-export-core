@@ -54,9 +54,9 @@ on the source, and passes the exception on. This is the same order as
 `persistAll()` before `complete()`: the target rolls back its transaction
 before the source updates its own state, which may use the same connection.
 Use it to undo or mark what the run left open, e.g. to roll back a
-transaction. Initializers and finishers are not told. `fail()` may be called after
-`complete()` or `persistAll()` if a finisher fails, so it should only act on
-what is still open.
+transaction. Initializers and finishers are not told. `fail()` may be called
+after `complete()` or `persistAll()` if a finisher fails, so it should only
+act on what is still open.
 
 If `fail()` throws, the exception is added to the result as an error message
 (`DataTransferProcessor::ERROR_FAIL_THREW`), the other component is still
@@ -205,9 +205,10 @@ whether the item was changed.
 `complete()`. If a task fails, it marks all of them as failed in `fail()`,
 also items not read yet and items of batches the target already committed.
 If the repository implements `ClaimAwareQueueRepositoryInterface`, items
-released and claimed again by another run, or finished, are not changed. Items
-of a run that ended without `fail()`, e.g. because the process was killed,
-stay in processing until `release()` is called.
+released and claimed again by another run, or finished, are not changed, and
+items that no longer exist are skipped without an exception. Items of a run
+that ended without `fail()`, e.g. because the process was killed, stay in
+processing until `release()` is called.
 
 ## Database (Doctrine DBAL)
 
