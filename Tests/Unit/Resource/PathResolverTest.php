@@ -172,6 +172,45 @@ class PathResolverTest extends TestCase
         $subject->resolve('first.csv');
     }
 
+    public function testRejectsLoopOfSymbolicLinks(): void
+    {
+        symlink($this->base . '/second', $this->base . '/first');
+        symlink($this->base . '/first', $this->base . '/second');
+        $subject = new PathResolver($this->base);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionCode(PathResolver::ERROR_NOT_ALLOWED);
+
+        $subject->resolve('first/new.csv');
+    }
+
+    public function testRejectsDanglingSymbolicLinkWithRelativeTargetOutOfBaseDirectory(): void
+    {
+        mkdir($this->base . '/root');
+        mkdir($this->base . '/outside');
+        symlink('../outside/x.csv', $this->base . '/root/link.csv');
+        $subject = new PathResolver($this->base . '/root');
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionCode(PathResolver::ERROR_NOT_ALLOWED);
+
+        $subject->resolve('link.csv');
+    }
+
+    public function testRejectsDanglingSymbolicLinkReachedThroughSymbolicLinkInsideBaseDirectory(): void
+    {
+        mkdir($this->base . '/root');
+        mkdir($this->base . '/root/data');
+        symlink($this->base . '/root/data', $this->base . '/root/alias');
+        symlink($this->base . '/outside', $this->base . '/root/data/dl');
+        $subject = new PathResolver($this->base . '/root');
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionCode(PathResolver::ERROR_NOT_ALLOWED);
+
+        $subject->resolve('alias/dl/new.csv');
+    }
+
     public function testRejectsDanglingSymbolicLinkInsideBaseDirectory(): void
     {
         symlink($this->base . '/data/missing.csv', $this->base . '/data/link.csv');

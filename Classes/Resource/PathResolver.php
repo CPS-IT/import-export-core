@@ -27,6 +27,11 @@ use CPSIT\ImportExportCore\Exception\InvalidArgumentException;
  * path must be inside the base directory, so symbolic links cannot lead out
  * of it either. Dangling symbolic links (whose target does not exist) are
  * rejected, because writing to them would create their target.
+ *
+ * The check and the later access to the file are not atomic: whoever can
+ * write to the base directory can still replace a checked path with a
+ * symbolic link in between. The base directory should therefore only be
+ * writable by trusted users.
  */
 final class PathResolver implements PathResolverInterface
 {
