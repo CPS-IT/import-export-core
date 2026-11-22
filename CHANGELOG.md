@@ -15,8 +15,16 @@ a new minor version may contain breaking changes.
   ([#25](https://github.com/CPS-IT/import-export-core/issues/25)):
   * schemas named in `xs:include`, `xs:import`, `xs:redefine` and
     `xs:override` are loaded with the same resource loader and file types,
-    relative to the naming schema; libxml loads no files or URLs itself, so
-    no external entities or DTDs are loaded
+    relative to the naming schema. Apart from the file that
+    `ValidateXMLFinisher` validates, which it opens with `XMLReader` after
+    the resource loader, libxml loads no files or URLs itself, so no
+    external entities or DTDs are loaded
+  * with the default loader, schemas importing a URL, e.g. the common
+    `<xs:import namespace="http://www.w3.org/XML/1998/namespace"
+    schemaLocation="http://www.w3.org/2001/xml.xsd"/>`, throw a
+    `MissingResourceException` and stop the task. Use a local copy of the
+    imported schema next to the schema, or a loader with
+    `HttpResourceLoader` that allows the host
   * a schema that is not a valid XML schema throws a `ParseException` once,
     before the first record or file is validated
   * unlike the extension, `ValidateXMLFinisher` reads the whole document

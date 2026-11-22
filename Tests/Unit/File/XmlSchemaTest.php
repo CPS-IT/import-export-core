@@ -184,6 +184,28 @@ final class XmlSchemaTest extends TestCase
         self::assertTrue(self::validates($schema, $uri, '<item><title>a</title></item>'));
     }
 
+    public function testRejectsEmptySchemaLocation(): void
+    {
+        $schema = new XmlSchema(new InMemoryResourceLoader(['main.xsd' => self::including(' ')]));
+
+        $this->expectException(ParseException::class);
+        $this->expectExceptionCode(self::INVALID);
+        $this->expectExceptionMessage('empty schemaLocation');
+        $schema->load(['file' => 'main.xsd'], self::MISSING, self::INVALID);
+    }
+
+    public function testKeepsNetworkPathOnTheHostOfTheSchema(): void
+    {
+        $schema = new XmlSchema(new InMemoryResourceLoader([
+            'https://example.org/schemas/main.xsd' => self::including('//other.example/inc.xsd'),
+            'https://example.org/other.example/inc.xsd' => self::definingType(),
+        ]));
+
+        $uri = $schema->load(['url' => 'https://example.org/schemas/main.xsd'], self::MISSING, self::INVALID);
+
+        self::assertTrue(self::validates($schema, $uri, '<item><title>a</title></item>'));
+    }
+
     public function testRejectsIncludedFileOfOtherType(): void
     {
         $schema = new XmlSchema(new InMemoryResourceLoader([
