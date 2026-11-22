@@ -4,6 +4,16 @@ All notable changes to this project are documented in this file. The project
 follows [Semantic Versioning](https://semver.org/). While the version is `0.x`,
 a new minor version may contain breaking changes.
 
+## Unreleased
+
+### Added
+
+* `Processor\ValidateXMLPreProcessor`, `Processor\XMLMapperPreProcessor`
+  and `File\ValidateXMLFinisher`, moved from `ValidateXML` and `XMLMapper`
+  of t3import_export. Schemas are loaded with the resource loader; their
+  files must have the type `xsd`
+  ([#25](https://github.com/CPS-IT/import-export-core/issues/25))
+
 ## 0.5.0 - 2026-11-20
 
 ### Added

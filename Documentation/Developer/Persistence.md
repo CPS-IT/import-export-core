@@ -87,7 +87,8 @@ Each file component accepts only its own file types in `file`:
 | Component | Default (`DEFAULT_FILE_EXTENSIONS`) |
 |---|---|
 | `DataSourceCSV`, `DataTargetCSV` | `csv`, `tsv`, `txt` |
-| `DataSourceXML` | `xml` |
+| `DataSourceXML`, `ValidateXMLFinisher` | `xml` |
+| `schema` of `ValidateXMLPreProcessor` and `ValidateXMLFinisher` | `xsd` |
 
 Another type throws an `InvalidConfigurationException`
 (`FileTypePolicy::ERROR_NOT_ALLOWED`) before the file is opened or created.
