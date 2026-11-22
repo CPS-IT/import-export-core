@@ -49,6 +49,13 @@ a new minor version may contain breaking changes.
   the repository implements `ClaimAwareQueueRepositoryInterface`
   ([#115](https://github.com/CPS-IT/import-export-core/issues/115))
 
+### Security
+
+* `HttpResourceLoader` follows redirects itself and checks the target of each
+  redirect like the original URL (`http` or `https`, allowed host). A redirect
+  to another host throws `ERROR_HOST_NOT_ALLOWED`. The HTTP client must not
+  follow redirects itself
+
 ## 0.6.1 - 2026-11-22
 
 ### Fixed

@@ -31,13 +31,25 @@ use Psr\Http\Message\StreamInterface;
  * then make the application request any URL the client reaches. Pass the
  * hosts that are needed as `$allowedHosts`: `example.org` allows this host,
  * `*.example.org` its subdomains. Requests to other hosts throw a
- * `MissingResourceException` before they are sent. Redirects are followed by
- * the client; restrict them in the client if needed.
+ * `MissingResourceException` before they are sent.
+ *
+ * Redirects (301, 302, 303, 307, 308) are followed by the loader, at most
+ * `MAX_REDIRECTS`. The target of each redirect must be an http(s) URL with an
+ * allowed host as well. The client must not follow redirects itself, as the
+ * loader cannot check them then: `sendRequest()` of Guzzle does not follow
+ * them, other clients have to be configured accordingly.
  */
 final class HttpResourceLoader implements ResourceLoaderInterface
 {
     public const int ERROR_REQUEST_FAILED = 1795200301;
     public const int ERROR_HOST_NOT_ALLOWED = 1795200302;
+
+    /**
+     * Maximum number of redirects followed for one location
+     */
+    public const int MAX_REDIRECTS = 5;
+
+    private const array REDIRECT_STATUS = [301, 302, 303, 307, 308];
 
     /**
      * @var list<string>|null
@@ -91,26 +103,74 @@ final class HttpResourceLoader implements ResourceLoaderInterface
 
     public function open(string $location): StreamInterface
     {
-        if (!$this->supports($location)) {
-            throw $this->failed($location, 'not an http(s) URL');
+        $url = $location;
+        for ($redirects = 0; ; $redirects++) {
+            $this->assertAllowed($url, $location);
+            try {
+                $response = $this->client->sendRequest($this->requestFactory->createRequest('GET', $url));
+            } catch (ClientExceptionInterface $exception) {
+                throw $this->failed($location, $exception->getMessage(), $exception);
+            }
+            $status = $response->getStatusCode();
+            $target = trim($response->getHeaderLine('Location'));
+            if (!\in_array($status, self::REDIRECT_STATUS, true) || $target === '') {
+                break;
+            }
+            if ($redirects >= self::MAX_REDIRECTS) {
+                throw $this->failed($location, 'more than ' . self::MAX_REDIRECTS . ' redirects');
+            }
+            $url = self::resolveRedirect($url, $target);
         }
-        if (!$this->isHostAllowed($location)) {
-            throw new MissingResourceException(
-                \sprintf('Resource "%s" cannot be loaded: the host is not allowed.', $location),
-                self::ERROR_HOST_NOT_ALLOWED
-            );
-        }
-        try {
-            $response = $this->client->sendRequest($this->requestFactory->createRequest('GET', $location));
-        } catch (ClientExceptionInterface $exception) {
-            throw $this->failed($location, $exception->getMessage(), $exception);
-        }
-        $status = $response->getStatusCode();
         if ($status < 200 || $status >= 300) {
             throw $this->failed($location, 'status ' . $status);
         }
 
         return $response->getBody();
+    }
+
+    /**
+     * @throws MissingResourceException if `$url` is not an http(s) URL or its host is not allowed
+     */
+    private function assertAllowed(string $url, string $location): void
+    {
+        if (!$this->supports($url)) {
+            throw $this->failed($location, $url === $location ? 'not an http(s) URL' : 'a redirect leads to a URL that is not an http(s) URL');
+        }
+        if (!$this->isHostAllowed($url)) {
+            throw new MissingResourceException(
+                $url === $location
+                    ? \sprintf('Resource "%s" cannot be loaded: the host is not allowed.', $location)
+                    : \sprintf('Resource "%s" cannot be loaded: a redirect leads to a host that is not allowed.', $location),
+                self::ERROR_HOST_NOT_ALLOWED
+            );
+        }
+    }
+
+    /**
+     * Resolves the `Location` of a redirect against the URL of the request.
+     * The result is checked like the original location.
+     */
+    private static function resolveRedirect(string $url, string $target): string
+    {
+        if (preg_match('#^[a-zA-Z][a-zA-Z0-9+.-]*:#', $target) === 1) {
+            return $target;
+        }
+        // $url passed supports(): it has a scheme and a host
+        $parts = (array)parse_url($url);
+        $scheme = (string)($parts['scheme'] ?? '');
+        if (str_starts_with($target, '//')) {
+            return $scheme . ':' . $target;
+        }
+        $origin = $scheme . '://' . (string)($parts['host'] ?? '') . (isset($parts['port']) ? ':' . $parts['port'] : '');
+        $path = (string)($parts['path'] ?? '/');
+        if (str_starts_with($target, '/')) {
+            return $origin . $target;
+        }
+        if (str_starts_with($target, '?')) {
+            return $origin . $path . $target;
+        }
+
+        return $origin . substr($path, 0, (int)strrpos($path, '/') + 1) . $target;
     }
 
     private function failed(string $location, string $reason, ?\Throwable $previous = null): MissingResourceException

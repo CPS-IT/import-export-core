@@ -152,6 +152,92 @@ class HttpResourceLoaderTest extends TestCase
         (new HttpResourceLoader($client, $this->requestFactory(), []))->open('https://example.org/a.csv');
     }
 
+    public function testDoesNotFollowRedirectToOtherHost(): void
+    {
+        $client = $this->createMock(ClientInterface::class);
+        $client->expects(self::once())->method('sendRequest')
+            ->willReturn($this->response(302, new TemporaryStream(), 'http://127.0.0.1/a.csv'));
+
+        $this->expectException(MissingResourceException::class);
+        $this->expectExceptionCode(HttpResourceLoader::ERROR_HOST_NOT_ALLOWED);
+
+        (new HttpResourceLoader($client, $this->requestFactory(), ['example.org']))->open('https://example.org/a.csv');
+    }
+
+    public function testDoesNotFollowRedirectToOtherScheme(): void
+    {
+        $client = $this->createMock(ClientInterface::class);
+        $client->expects(self::once())->method('sendRequest')
+            ->willReturn($this->response(301, new TemporaryStream(), 'file:///etc/passwd'));
+
+        $this->expectException(MissingResourceException::class);
+        $this->expectExceptionCode(HttpResourceLoader::ERROR_REQUEST_FAILED);
+
+        (new HttpResourceLoader($client, $this->requestFactory()))->open('https://example.org/a.csv');
+    }
+
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function redirectProvider(): array
+    {
+        return [
+            'absolute URL' => ['https://data.example.com/b.csv', 'https://data.example.com/b.csv'],
+            'scheme-relative URL' => ['//data.example.com/b.csv', 'https://data.example.com/b.csv'],
+            'absolute path' => ['/b.csv', 'https://example.org:8443/b.csv'],
+            'relative path' => ['b.csv', 'https://example.org:8443/files/b.csv'],
+            'query' => ['?page=2', 'https://example.org:8443/files/a.csv?page=2'],
+        ];
+    }
+
+    #[DataProvider('redirectProvider')]
+    public function testFollowsRedirectsToAllowedHosts(string $target, string $expected): void
+    {
+        $body = new TemporaryStream('a,b');
+        $urls = [];
+        $requestFactory = $this->createStub(RequestFactoryInterface::class);
+        $requestFactory->method('createRequest')->willReturnCallback(
+            function (string $method, string $url) use (&$urls): RequestInterface {
+                self::assertSame('GET', $method);
+                $urls[] = $url;
+
+                return $this->createStub(RequestInterface::class);
+            }
+        );
+        $client = $this->createStub(ClientInterface::class);
+        $client->method('sendRequest')->willReturnOnConsecutiveCalls(
+            $this->response(307, new TemporaryStream(), $target),
+            $this->response(200, $body)
+        );
+        $subject = new HttpResourceLoader($client, $requestFactory, ['example.org', '*.example.com']);
+
+        self::assertSame($body, $subject->open('https://example.org:8443/files/a.csv'));
+        self::assertSame(['https://example.org:8443/files/a.csv', $expected], $urls);
+    }
+
+    public function testThrowsForRedirectWithoutLocation(): void
+    {
+        $client = $this->createMock(ClientInterface::class);
+        $client->expects(self::once())->method('sendRequest')->willReturn($this->response(302, new TemporaryStream()));
+
+        $this->expectException(MissingResourceException::class);
+        $this->expectExceptionCode(HttpResourceLoader::ERROR_REQUEST_FAILED);
+
+        (new HttpResourceLoader($client, $this->requestFactory()))->open('https://example.org/a.csv');
+    }
+
+    public function testFollowsALimitedNumberOfRedirects(): void
+    {
+        $client = $this->createMock(ClientInterface::class);
+        $client->expects(self::exactly(HttpResourceLoader::MAX_REDIRECTS + 1))->method('sendRequest')
+            ->willReturn($this->response(302, new TemporaryStream(), '/a.csv'));
+
+        $this->expectException(MissingResourceException::class);
+        $this->expectExceptionCode(HttpResourceLoader::ERROR_REQUEST_FAILED);
+
+        (new HttpResourceLoader($client, $this->requestFactory()))->open('https://example.org/a.csv');
+    }
+
     private function requestFactory(): RequestFactoryInterface
     {
         $requestFactory = $this->createStub(RequestFactoryInterface::class);
@@ -160,10 +246,11 @@ class HttpResourceLoaderTest extends TestCase
         return $requestFactory;
     }
 
-    private function response(int $status, TemporaryStream $body): ResponseInterface
+    private function response(int $status, TemporaryStream $body, string $location = ''): ResponseInterface
     {
         $response = $this->createStub(ResponseInterface::class);
         $response->method('getStatusCode')->willReturn($status);
+        $response->method('getHeaderLine')->willReturnMap([['Location', $location]]);
         $response->method('getBody')->willReturn($body);
 
         return $response;

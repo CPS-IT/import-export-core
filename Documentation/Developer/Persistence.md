@@ -113,6 +113,13 @@ A URL with another host throws a `MissingResourceException`
 (`HttpResourceLoader::ERROR_HOST_NOT_ALLOWED`) before a request is sent.
 Without the list, all hosts are allowed.
 
+The loader follows redirects itself, at most `HttpResourceLoader::MAX_REDIRECTS`
+(5). The target of each redirect must be an `http` or `https` URL with an
+allowed host as well; otherwise it throws the same exceptions. The HTTP client
+must therefore not follow redirects itself: `sendRequest()` of Guzzle does not,
+other clients have to be configured so (e.g. `max_redirects: 0` for the
+Symfony HTTP client).
+
 ### File types
 
 Each file component accepts only its own file types in `file`:
