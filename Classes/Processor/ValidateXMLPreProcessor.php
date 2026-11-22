@@ -166,7 +166,7 @@ final class ValidateXMLPreProcessor implements PreProcessorInterface, Configurab
             $document = new \DOMDocument('1.0', 'utf-8');
             $this->schemaLoader->run(static function () use ($document, $xml, $schema): void {
                 if ($document->loadXML($xml, LIBXML_NONET) && $schema !== '') {
-                    $document->schemaValidate($schema);
+                    @$document->schemaValidate($schema);
                 }
             });
             $errors = libxml_get_errors();

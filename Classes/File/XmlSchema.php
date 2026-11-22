@@ -244,7 +244,7 @@ final class XmlSchema
         try {
             $probe = new \DOMDocument();
             $probe->loadXML(self::PROBE);
-            $this->run(static fn (): bool => $probe->schemaValidate(self::uri(0)));
+            $this->run(static fn (): bool => @$probe->schemaValidate(self::uri(0)));
             $errors = libxml_get_errors();
         } finally {
             libxml_clear_errors();
