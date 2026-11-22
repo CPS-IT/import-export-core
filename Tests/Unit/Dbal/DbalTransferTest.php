@@ -138,8 +138,8 @@ class DbalTransferTest extends TestCase
             $this->createProcessor()->process($this->createTask(), new TaskResult());
             self::fail('The NOT NULL constraint should have stopped the task.');
         } catch (\Doctrine\DBAL\Exception\NotNullConstraintViolationException) {
-            // The process would end here; its open transaction is rolled back.
-            $this->target->rollBack();
+            // The target rolled back the transaction of the failed batch.
+            self::assertFalse($this->target->isTransactionActive());
         }
 
         self::assertSame(['11', '13'], $this->target->fetchFirstColumn('SELECT import_id FROM tx_news ORDER BY uid'));
@@ -171,7 +171,7 @@ class DbalTransferTest extends TestCase
             $createProcessor()->process($this->createTask(), new TaskResult());
             self::fail('The NOT NULL constraint should have stopped the task.');
         } catch (\Doctrine\DBAL\Exception\NotNullConstraintViolationException) {
-            $this->target->rollBack();
+            self::assertFalse($this->target->isTransactionActive());
         }
 
         self::assertSame('13', (new DbalCheckpointStore($state))->get('news')->cursor);

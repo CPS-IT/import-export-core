@@ -23,14 +23,15 @@ use CPSIT\ImportExportCore\Queue\QueueRepositoryInterface;
 
 /**
  * Reads up to `limit` new records from a queue and claims them. After the
- * task, the claimed items are marked as finished.
+ * task, the claimed items are marked as finished. If the task fails, all items
+ * claimed in the run are marked as failed, also those not processed yet.
  *
  * Configuration:
  *
  * - `identifier` (string, required): the queue
  * - `limit` (int, default 10): items per run
  */
-class DataSourceQueue implements DataSourceInterface, ConfigurableInterface, CompletableSourceInterface
+class DataSourceQueue implements DataSourceInterface, ConfigurableInterface, CompletableSourceInterface, FailureAwareInterface
 {
     use ConfigurableTrait;
 
@@ -71,8 +72,9 @@ class DataSourceQueue implements DataSourceInterface, ConfigurableInterface, Com
             return;
         }
 
-        foreach ($this->repository->claim($queue, $limit) as $item) {
-            $this->claimed[] = $item;
+        $items = $this->repository->claim($queue, $limit);
+        array_push($this->claimed, ...$items);
+        foreach ($items as $item) {
             yield $item->data;
         }
     }
@@ -83,5 +85,14 @@ class DataSourceQueue implements DataSourceInterface, ConfigurableInterface, Com
             $this->repository->complete($item);
         }
         $this->claimed = [];
+    }
+
+    public function fail(\Throwable $error): void
+    {
+        $claimed = $this->claimed;
+        $this->claimed = [];
+        foreach ($claimed as $item) {
+            $this->repository->fail($item);
+        }
     }
 }

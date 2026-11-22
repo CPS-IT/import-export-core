@@ -62,6 +62,24 @@ that quotes the column names and sets the parameter types itself.
 (quote names with `Connection::quoteSingleIdentifier()`, pass
 `Doctrine\DBAL\ParameterType` values as types).
 
+### Failed tasks roll back `DataTargetDBAL` and fail queue items
+
+Issue: [#102](https://github.com/CPS-IT/import-export-core/issues/102)
+
+**Affects**: applications that handle a failed task with `DataTargetDBAL`
+or `DataSourceQueue` themselves.
+
+**Change**: if a task fails, `DataTransferProcessor` calls `fail()` on its
+source and target (`Persistence\FailureAwareInterface`) before it passes
+the exception on. `DataTargetDBAL` rolls back the open transaction of the
+current batch. `DataSourceQueue` marks the items claimed in the run as
+failed; before, they stayed in processing until `release()` was called.
+
+**Migration**: do not roll back the target connection after a failed task;
+the transaction is no longer active, and `rollBack()` throws. To process
+failed queue items again, enqueue their data again with `$requeue = true`
+instead of calling `release()`.
+
 ## 0.5.0
 
 ### File components accept only their file types

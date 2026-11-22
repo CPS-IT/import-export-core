@@ -177,6 +177,73 @@ class DataTargetDBALTest extends TestCase
         self::assertSame(['Home'], $this->connection->fetchFirstColumn('SELECT title FROM pages'));
     }
 
+    public function testFailRollsBackCurrentBatch(): void
+    {
+        $this->subject->setConfiguration(['table' => 'pages', 'idField' => 'uid']);
+        $this->subject->persist(['title' => 'Home']);
+        $this->subject->flushBatch(new TaskResult());
+        $news = ['title' => 'News'];
+        $this->subject->persist($news);
+
+        $this->subject->fail(new \RuntimeException('Task failed'));
+
+        self::assertFalse($this->connection->isTransactionActive());
+        self::assertSame(['Home'], $this->connection->fetchFirstColumn('SELECT title FROM pages'));
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionCode(1794700024);
+        $this->subject->getTargetId($news);
+    }
+
+    public function testFailWithoutOpenTransactionDoesNothing(): void
+    {
+        $this->subject->setConfiguration(['table' => 'pages', 'idField' => 'uid']);
+        $this->subject->persist(['title' => 'Home']);
+        $this->subject->persistAll();
+
+        $this->subject->fail(new \RuntimeException('Task failed'));
+        $this->subject->fail(new \RuntimeException('Task failed'));
+
+        self::assertFalse($this->connection->isTransactionActive());
+        self::assertSame(['Home'], $this->connection->fetchFirstColumn('SELECT title FROM pages'));
+    }
+
+    public function testNextPersistAfterFailStartsNewTransaction(): void
+    {
+        $this->subject->setConfiguration(['table' => 'pages', 'idField' => 'uid']);
+        $this->subject->persist(['title' => 'Home']);
+        $this->subject->fail(new \RuntimeException('Task failed'));
+
+        $this->subject->persist(['title' => 'News']);
+        self::assertTrue($this->connection->isTransactionActive());
+        $this->subject->persistAll();
+
+        self::assertSame(['News'], $this->connection->fetchFirstColumn('SELECT title FROM pages'));
+    }
+
+    public function testFailRollsBackAllConnectionsAndThrowsFirstError(): void
+    {
+        $rollbackError = new \RuntimeException('Rollback failed');
+        $broken = $this->createMock(Connection::class);
+        $broken->method('isTransactionActive')->willReturn(true);
+        $broken->method('getDatabasePlatform')->willReturn($this->connection->getDatabasePlatform());
+        $broken->expects(self::once())->method('beginTransaction');
+        $broken->expects(self::once())->method('rollBack')->willThrowException($rollbackError);
+        $subject = new DataTargetDBAL(new ConnectionRegistry(['broken' => $broken, 'default' => $this->connection]));
+        $subject->persist(['title' => 'Lost'], ['table' => 'pages', 'connection' => 'broken', 'idField' => '']);
+        $subject->persist(['title' => 'News'], ['table' => 'pages', 'idField' => 'uid']);
+
+        try {
+            $subject->fail(new \RuntimeException('Task failed'));
+            self::fail('The rollback error should be thrown.');
+        } catch (\RuntimeException $exception) {
+            self::assertSame($rollbackError, $exception);
+        }
+
+        self::assertFalse($this->connection->isTransactionActive());
+        self::assertSame([], $this->connection->fetchFirstColumn('SELECT title FROM pages'));
+    }
+
     public function testForgetsIdsOfPreviousBatch(): void
     {
         $this->subject->setConfiguration(['table' => 'pages', 'idField' => 'uid']);

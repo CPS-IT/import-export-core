@@ -152,7 +152,8 @@ Configuration:
 `CPSIT\ImportExportCore\Persistence\DataSourceQueue`
 
 Reads up to `limit` new records from a queue and claims them. After the
-task, the claimed items are marked as finished.
+task, the claimed items are marked as finished. If the task fails, all items
+claimed in the run are marked as failed, also those not processed yet.
 
 Configuration:
 
@@ -498,8 +499,8 @@ is one; otherwise it is inserted. A record without any of the key fields
 is inserted, e.g. a new record after `TargetIdPreProcessor`.
 
 Each batch is written in one transaction, committed in `flushBatch()`. If a
-task fails, the rows of the current batch are not committed, and a resumed
-run continues after the last committed batch.
+task fails, the transaction of the current batch is rolled back in
+`fail()`, and a resumed run continues after the last committed batch.
 
 Configuration:
 

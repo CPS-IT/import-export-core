@@ -177,7 +177,27 @@ class QueueSourceAndTargetTest extends TestCase
         self::assertSame(3, $this->repository->count('news', QueueItemStatus::Finished));
     }
 
-    public function testItemsStayInProcessingIfTaskFails(): void
+    public function testSourceMarksClaimedItemsAsFailed(): void
+    {
+        $this->repository->enqueue('news', ['id' => 1]);
+        $this->repository->enqueue('news', ['id' => 2]);
+        $this->repository->enqueue('news', ['id' => 3]);
+        $subject = new DataSourceQueue($this->repository);
+        $records = $subject->getRecords(['identifier' => 'news', 'limit' => 2]);
+        self::assertInstanceOf(\Generator::class, $records);
+        self::assertSame(['id' => 1], $records->current());
+
+        $subject->fail(new \RuntimeException('Task failed'));
+        $subject->fail(new \RuntimeException('Task failed'));
+        $subject->complete(new TaskResult());
+
+        self::assertSame(2, $this->repository->count('news', QueueItemStatus::Failed));
+        self::assertSame(0, $this->repository->count('news', QueueItemStatus::Processing));
+        self::assertSame(0, $this->repository->count('news', QueueItemStatus::Finished));
+        self::assertSame(1, $this->repository->count('news', QueueItemStatus::New));
+    }
+
+    public function testItemsAreMarkedAsFailedIfTaskFails(): void
     {
         $this->repository->enqueue('news', ['id' => 1]);
         $task = new TransferTask();
@@ -196,7 +216,7 @@ class QueueSourceAndTargetTest extends TestCase
         } catch (\UnexpectedValueException) {
         }
 
-        self::assertSame(1, $this->repository->count('news', QueueItemStatus::Processing));
-        self::assertSame(1, $this->repository->release('news'));
+        self::assertSame(1, $this->repository->count('news', QueueItemStatus::Failed));
+        self::assertSame(0, $this->repository->count('news', QueueItemStatus::Processing));
     }
 }
