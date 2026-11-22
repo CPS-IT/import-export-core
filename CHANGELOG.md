@@ -12,7 +12,16 @@ a new minor version may contain breaking changes.
   and `File\ValidateXMLFinisher`, moved from `ValidateXML` and `XMLMapper`
   of t3import_export. Schemas are loaded with the resource loader; their
   files must have the type `xsd`
-  ([#25](https://github.com/CPS-IT/import-export-core/issues/25))
+  ([#25](https://github.com/CPS-IT/import-export-core/issues/25)):
+  * schemas named in `xs:include`, `xs:import`, `xs:redefine` and
+    `xs:override` are loaded with the same resource loader and file types,
+    relative to the naming schema; libxml loads no files or URLs itself, so
+    no external entities or DTDs are loaded
+  * a schema that is not a valid XML schema throws a `ParseException` once,
+    before the first record or file is validated
+  * unlike the extension, `ValidateXMLFinisher` reads the whole document
+    and does not validate it against a DTD it contains (for safety; the
+    extension requested DTD validation, but read only the first node)
 
 ## 0.5.0 - 2026-11-20
 

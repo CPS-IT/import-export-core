@@ -322,9 +322,14 @@ and the error in the additional information. No message is logged for a
 missing or empty field. The record is passed on in any case; a filter or
 a condition on `xmlValidationFailed` can leave it out.
 
-The schema is loaded once per task. `schema.file` must have one of the
-allowed file types (`FileTypePolicy`), by default `xsd`; the application
-can pass other types as constructor argument.
+The schema is loaded and checked once per task. Schemas it names in
+`xs:include`, `xs:import`, `xs:redefine` or `xs:override` are loaded with
+the same resource loader, relative to the location of the naming schema;
+with the default loader, absolute paths and URLs are not allowed. Schema
+files must have one of the allowed file types (`FileTypePolicy`), by
+default `xsd`; the application can pass other types as constructor
+argument. libxml loads no other files or URLs, so external entities and
+external DTDs in the records are not loaded.
 
 Moved from PreProcessor\ValidateXML of t3import_export.
 
@@ -335,8 +340,10 @@ Configuration:
   used in the messages
 - `schema` (map): the XML schema, `{file: ...}` or `{url: ...}`, passed to
   the resource loader; with the default loader a path relative to the
-  working directory. A schema that cannot be loaded or is empty throws a
-  `MissingResourceException` (1646301113)
+  working directory. A schema that cannot be loaded, is empty or includes
+  a schema that cannot be loaded throws a `MissingResourceException`
+  (1646301113), a schema that is not a valid XML schema a
+  `ParseException` (1795200903)
 
 ### ValueRulesPreProcessor
 
@@ -573,16 +580,23 @@ Key in the task: `finishers`
 
 Checks after the task that an XML file, e.g. the file written by the
 target, is well-formed and, with `schema`, valid against an XML schema
-(XSD). The file is read element by element (`XMLReader`), so large files
-are not held in memory.
+(XSD). The whole file is read, element by element (`XMLReader`), so large
+files are not held in memory. A DTD in the file is not used for
+validation, and libxml loads no external entities or DTDs.
 
 The result is logged as notice: 1508914030 if the file is valid,
 1508776068 with the number of errors and the errors in the additional
 information if it is not. A file that is missing or empty is logged as
 error 1508914547. The finisher does not stop the task or change the file.
 
+The schema is loaded and checked before the file is read. Schemas it
+names in `xs:include`, `xs:import`, `xs:redefine` or `xs:override` are
+loaded with the same resource loader, relative to the location of the
+naming schema; with the default loader, absolute paths and URLs are not
+allowed.
+
 `file` must have one of the allowed file types (`FileTypePolicy`), by
-default `xml`, `schema.file` by default `xsd`. The application can pass
+default `xml`, schema files by default `xsd`. The application can pass
 other types as constructor arguments.
 
 Moved from Finisher\ValidateXML of t3import_export.
@@ -595,5 +609,6 @@ Configuration:
 - `url` (string, required unless `file`): URL of the XML file; requires a
   resource loader that supports URLs, e.g. `HttpResourceLoader`
 - `schema` (map): the XML schema, `{file: ...}` or `{url: ...}`. A schema
-  that cannot be loaded or is empty throws a `MissingResourceException`
-  (1795200901)
+  that cannot be loaded, is empty or includes a schema that cannot be
+  loaded throws a `MissingResourceException` (1795200901), a schema that
+  is not a valid XML schema a `ParseException` (1795200904)

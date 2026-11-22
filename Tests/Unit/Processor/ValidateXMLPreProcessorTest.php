@@ -17,10 +17,12 @@ namespace CPSIT\ImportExportCore\Tests\Unit\Processor;
 
 use CPSIT\ImportExportCore\Exception\InvalidConfigurationException;
 use CPSIT\ImportExportCore\Exception\MissingResourceException;
+use CPSIT\ImportExportCore\Exception\ParseException;
 use CPSIT\ImportExportCore\Processor\ValidateXMLPreProcessor;
 use CPSIT\ImportExportCore\Resource\FileResourceLoader;
 use CPSIT\ImportExportCore\Resource\FileTypePolicy;
 use CPSIT\ImportExportCore\Resource\PathResolver;
+use CPSIT\ImportExportCore\Tests\Unit\File\Fixtures\SpyStreamWrapper;
 use CPSIT\ImportExportCore\Tests\Unit\File\InMemoryResourceLoader;
 use CPSIT\ImportExportCore\Tests\Unit\Resource\TemporaryDirectoryTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -353,6 +355,105 @@ final class ValidateXMLPreProcessorTest extends TestCase
         $result = $subject->process(['uid' => 1, 'foo' => '<item><name>a</name></item>']);
 
         self::assertTrue($result[ValidateXMLPreProcessor::KEY_VALIDATION_FAILED]);
+    }
+
+    public function testLoadsIncludeRelativeToTheSchema(): void
+    {
+        $directory = $this->createTemporaryDirectory();
+        mkdir($directory . '/schemas');
+        file_put_contents($directory . '/schemas/main.xsd', '<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">'
+            . '<xs:include schemaLocation="inc.xsd"/></xs:schema>');
+        file_put_contents($directory . '/schemas/inc.xsd', self::SCHEMA);
+        $subject = new ValidateXMLPreProcessor(new FileResourceLoader(new PathResolver($directory)));
+        $subject->setConfiguration(['fields' => 'foo', 'schema' => ['file' => 'schemas/main.xsd']]);
+
+        self::assertArrayNotHasKey(
+            ValidateXMLPreProcessor::KEY_VALIDATION_FAILED,
+            $subject->process(['uid' => 1, 'foo' => '<item><title>a</title></item>'])
+        );
+        self::assertTrue($subject->process(['uid' => 2, 'foo' => '<item><name>a</name></item>'])[ValidateXMLPreProcessor::KEY_VALIDATION_FAILED]);
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function deniedIncludeProvider(): array
+    {
+        return [
+            'outside of the base directory' => ['../inc.xsd'],
+            'url' => ['http://127.0.0.1:1/inc.xsd'],
+        ];
+    }
+
+    #[DataProvider('deniedIncludeProvider')]
+    public function testThrowsExceptionForDeniedInclude(string $location): void
+    {
+        $directory = $this->createTemporaryDirectory();
+        mkdir($directory . '/base');
+        file_put_contents($directory . '/inc.xsd', self::SCHEMA);
+        file_put_contents($directory . '/base/main.xsd', '<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">'
+            . '<xs:include schemaLocation="' . $location . '"/></xs:schema>');
+        $subject = new ValidateXMLPreProcessor(new FileResourceLoader(new PathResolver($directory . '/base')));
+        $subject->setConfiguration(['fields' => 'foo', 'schema' => ['file' => 'main.xsd']]);
+
+        $this->expectException(MissingResourceException::class);
+        $this->expectExceptionCode(ValidateXMLPreProcessor::ERROR_MISSING_SCHEMA);
+        $subject->process(['uid' => 1, 'foo' => '<item/>']);
+    }
+
+    public function testRejectsIncludeOfOtherFileType(): void
+    {
+        $this->loader->set('main.xsd', '<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"><xs:include schemaLocation="inc.txt"/></xs:schema>');
+        $this->loader->set('inc.txt', self::SCHEMA);
+        $subject = $this->createSubject(['fields' => 'foo', 'schema' => ['file' => 'main.xsd']]);
+
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionCode(FileTypePolicy::ERROR_NOT_ALLOWED);
+        $subject->process(['uid' => 1, 'foo' => '<item/>']);
+    }
+
+    public function testThrowsExceptionOnceForInvalidSchema(): void
+    {
+        $this->loader->set('bad.xsd', '<notaschema/>');
+        $subject = $this->createSubject(['fields' => 'foo', 'schema' => ['file' => 'bad.xsd']]);
+
+        try {
+            $subject->process(['uid' => 1, 'foo' => '<item/>']);
+            self::fail('The schema was accepted.');
+        } catch (ParseException $exception) {
+            self::assertSame(ValidateXMLPreProcessor::ERROR_INVALID_SCHEMA, $exception->getCode());
+        }
+        self::assertSame([], $subject->getMessages());
+    }
+
+    public function testDoesNotLoadExternalEntitiesOrDtds(): void
+    {
+        SpyStreamWrapper::register();
+        try {
+            $subject = $this->createSubject(['fields' => 'foo', 'schema' => ['file' => 'schema.xsd']]);
+            $xml = '<?xml version="1.0"?><!DOCTYPE item SYSTEM "spy://item.dtd" [<!ENTITY e SYSTEM "spy://entity">]>'
+                . '<item><title>&e;</title></item>';
+
+            $subject->process(['uid' => 1, 'foo' => $xml]);
+
+            self::assertSame([], SpyStreamWrapper::$opened);
+        } finally {
+            SpyStreamWrapper::unregister();
+        }
+    }
+
+    public function testRestoresTheEntityLoader(): void
+    {
+        $loader = static fn () => null;
+        libxml_set_external_entity_loader($loader);
+        try {
+            $this->createSubject(['fields' => 'foo', 'schema' => ['file' => 'schema.xsd']])
+                ->process(['uid' => 1, 'foo' => '<item><title>a</title></item>']);
+
+            self::assertSame($loader, libxml_get_external_entity_loader());
+        } finally {
+            libxml_set_external_entity_loader(null);
+        }
     }
 
     public function testRestoresLibxmlErrorHandling(): void

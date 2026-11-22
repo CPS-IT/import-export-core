@@ -19,6 +19,7 @@ use CPSIT\ImportExportCore\Domain\Model\TaskResult;
 use CPSIT\ImportExportCore\Domain\Model\TransferTask;
 use CPSIT\ImportExportCore\Exception\InvalidConfigurationException;
 use CPSIT\ImportExportCore\Exception\MissingResourceException;
+use CPSIT\ImportExportCore\Exception\ParseException;
 use CPSIT\ImportExportCore\File\ValidateXMLFinisher;
 use CPSIT\ImportExportCore\Messaging\Message;
 use CPSIT\ImportExportCore\Pipeline\TaskContext;
@@ -28,6 +29,7 @@ use CPSIT\ImportExportCore\Resource\PathResolver;
 use CPSIT\ImportExportCore\State\Checkpoint;
 use CPSIT\ImportExportCore\State\NullCheckpointStore;
 use CPSIT\ImportExportCore\State\NullIdMap;
+use CPSIT\ImportExportCore\Tests\Unit\File\Fixtures\SpyStreamWrapper;
 use CPSIT\ImportExportCore\Tests\Unit\Resource\TemporaryDirectoryTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -196,13 +198,68 @@ final class ValidateXMLFinisherTest extends TestCase
         self::assertTrue($subject->hasMessageWithId(ValidateXMLFinisher::ERROR_EMPTY_RESOURCE));
     }
 
-    public function testLogsNoticeForInvalidSchema(): void
+    public function testThrowsExceptionForInvalidSchema(): void
     {
         $this->loader->set('schema.xsd', '<foo/>');
 
-        $subject = $this->finish(['file' => 'export.xml', 'schema' => ['file' => 'schema.xsd']]);
+        $this->expectException(ParseException::class);
+        $this->expectExceptionCode(ValidateXMLFinisher::ERROR_INVALID_SCHEMA);
 
-        self::assertTrue($subject->hasMessageWithId(ValidateXMLFinisher::NOTICE_INVALID));
+        $this->finish(['file' => 'export.xml', 'schema' => ['file' => 'schema.xsd']]);
+    }
+
+    public function testLoadsIncludeRelativeToTheSchema(): void
+    {
+        $directory = $this->createTemporaryDirectory();
+        mkdir($directory . '/schemas');
+        file_put_contents($directory . '/export.xml', self::VALID);
+        file_put_contents($directory . '/schemas/main.xsd', '<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">'
+            . '<xs:include schemaLocation="inc.xsd"/></xs:schema>');
+        file_put_contents($directory . '/schemas/inc.xsd', self::SCHEMA);
+        $subject = new ValidateXMLFinisher(new FileResourceLoader(new PathResolver($directory)));
+
+        $this->finish(['file' => 'export.xml', 'schema' => ['file' => 'schemas/main.xsd']], $subject);
+
+        self::assertTrue($subject->hasMessageWithId(ValidateXMLFinisher::NOTICE_VALID));
+    }
+
+    public function testThrowsExceptionForIncludeOutsideOfTheBaseDirectory(): void
+    {
+        $directory = $this->createTemporaryDirectory();
+        mkdir($directory . '/base');
+        file_put_contents($directory . '/inc.xsd', self::SCHEMA);
+        file_put_contents($directory . '/base/export.xml', self::VALID);
+        file_put_contents($directory . '/base/main.xsd', '<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">'
+            . '<xs:include schemaLocation="../inc.xsd"/></xs:schema>');
+        $subject = new ValidateXMLFinisher(new FileResourceLoader(new PathResolver($directory . '/base')));
+
+        $this->expectException(MissingResourceException::class);
+        $this->expectExceptionCode(ValidateXMLFinisher::ERROR_MISSING_SCHEMA);
+
+        $this->finish(['file' => 'export.xml', 'schema' => ['file' => 'main.xsd']], $subject);
+    }
+
+    public function testDoesNotLoadExternalEntitiesOrDtds(): void
+    {
+        $this->loader->set('export.xml', '<?xml version="1.0"?><!DOCTYPE items SYSTEM "spy://items.dtd" [<!ENTITY e SYSTEM "spy://entity">]>'
+            . '<items><item>&e;</item></items>');
+        SpyStreamWrapper::register();
+        try {
+            $this->finish(['file' => 'export.xml', 'schema' => ['file' => 'schema.xsd']]);
+
+            self::assertSame([], SpyStreamWrapper::$opened);
+        } finally {
+            SpyStreamWrapper::unregister();
+        }
+    }
+
+    public function testDoesNotValidateAgainstTheDtdOfTheFile(): void
+    {
+        $this->loader->set('export.xml', '<?xml version="1.0"?><!DOCTYPE a [<!ELEMENT a (b)><!ELEMENT b EMPTY>]><a><c/></a>');
+
+        $subject = $this->finish(['file' => 'export.xml']);
+
+        self::assertTrue($subject->hasMessageWithId(ValidateXMLFinisher::NOTICE_VALID));
     }
 
     public function testThrowsExceptionIfSchemaDoesNotExist(): void
