@@ -22,6 +22,9 @@ use Doctrine\DBAL\Result;
  * Behaves like the query builder of TYPO3: quotes the names given to
  * select(), from(), update(), set() and orderBy(), and adds a restriction to
  * each select query (like the default restrictions of TYPO3).
+ *
+ * It only approximates the quoting and the restrictions of the query builder
+ * of TYPO3, not its handling of aliases or named parameters.
  */
 class RestrictingQueryBuilder extends QueryBuilder
 {

@@ -20,6 +20,9 @@ a new minor version may contain breaking changes.
   `20`); string keys follow in the order of the configuration. Before, the
   keys were kept but not sorted
   ([#81](https://github.com/CPS-IT/import-export-core/issues/81))
+* The protected methods `quoteColumns()` and `types()` of `DataTargetDBAL`
+  are removed. Breaking for subclasses that call them
+  ([#98](https://github.com/CPS-IT/import-export-core/issues/98))
 
 ### Fixed
 
@@ -27,8 +30,7 @@ a new minor version may contain breaking changes.
   themselves or return their own query builder, such as the connection of
   TYPO3. Queries are built with the query builder of doctrine/dbal, and
   inserts, updates and deletes no longer use `Connection::insert()`,
-  `update()` and `delete()`. The protected methods `quoteColumns()` and
-  `types()` of `DataTargetDBAL` are removed
+  `update()` and `delete()`
   ([#98](https://github.com/CPS-IT/import-export-core/issues/98))
 
 ## 0.5.0 - 2026-11-20

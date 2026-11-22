@@ -69,7 +69,6 @@ final class DbalCheckpointStore implements CheckpointStoreInterface, TableProvid
             'updated_at' => new \DateTimeImmutable(),
         ];
         $types = [
-            'task_key' => Types::STRING,
             'batch_number' => Types::INTEGER,
             'records_processed' => Types::BIGINT,
             'source_cursor' => Types::TEXT,
