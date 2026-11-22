@@ -30,11 +30,13 @@ use CPSIT\ImportExportCore\Event\TaskStarted;
 use CPSIT\ImportExportCore\Exception\InvalidConfigurationException;
 use CPSIT\ImportExportCore\IdentifiableInterface;
 use CPSIT\ImportExportCore\LoggingInterface;
+use CPSIT\ImportExportCore\Messaging\Message;
 use CPSIT\ImportExportCore\Persistence\BatchAwareInterface;
 use CPSIT\ImportExportCore\Persistence\CompletableSourceInterface;
 use CPSIT\ImportExportCore\Persistence\DataSourceInterface;
 use CPSIT\ImportExportCore\Persistence\DataTargetInterface;
 use CPSIT\ImportExportCore\Persistence\EmptyRunAwareInterface;
+use CPSIT\ImportExportCore\Persistence\FailureAwareInterface;
 use CPSIT\ImportExportCore\Persistence\IdentifyingTargetInterface;
 use CPSIT\ImportExportCore\Persistence\ResumableSourceInterface;
 use CPSIT\ImportExportCore\Pipeline\Legacy\LegacyAdapterInterface;
@@ -86,10 +88,18 @@ use Psr\EventDispatcher\EventDispatcherInterface;
  * others), the mapping from source ID to target ID is recorded with the
  * checksum of the pre-processed record (`IdMapping::recordChecksum()`, without
  * `sourceIdField` and `targetIdField`).
+ *
+ * If an exception ends a task, sources and targets implementing
+ * `FailureAwareInterface` get `fail()` before the exception is passed on.
  */
 class DataTransferProcessor implements TransferProcessorInterface
 {
     public const int DEFAULT_BATCH_SIZE = 100;
+
+    /**
+     * Message ID: `fail()` of a source or target threw an exception.
+     */
+    public const int ERROR_FAIL_THREW = 1794800001;
 
     /**
      * Records read in advance, by task key
@@ -157,6 +167,47 @@ class DataTransferProcessor implements TransferProcessorInterface
             );
         }
 
+        try {
+            return $this->run($task, $target, $result);
+        } catch (\Throwable $error) {
+            $this->notifyFailure($task, $error, $result);
+
+            throw $error;
+        }
+    }
+
+    /**
+     * Tells the source and the target of a failed task. An exception thrown
+     * by `fail()` is added to the result as error message, so that it does
+     * not replace the exception that ended the task.
+     */
+    protected function notifyFailure(TransferTaskInterface $task, \Throwable $error, ResultInterface $result): void
+    {
+        foreach ([$task->getSource(), $task->getTarget()] as $component) {
+            if (!$component instanceof FailureAwareInterface) {
+                continue;
+            }
+            try {
+                $component->fail($error);
+            } catch (\Throwable $failError) {
+                $result->addMessages([new Message(
+                    \sprintf(
+                        '%s::fail() threw %s: %s',
+                        $component::class,
+                        $failError::class,
+                        $failError->getMessage()
+                    ),
+                    'Failure handling',
+                    Message::SEVERITY_ERROR,
+                    self::ERROR_FAIL_THREW
+                )]);
+            }
+            $this->gatherMessages($component, $result);
+        }
+    }
+
+    protected function run(TransferTaskInterface $task, DataTargetInterface $target, ResultInterface $result): ResultInterface
+    {
         $key = $this->getTaskKey($task);
         $checkpoint = $this->checkpointStore->get($key);
         $source = $task->getSource();

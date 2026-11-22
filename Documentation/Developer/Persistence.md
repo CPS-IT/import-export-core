@@ -16,6 +16,7 @@ Optional interfaces:
 |---|---|
 | `ResumableSourceInterface` | `getCursor()` returns the position after the last record yielded, `resumeFrom($cursor)` makes the next `getRecords()` start there. The processor stores the cursor in the checkpoint after each batch, see [State](State.md#checkpoints). |
 | `CompletableSourceInterface` | `complete($result)` is called after `persistAll()` of the target, before the finishers, e.g. to mark read items as done. It is not called if processing fails. |
+| `FailureAwareInterface` | `fail($error)` is called if the task fails, see [Failed tasks](#failed-tasks). |
 
 ## Data targets
 
@@ -35,6 +36,33 @@ Optional interfaces:
 | `IdentifyingTargetInterface` | `getTargetId($record)` returns the ID of a written record. Required for tasks with `idMap`, see [State](State.md#id-map). The processor asks after `flushBatch()` for batch aware targets, after `persist()` for others. |
 | `Component\DisableableInterface` | `isDisabled($configuration, $record, $result)`: the target skips the record. |
 | `EmptyRunAwareInterface` | `persistEmptyRun($result, $configuration)` is called instead of `persistAll()` if the source returned no records, e.g. to replace the output of the previous run. Not called when a run resumed from a checkpoint. `DataTargetCSV` implements it. |
+| `FailureAwareInterface` | `fail($error)` is called if the task fails, see [Failed tasks](#failed-tasks). |
+
+## Failed tasks
+
+Sources and targets implementing `Persistence\FailureAwareInterface` are told
+when a task fails:
+
+```php
+public function fail(\Throwable $error): void;
+```
+
+If an exception ends a task after it started (in an initializer, while
+reading or writing records, in `persistAll()`, `complete()` or a finisher),
+the processor calls `fail()` with this exception, first on the source, then
+on the target, and passes the exception on. Use it to undo or mark what the
+run left open, e.g. to roll back a transaction. `fail()` may be called after
+`complete()` or `persistAll()` if a finisher fails, so it should only act on
+what is still open.
+
+If `fail()` throws, the exception is added to the result as an error message
+(`DataTransferProcessor::ERROR_FAIL_THREW`), the other component is still
+told, and the exception that ended the task is passed on.
+
+| Class | `fail()` |
+|---|---|
+| `Dbal\DataTargetDBAL` | rolls back the transaction of the current batch; earlier batches stay committed |
+| `Persistence\DataSourceQueue` | marks all items claimed in the run and not finished as failed: also those not read yet and those of batches the target already committed. Enqueue them again with `$requeue = true` to process them again |
 
 ## Files
 
@@ -164,8 +192,10 @@ payload is an array, stored as JSON; the checksum is
 `QueueItem::checksum($queue, $data)`.
 
 `DataSourceQueue` claims the items it reads and marks them finished in
-`complete()`. If a task fails, its items stay in processing until
-`release()` is called.
+`complete()`. If a task fails, it marks all of them as failed in `fail()`,
+also items not read yet and items of batches the target already committed. Items
+of a run that ended without `fail()`, e.g. because the process was killed,
+stay in processing until `release()` is called.
 
 ## Database (Doctrine DBAL)
 
@@ -182,7 +212,8 @@ only suggested by the core.
   `ResumableSourceInterface`.
 * `DataTargetDBAL` inserts or updates rows (`key`) and reports their IDs
   (`idField`). It implements `BatchAwareInterface` (one transaction per
-  batch) and `IdentifyingTargetInterface`.
+  batch), `IdentifyingTargetInterface` and `FailureAwareInterface` (rolls
+  back the open transaction).
 * `RelationListPreProcessor` reads the related IDs of a record from a relation
   (MM) table.
 

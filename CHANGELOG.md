@@ -8,6 +8,12 @@ a new minor version may contain breaking changes.
 
 ### Added
 
+* `Persistence\FailureAwareInterface`: if a task fails, the processor calls
+  `fail()` on its source and target before it passes the exception on. An
+  exception thrown by `fail()` is added to the result as error message.
+  `DataTargetDBAL` rolls back the transaction of the current batch,
+  `DataSourceQueue` marks the items claimed in the run as failed
+  ([#102](https://github.com/CPS-IT/import-export-core/issues/102))
 * `Processor\ValidateXMLPreProcessor`, `Processor\XMLMapperPreProcessor`
   and `File\ValidateXMLFinisher`, moved from `ValidateXML` and `XMLMapper`
   of t3import_export. Schemas are loaded with the resource loader; their
@@ -33,6 +39,11 @@ a new minor version may contain breaking changes.
 
 ### Changed
 
+* If a task fails, `DataTargetDBAL` rolls back its open transaction and
+  `DataSourceQueue` marks its claimed items as failed instead of leaving them
+  in processing. Breaking for applications that roll back the connection
+  themselves or release the items
+  ([#102](https://github.com/CPS-IT/import-export-core/issues/102))
 * Components of a task run in the order of their integer keys (`10`, `15`,
   `20`); string keys follow in the order of the configuration. Before, the
   keys were kept but not sorted

@@ -20,6 +20,7 @@ use CPSIT\ImportExportCore\ConfigurableTrait;
 use CPSIT\ImportExportCore\Domain\Model\ResultInterface;
 use CPSIT\ImportExportCore\Persistence\BatchAwareInterface;
 use CPSIT\ImportExportCore\Persistence\DataTargetInterface;
+use CPSIT\ImportExportCore\Persistence\FailureAwareInterface;
 use CPSIT\ImportExportCore\Persistence\IdentifyingTargetInterface;
 use Doctrine\DBAL\Connection;
 
@@ -33,8 +34,8 @@ use Doctrine\DBAL\Connection;
  * is inserted, e.g. a new record after `TargetIdPreProcessor`.
  *
  * Each batch is written in one transaction, committed in `flushBatch()`. If a
- * task fails, the rows of the current batch are not committed, and a resumed
- * run continues after the last committed batch.
+ * task fails, the transaction of the current batch is rolled back in
+ * `fail()`, and a resumed run continues after the last committed batch.
  *
  * Configuration:
  *
@@ -48,7 +49,7 @@ use Doctrine\DBAL\Connection;
  *   existing row on update, or from the generated ID after an insert. Set it
  *   to '' for tables without such a column; the target reports no IDs then.
  */
-class DataTargetDBAL implements DataTargetInterface, ConfigurableInterface, BatchAwareInterface, IdentifyingTargetInterface
+class DataTargetDBAL implements DataTargetInterface, ConfigurableInterface, BatchAwareInterface, IdentifyingTargetInterface, FailureAwareInterface
 {
     use ConfigurableTrait;
 
@@ -170,6 +171,32 @@ class DataTargetDBAL implements DataTargetInterface, ConfigurableInterface, Batc
     }
 
     /**
+     * Rolls back the rows written since the last batch. All open transactions
+     * are rolled back, also if one rollback throws; the first exception is
+     * thrown afterwards.
+     */
+    public function fail(\Throwable $error): void
+    {
+        $transactions = $this->transactions;
+        $this->transactions = [];
+        $this->written = [];
+        $this->batchFlushed = false;
+        $rollbackError = null;
+        foreach ($transactions as $connection) {
+            try {
+                if ($connection->isTransactionActive()) {
+                    $connection->rollBack();
+                }
+            } catch (\Throwable $exception) {
+                $rollbackError ??= $exception;
+            }
+        }
+        if ($rollbackError !== null) {
+            throw $rollbackError;
+        }
+    }
+
+    /**
      * Returns the ID of a record of the current batch.
      */
     public function getTargetId(array|object $record): string
@@ -188,12 +215,17 @@ class DataTargetDBAL implements DataTargetInterface, ConfigurableInterface, Batc
         throw new \LogicException('The record was not written in the current batch.', 1794700024);
     }
 
+    /**
+     * Each connection is forgotten before its commit: after a failed commit,
+     * DBAL has closed the transaction of the batch, and a later `fail()` must
+     * not roll back an outer transaction of the connection.
+     */
     protected function commit(): void
     {
-        foreach ($this->transactions as $connection) {
+        foreach ($this->transactions as $name => $connection) {
+            unset($this->transactions[$name]);
             $connection->commit();
         }
-        $this->transactions = [];
     }
 
     /**
