@@ -32,6 +32,8 @@ use CPSIT\ImportExportCore\Queue\QueueRepositoryInterface;
  * processing with the claim of the run are marked as finished or failed; items
  * released and claimed again, finished or failed in the meantime are left as
  * they are, and items that no longer exist are skipped without an exception.
+ * An item released or enqueued again with `requeue` while the run processes
+ * it stays new and is processed again by a later run.
  *
  * Configuration:
  *

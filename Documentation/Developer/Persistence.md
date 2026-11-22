@@ -207,7 +207,9 @@ also items not read yet and items of batches the target already committed.
 If the repository implements `ClaimAwareQueueRepositoryInterface`, both
 change only items still claimed by the run: items released and claimed again
 by another run, or finished or failed in the meantime, are not changed, and
-items that no longer exist are skipped without an exception. Items of a run
+items that no longer exist are skipped without an exception. An item released
+or enqueued again with `$requeue = true` while the run processes it stays new
+and is processed again by a later run. Items of a run
 that ended without `fail()`, e.g. because the process was killed, stay in
 processing until `release()` is called.
 
