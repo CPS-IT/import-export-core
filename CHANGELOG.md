@@ -4,7 +4,7 @@ All notable changes to this project are documented in this file. The project
 follows [Semantic Versioning](https://semver.org/). While the version is `0.x`,
 a new minor version may contain breaking changes.
 
-## Unreleased
+## 0.7.0 - 2026-11-23
 
 ### Added
 
@@ -53,6 +53,18 @@ a new minor version may contain breaking changes.
   schemas, e.g. created by `ContainerInstantiator`, records could be
   validated against the schema of the other clone. Each clone now copies the
   schema ([#119](https://github.com/CPS-IT/import-export-core/issues/119))
+
+### Security
+
+* `HttpResourceLoader` follows redirects itself and checks the target of each
+  redirect like the original URL (`http` or `https`, allowed host). A
+  redirect to a host that is not allowed throws `ERROR_HOST_NOT_ALLOWED`;
+  redirects to other allowed hosts are followed. A redirect from `https` to
+  `http` is not followed. The PSR-18 client must not follow redirects itself
+  (Guzzle's `sendRequest()` does not; configure Symfony's `Psr18Client` with
+  `max_redirects: 0`)
+
+## 0.6.2 - 2026-11-23
 
 ### Security
 
