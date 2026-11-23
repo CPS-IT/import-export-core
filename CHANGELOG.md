@@ -4,7 +4,7 @@ All notable changes to this project are documented in this file. The project
 follows [Semantic Versioning](https://semver.org/). While the version is `0.x`,
 a new minor version may contain breaking changes.
 
-## Unreleased
+## 0.6.2 - 2026-11-23
 
 ### Security
 
