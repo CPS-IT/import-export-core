@@ -107,7 +107,8 @@ Example: `[BUGFIX] Keep numeric keys when parsing YAML configuration`
   patch versions do not.
 * The package is published on Packagist; new tags are picked up automatically.
 * Release steps:
-  1. Update `CHANGELOG.md` and, if needed, the branch alias in
+  1. Update `CHANGELOG.md`, the heading of the `Unreleased` section in
+     `UPGRADE.md` (if there is one) and, if needed, the branch alias in
      `composer.json` in a feature branch and merge it through a pull request
      (commit tag `[RELEASE]`).
   2. Tag the merge commit on `main` or on the support branch.
