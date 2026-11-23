@@ -13,7 +13,7 @@ Each entry contains:
 
 [CHANGELOG.md](CHANGELOG.md) lists all changes, including non-breaking ones.
 
-## Unreleased
+## 0.7.0
 
 ### Failed tasks tell the target before the source
 
