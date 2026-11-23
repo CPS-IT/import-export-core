@@ -54,6 +54,16 @@ a new minor version may contain breaking changes.
   validated against the schema of the other clone. Each clone now copies the
   schema ([#119](https://github.com/CPS-IT/import-export-core/issues/119))
 
+### Security
+
+* `HttpResourceLoader` follows redirects itself and checks the target of each
+  redirect like the original URL (`http` or `https`, allowed host). A
+  redirect to a host that is not allowed throws `ERROR_HOST_NOT_ALLOWED`;
+  redirects to other allowed hosts are followed. A redirect from `https` to
+  `http` is not followed. The PSR-18 client must not follow redirects itself
+  (Guzzle's `sendRequest()` does not; configure Symfony's `Psr18Client` with
+  `max_redirects: 0`)
+
 ## 0.6.1 - 2026-11-22
 
 ### Fixed
